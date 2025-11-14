@@ -1,26 +1,44 @@
-const express = require('express');
-const mongoose = require('mongoose');
-const dotenv = require('dotenv');
-const cors = require('cors');
+// backend/index.js
+const http = require("http");
+const app = require("./src/app");
+const { loadEnv } = require("./src/config/env");
+const { connectDB } = require("./src/config/db");
+const { logger } = require("./src/utils/logger");
 
-dotenv.config();
+// Load environment variables
+loadEnv();
 
-const app = express();
-
-// Middleware
-app.use(cors());
-app.use(express.json());
-
-// MongoDB connection
-mongoose.connect(process.env.MONGO_URI)
-  .then(() => console.log('✅ MongoDB connected successfully'))
-  .catch(err => console.error('❌ MongoDB connection error:', err));
-
-// Routes
-app.get('/', (req, res) => {
-  res.send('Backend is running!');
-});
-
-// Start server
+// PORT fallback: if 5000 is busy -> use next available port
 const PORT = process.env.PORT || 5000;
-app.listen(PORT, () => console.log(`🚀 Server running on port ${PORT}`));
+
+async function startServer() {
+  try {
+    // Connect to MongoDB
+    await connectDB();
+
+    const server = http.createServer(app);
+
+    server.listen(PORT, () => {
+      logger.info(`🚀 Backend running on http://localhost:${PORT}`);
+    });
+
+    // Handle port already in use
+    server.on("error", (err) => {
+      if (err.code === "EADDRINUSE") {
+        logger.error(`❌ PORT ${PORT} is already in use!`);
+        logger.error(
+          "➡ Try closing the existing process or change PORT in .env"
+        );
+        process.exit(1);
+      } else {
+        throw err;
+      }
+    });
+  } catch (err) {
+    logger.error("❌ Server startup failed:");
+    logger.error(err.message);
+    process.exit(1);
+  }
+}
+
+startServer();
