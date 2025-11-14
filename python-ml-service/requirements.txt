@@ -1,0 +1,17 @@
+fastapi
+uvicorn
+pydantic
+tensorflow
+mediapipe
+opencv-python
+Pillow
+numpy
+
+# For later (when you plug in real logic):
+
+# sentence-transformers
+# langchain
+# langchain-community
+# langchain-chroma
+# langchain-huggingface
+# langchain-groq
