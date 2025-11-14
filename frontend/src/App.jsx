@@ -11,7 +11,7 @@ function App() {
     <div>
      
         <p className="text-2xl font-semibold text-blue-600">
-        Tailwind CSS is working! 🎉
+        Tailwind CSS is working! heloo world 🎉
       </p>
     </div>
   )
