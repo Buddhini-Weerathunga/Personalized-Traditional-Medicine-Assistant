@@ -4,6 +4,7 @@ const app = require("./src/app");
 const { loadEnv } = require("./src/config/env");
 const { connectDB } = require("./src/config/db");
 const { logger } = require("./src/utils/logger");
+const axios = require("axios");
 
 // Load environment variables
 loadEnv();
