@@ -48,14 +48,14 @@ export default function Navbar() {
             Prakriti Analysis
           </NavLink>
           <NavLink
-            to="/remedies"
+            to="/prescription"
             className={({ isActive }) =>
               [navLinkBase, isActive ? navLinkActive : navLinkInactive].join(
                 " "
               )
             }
           >
-            Remedies
+            Prescription
           </NavLink>
           <NavLink
             to="/about"
