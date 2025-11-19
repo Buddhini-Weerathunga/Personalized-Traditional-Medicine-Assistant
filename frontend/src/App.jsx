@@ -14,7 +14,7 @@ import PrakritiResultPage from "./pages/PrakritiResultPage";
 import ShareResultsPage from "./pages/ShareResultsPage";
 
 // Simple placeholders for menu items
-import RemediesPage from "./pages/RemediesPage";
+import PrescriptionPage from "./pages/PrescriptionPage";
 import AboutPage from "./pages/AboutPage";
 
 function App() {
@@ -43,7 +43,7 @@ function App() {
           <Route path="/prakriti/share" element={<ShareResultsPage />} />
 
           {/* Navbar menu items */}
-          <Route path="/remedies" element={<RemediesPage />} />
+          <Route path="/prescription" element={<PrescriptionPage />} />
           <Route path="/about" element={<AboutPage />} />
         </Routes>
       </main>
