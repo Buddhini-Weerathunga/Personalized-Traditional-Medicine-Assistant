@@ -1,54 +1,46 @@
 # python-ml-service/app.py
+
 from fastapi import FastAPI
 from pydantic import BaseModel
-import base64
+from typing import Optional
 
-from utils.facial_analysis import analyze_image_rule_based
-from models.prakriti_model import load_model, predict_dosha
+from models.tabular_dosha_model import predict_from_features
 
-app = FastAPI(title="Ayurveda Prakriti ML Service")
-
-# Load model once at startup (stub or real)
-model = load_model()
+app = FastAPI(title="Ayurveda Prakriti ML Service (Tabular Only)")
 
 
-class AnalyzeRequest(BaseModel):
-    image_base64: str
+# --------- Pydantic models ---------
 
+class FeatureRequest(BaseModel):
+    # Must match the features in train_dosha_tabular_model.py
+    Age: Optional[int] = None
+    Gender: Optional[str] = None
+    Face_Shape: Optional[str] = None
+    Face_Width_Ratio: Optional[float] = None
+    Jaw_Width_Ratio: Optional[float] = None
+    Forehead_Height_Ratio: Optional[float] = None
+    Eye_Size: Optional[str] = None
+    Skin_Type: Optional[str] = None
+    Body_Frame: Optional[str] = None
+    Body_Weight: Optional[float] = None
+    Sleep_Pattern: Optional[str] = None
+    Activity_Level: Optional[str] = None
+    Diet_Type: Optional[str] = None
+    Stress_Level: Optional[str] = None
+
+
+# --------- Routes ---------
 
 @app.get("/health")
-def health_check():
-    return {"status": "ok", "service": "python-ml-service"}
+def health():
+    return {"status": "ok", "service": "tabular_dosha_model"}
 
 
-@app.post("/analyze")
-def analyze(req: AnalyzeRequest):
+@app.post("/analyze-features")
+def analyze_features(req: FeatureRequest):
     """
-    Expects JSON:
-    {
-      "image_base64": "<base64 string>"
-    }
+    Analyze dosha from tabular features (no image).
     """
-    try:
-        image_bytes = base64.b64decode(req.image_base64)
-    except Exception:
-        return {"error": "Invalid base64 image data"}
-
-    # Rule-based analysis (placeholder logic)
-    rule_based_result = analyze_image_rule_based(image_bytes)
-
-    # Model-based analysis (placeholder logic)
-    model_based_result = predict_dosha(image_bytes, model=model)
-
-    # Decide dominant dosha
-    dominant = (
-        rule_based_result.get("dominant_dosha")
-        or model_based_result.get("dominant_dosha")
-        or "Unknown"
-    )
-
-    return {
-        "dominant_dosha": dominant,
-        "rule_based": rule_based_result,
-        "model_based": model_based_result,
-    }
+    payload = req.dict()
+    result = predict_from_features(payload)
+    return result
