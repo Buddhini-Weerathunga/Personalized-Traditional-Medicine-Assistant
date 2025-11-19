@@ -70,21 +70,20 @@ export default function HomePage() {
             <div className="bg-[#fdf7ef] rounded-2xl shadow-md border border-[#e0cfba] p-4 flex flex-col justify-between">
               <div>
                 <div className="w-10 h-10 rounded-xl bg-[#e1f0df] flex items-center justify-center mb-3">
-                  <span className="text-xl">🌿</span>
+                  <span className="text-xl">💊</span>
                 </div>
                 <h2 className="font-semibold text-[#3e2b20] mb-1">
-                  Herbal Remedies
+                  Prescription
                 </h2>
                 <p className="text-sm text-[#8b6b4b] mb-3">
-                  Explore traditional Ayurvedic herbs and treatments for common
-                  wellness concerns.
+                  View and manage your medical prescriptions and recommended treatments.
                 </p>
               </div>
               <button
-                onClick={() => navigate("/remedies")}
+                onClick={() => navigate("/prescription")}
                 className="mt-2 inline-flex justify-center items-center px-4 py-2 text-sm font-semibold rounded-full bg-[#3f6b4a] text-[#fdf7ef] hover:bg-[#30553a] transition-colors"
               >
-                Explore Remedies
+                Explore Prescription
               </button>
             </div>
           </div>
