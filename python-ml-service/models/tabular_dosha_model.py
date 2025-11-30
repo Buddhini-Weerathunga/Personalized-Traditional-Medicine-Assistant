@@ -1,55 +1,53 @@
 # python-ml-service/models/tabular_dosha_model.py
 
+import os
 import joblib
+import numpy as np
 import pandas as pd
-from typing import Dict, Any
 
-_MODEL_BUNDLE = None
-MODEL_PATH = "models/dosha_tabular_model.pkl"
+BASE_DIR = os.path.dirname(os.path.dirname(__file__))
+MODEL_PATH = os.path.join(BASE_DIR, "models", "dosha_tabular_model.pkl")
+
+# Load bundle: model + dummy columns + original feature columns
+_bundle = joblib.load(MODEL_PATH)
+
+_model = _bundle["model"]
+_dummy_cols = _bundle["dummy_cols"]
+_feature_cols = _bundle["feature_cols"]
+
+# We know from training which were numeric originally
+_NUMERIC_COLS = [
+    "Age",
+    "Face_Width_Ratio",
+    "Jaw_Width_Ratio",
+    "Forehead_Height_Ratio",
+    "Body_Weight",
+]
 
 
-def load_tabular_model():
-    """
-    Lazy-load the trained tabular dosha model bundle.
-    Bundle structure:
-      - "pipeline": sklearn Pipeline (preprocessor + RandomForest)
-      - "feature_cols": list of feature names in correct order
-    """
-    global _MODEL_BUNDLE
-    if _MODEL_BUNDLE is None:
-        _MODEL_BUNDLE = joblib.load(MODEL_PATH)
-    return _MODEL_BUNDLE
+def predict_from_features(feature_dict: dict):
+    # 1) Build single-row DataFrame with original feature names
+    row = {col: feature_dict.get(col) for col in _feature_cols}
+    X = pd.DataFrame([row])
 
+    # 2) Ensure numeric columns are numeric (coerce bad values to NaN)
+    for col in _NUMERIC_COLS:
+        if col in X.columns:
+            X[col] = pd.to_numeric(X[col], errors="coerce")
 
-def predict_from_features(payload: Dict[str, Any]) -> Dict[str, Any]:
-    """
-    payload: dict coming from API request.
-    Keys must contain the feature columns used in training.
+    # 3) One-hot encode with the same logic as training
+    X_enc = pd.get_dummies(X, drop_first=False)
 
-    Returns dict:
-      {
-        "dominant_dosha": "...",
-        "probabilities": { "Vata": ..., "Pitta": ..., "Kapha": ... },
-        "used_features": [...]
-      }
-    """
-    bundle = load_tabular_model()
-    pipeline = bundle["pipeline"]
-    feature_cols = bundle["feature_cols"]
+    # 4) Reindex to training dummy columns (missing → 0)
+    X_enc = X_enc.reindex(columns=_dummy_cols, fill_value=0)
 
-    # Make sure data goes in with correct columns & order
-    row = {col: payload.get(col) for col in feature_cols}
-    df = pd.DataFrame([row])
+    # 5) Predict probabilities
+    probs = _model.predict_proba(X_enc)[0]
+    classes = _model.classes_
 
-    # Predict class and probabilities
-    proba = pipeline.predict_proba(df)[0]
-    pred = pipeline.predict(df)[0]
-    classes = pipeline.classes_
+    top_idx = int(np.argmax(probs))
+    dominant = str(classes[top_idx])
 
-    prob_dict = {str(classes[i]): float(proba[i]) for i in range(len(classes))}
+    prob_map = {str(label): float(p) for label, p in zip(classes, probs)}
 
-    return {
-        "dominant_dosha": str(pred),
-        "probabilities": prob_dict,
-        "used_features": feature_cols,
-    }
+    return dominant, prob_map

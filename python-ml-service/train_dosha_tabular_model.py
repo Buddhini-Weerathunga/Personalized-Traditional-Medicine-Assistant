@@ -5,91 +5,59 @@ import joblib
 import pandas as pd
 
 from sklearn.model_selection import train_test_split
-from sklearn.preprocessing import OneHotEncoder
-from sklearn.compose import ColumnTransformer
-from sklearn.pipeline import Pipeline
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.metrics import accuracy_score, classification_report
 
-# ---- PATHS ----
-DATA_PATH = "data/AI_Dosha_Unified_Dataset_1000rows.csv"
-MODEL_OUTPUT_PATH = "models/dosha_tabular_model.pkl"
+BASE_DIR = os.path.dirname(os.path.abspath(__file__))
+
+DATA_PATH = os.path.join(BASE_DIR, "data", "AI_Dosha_Unified_Dataset_1000rows.csv")
+MODEL_OUTPUT_PATH = os.path.join(BASE_DIR, "models", "dosha_tabular_model.pkl")
+
+FEATURE_COLS = [
+    "Age",
+    "Gender",
+    "Face_Shape",
+    "Face_Width_Ratio",
+    "Jaw_Width_Ratio",
+    "Forehead_Height_Ratio",
+    "Eye_Size",
+    "Skin_Type",
+    "Body_Frame",
+    "Body_Weight",
+    "Sleep_Pattern",
+    "Activity_Level",
+    "Diet_Type",
+    "Stress_Level",
+]
+
+TARGET_COL = "Dominant_Dosha"
 
 
 def main():
-    # 1) Load the dataset
     print(f"[INFO] Loading dataset from: {DATA_PATH}")
     df = pd.read_csv(DATA_PATH)
 
-    # 2) Target and features
-    target_col = "Dominant_Dosha"   # <--- make sure this column exists in your CSV
+    X = df[FEATURE_COLS]
+    y = df[TARGET_COL]
 
-    # IMPORTANT:
-    # These names MUST match columns in your CSV exactly.
-    # If some names differ, change them here.
-    feature_cols = [
-        "Age",
-        "Gender",
-        "Face_Shape",
-        "Face_Width_Ratio",
-        "Jaw_Width_Ratio",
-        "Forehead_Height_Ratio",
-        "Eye_Size",
-        "Skin_Type",
-        "Body_Frame",
-        "Body_Weight",
-        "Sleep_Pattern",
-        "Activity_Level",
-        "Diet_Type",
-        "Stress_Level",
-    ]
+    # One-hot encode all categorical columns into numeric dummies
+    print("[INFO] Encoding categorical features with pandas.get_dummies...")
+    X_enc = pd.get_dummies(X, drop_first=False)
+    dummy_cols = list(X_enc.columns)
 
-    print("[INFO] Using feature columns:", feature_cols)
-
-    # Subset dataframe
-    X = df[feature_cols].copy()
-    y = df[target_col].copy()
-
-    # 3) Train / test split
+    # Train/test split
     X_train, X_test, y_train, y_test = train_test_split(
-        X,
-        y,
-        test_size=0.2,
+        X_enc, y, test_size=0.2, random_state=42, stratify=y
+    )
+
+    print("[INFO] Training RandomForest model...")
+    clf = RandomForestClassifier(
+        n_estimators=200,
         random_state=42,
-        stratify=y,
+        n_jobs=-1,
     )
-
-    # 4) Setup preprocessing
-    categorical_cols = X.select_dtypes(include=["object"]).columns.tolist()
-    numeric_cols = X.select_dtypes(exclude=["object"]).columns.tolist()
-
-    print("[INFO] Categorical columns:", categorical_cols)
-    print("[INFO] Numeric columns:", numeric_cols)
-
-    preprocessor = ColumnTransformer(
-        transformers=[
-            ("cat", OneHotEncoder(handle_unknown="ignore"), categorical_cols),
-            ("num", "passthrough", numeric_cols),
-        ]
-    )
-
-    # 5) Model
-    model = RandomForestClassifier(
-        n_estimators=300,
-        random_state=42,
-        class_weight="balanced",
-    )
-
-    clf = Pipeline(steps=[
-        ("preprocessor", preprocessor),
-        ("model", model),
-    ])
-
-    # 6) Train
-    print("[INFO] Training model...")
     clf.fit(X_train, y_train)
 
-    # 7) Evaluate
     print("[INFO] Evaluating model...")
     y_pred = clf.predict(X_test)
     acc = accuracy_score(y_test, y_pred)
@@ -97,12 +65,13 @@ def main():
     print("[RESULT] Classification report:")
     print(classification_report(y_test, y_pred))
 
-    # 8) Save model bundle
-    os.makedirs("models", exist_ok=True)
-
+    # Save bundle: model + dummy column list + original feature names
+    os.makedirs(os.path.join(BASE_DIR, "models"), exist_ok=True)
     bundle = {
-        "pipeline": clf,
-        "feature_cols": feature_cols,
+        "model": clf,
+        "dummy_cols": dummy_cols,
+        "feature_cols": FEATURE_COLS,
+        "target_col": TARGET_COL,
     }
 
     joblib.dump(bundle, MODEL_OUTPUT_PATH)
