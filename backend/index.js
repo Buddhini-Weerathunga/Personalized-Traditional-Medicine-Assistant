@@ -1,4 +1,8 @@
 // backend/index.js
+// Load environment variables FIRST
+require("dotenv").config();
+
+
 const http = require("http");
 const app = require("./src/app");
 const { loadEnv } = require("./src/config/env");
