@@ -2,6 +2,10 @@
 const PrakritiReport = require("../models/PrakritiReport");
 const { analyzePrakriti } = require("../services/pythonService");
 
+/**
+ * POST /api/prakriti/analyze
+ * Body: { imageBase64: string, meta?: object }
+ */
 async function analyze(req, res, next) {
   try {
     const { imageBase64, meta } = req.body;
@@ -11,16 +15,27 @@ async function analyze(req, res, next) {
       throw new Error("imageBase64 is required");
     }
 
-    // Call python ML service
+    // Call Python ML service
     const mlResult = await analyzePrakriti(imageBase64);
 
-    const dominant = mlResult.dominant_dosha || mlResult.dosha || "Unknown";
+    // Derive dominant dosha from python result
+    let dominantDosha = "Unknown";
+    if (mlResult && mlResult.dominant_dosha) {
+      const d = mlResult.dominant_dosha.toLowerCase();
+      if (d.includes("vata")) dominantDosha = "Vata";
+      else if (d.includes("pitta")) dominantDosha = "Pitta";
+      else if (d.includes("kapha")) dominantDosha = "Kapha";
+      else if (d.includes("mixed")) dominantDosha = "Mixed";
+    }
+
+    const userId = req.user ? req.user._id : null;
 
     const report = await PrakritiReport.create({
-      user: req.user ? req.user._id : null,
-      dominantDosha: dominant,
-      ruleBasedResult: mlResult.rule_based || mlResult,
-      modelBasedResult: mlResult.model_based || null,
+      user: userId,
+      dominantDosha,
+      ruleBasedResult: mlResult.rule_based || mlResult.rule_based_result || {},
+      modelBasedResult:
+        mlResult.model_based || mlResult.model_based_result || {},
       meta: meta || {},
     });
 
