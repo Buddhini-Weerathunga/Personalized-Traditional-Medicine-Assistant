@@ -1,9 +1,16 @@
 // src/api/axios.js
 import axios from "axios";
 
-const api = axios.create({
-    baseURL: "http://localhost:5000/api",
-    withCredentials: true, // IMPORTANT for HttpOnly cookie refresh token
+const API = axios.create({
+  baseURL: "http://localhost:5000/api",
+  withCredentials: true, // keep refresh token cookie
 });
 
-export default api;
+// attach access token automatically
+API.interceptors.request.use((config) => {
+  const token = localStorage.getItem("accessToken");
+  if (token) config.headers.Authorization = `Bearer ${token}`;
+  return config;
+});
+
+export default API;

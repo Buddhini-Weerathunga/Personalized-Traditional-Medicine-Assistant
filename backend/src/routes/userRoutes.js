@@ -1,10 +1,9 @@
-// src/routes/userRoutes.js
 const express = require("express");
 const router = express.Router();
-const { getProfile } = require("../controllers/userController");
 const authMiddleware = require("../middleware/authMiddleware");
+const { getProfile } = require("../controllers/userController");
 
-// Protected routes
+// Protected dashboard / profile route
 router.get("/profile", authMiddleware, getProfile);
 
 module.exports = router;
