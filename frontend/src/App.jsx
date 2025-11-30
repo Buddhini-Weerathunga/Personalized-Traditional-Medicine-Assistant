@@ -1,20 +1,21 @@
-import { useState } from 'react'
-import reactLogo from './assets/react.svg'
-
-import viteLogo from '/vite.svg'
-import './App.css'
+import { BrowserRouter as Router, Routes, Route } from "react-router-dom";
+import Login from "./pages/login.jsx";
+import Register from "./pages/register.jsx";
+import HomePage from "./pages/home.jsx";
+import Dashboard from "./pages/Dashboard.jsx";
 
 function App() {
-  const [count, setCount] = useState(0)
-
   return (
-    <div>
-     
-        <p className="text-2xl font-semibold text-blue-600">
-        Tailwind CSS is working! 🎉
-      </p>
-    </div>
-  )
+    <Router>
+      <Routes>
+         <Route path="/" element={<HomePage />} />
+        <Route path="/login" element={<Login />} />
+        <Route path="/register" element={<Register />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+
+      </Routes>
+    </Router>
+  );
 }
 
-export default App
+export default App;
