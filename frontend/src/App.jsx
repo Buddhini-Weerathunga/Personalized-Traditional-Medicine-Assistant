@@ -2,20 +2,21 @@
 import { Routes, Route } from "react-router-dom";
 import Navbar from "./components/layout/Navbar";
 
-// Pages
-import HomePage from "./pages/HomePage";
-import ChatbotPage from "./pages/ChatbotPage";
-import CaptureFacePage from "./pages/CaptureFacePage";
-import CaptureEyesPage from "./pages/CaptureEyesPage";
-import CaptureMouthPage from "./pages/CaptureMouthPage";
-import CaptureSkinPage from "./pages/CaptureSkinPage";
-import CaptureProfilePage from "./pages/CaptureProfilePage";
-import PrakritiResultPage from "./pages/PrakritiResultPage";
-import ShareResultsPage from "./pages/ShareResultsPage";
+// ✅ Dosha Diagnosis pages (your component)
+import HomePage from "./dosha-diagnosis/home/HomePage.jsx";
+import ChatbotPage from "./dosha-diagnosis/chat/ChatbotPage.jsx";
 
-// Simple placeholders for menu items
-import PrescriptionPage from "./pages/PrescriptionPage";
-import AboutPage from "./pages/AboutPage";
+import PrakritiAnalysisPage from "./dosha-diagnosis/prakriti-analysis/PrakritiAnalysisPage.jsx";
+import CaptureFacePage from "./dosha-diagnosis/prakriti-analysis/CaptureFacePage.jsx";
+import CaptureEyesPage from "./dosha-diagnosis/prakriti-analysis/CaptureEyesPage.jsx";
+import CaptureMouthPage from "./dosha-diagnosis/prakriti-analysis/CaptureMouthPage.jsx";
+import CaptureSkinPage from "./dosha-diagnosis/prakriti-analysis/CaptureSkinPage.jsx";
+import CaptureProfilePage from "./dosha-diagnosis/prakriti-analysis/CaptureProfilePage.jsx";
+import PrakritiResultPage from "./dosha-diagnosis/prakriti-analysis/PrakritiResultPage.jsx";
+import ShareResultsPage from "./dosha-diagnosis/prakriti-analysis/ShareResultsPage.jsx";
+
+import PrescriptionPage from "./dosha-diagnosis/prescription/PrescriptionPage.jsx";
+import AboutPage from "./dosha-diagnosis/about/AboutPage.jsx";
 
 function App() {
   return (
@@ -23,26 +24,29 @@ function App() {
       <Navbar />
       <main className="max-w-6xl mx-auto px-4 py-6">
         <Routes>
+          {/* Home */}
           <Route path="/" element={<HomePage />} />
-          <Route path="/chat" element={<ChatbotPage />} />
 
-          {/* Prakriti / capture flow */}
-          <Route path="/prakriti/capture/face" element={<CaptureFacePage />} />
-          <Route path="/prakriti/capture/eyes" element={<CaptureEyesPage />} />
-          <Route
-            path="/prakriti/capture/mouth"
-            element={<CaptureMouthPage />}
-          />
-          <Route path="/prakriti/capture/skin" element={<CaptureSkinPage />} />
-          <Route
-            path="/prakriti/capture/profile"
-            element={<CaptureProfilePage />}
-          />
+          {/* Prakriti analysis main – start with face capture */}
+          <Route path="/prakriti" element={<CaptureFacePage />} />
 
+          {/* Capture steps */}
+          <Route path="/prakriti/face" element={<CaptureFacePage />} />
+          <Route path="/prakriti/eyes" element={<CaptureEyesPage />} />
+          <Route path="/prakriti/mouth" element={<CaptureMouthPage />} />
+          <Route path="/prakriti/skin" element={<CaptureSkinPage />} />
+          <Route path="/prakriti/profile" element={<CaptureProfilePage />} /> 
+
+          {/* After all captures → questionnaire form */}
+          <Route path="/prakriti/form" element={<PrakritiAnalysisPage />} />
+
+          {/* Results & sharing */}
           <Route path="/prakriti/results" element={<PrakritiResultPage />} />
           <Route path="/prakriti/share" element={<ShareResultsPage />} />
 
-          {/* Navbar menu items */}
+
+          {/* Other menu pages */}
+          <Route path="/chat" element={<ChatbotPage />} />
           <Route path="/prescription" element={<PrescriptionPage />} />
           <Route path="/about" element={<AboutPage />} />
         </Routes>
