@@ -3,12 +3,12 @@ const express = require("express");
 const cors = require("cors");
 const morgan = require("morgan");
 
-const { notFound, errorHandler } = require("./middleware/errorHandler");
+const {notFound,errorHandler,} = require("./dosha-diagnosis/middleware/errorHandler");
 
-// Routes
-const authRoutes = require("./routes/auth.routes");
-const chatRoutes = require("./routes/chat.routes");
-const prakritiRoutes = require("./routes/prakriti.routes");
+// ✅ Correct route paths
+const authRoutes = require("./dosha-diagnosis/routes/auth.routes");
+const chatRoutes = require("./dosha-diagnosis/routes/chat.routes");
+const prakritiRoutes = require("./dosha-diagnosis/routes/prakriti.routes");
 
 const app = express();
 
