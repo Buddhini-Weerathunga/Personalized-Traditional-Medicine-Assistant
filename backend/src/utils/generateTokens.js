@@ -1,14 +1,9 @@
-const jwt = require('jsonwebtoken');
+// generateToken.js
+const crypto = require("crypto");
 
-
-function generateAccessToken(payload, secret, expiresIn) {
-return jwt.sign(payload, secret, { expiresIn });
+function generateSecret() {
+  return crypto.randomBytes(64).toString("hex");
 }
 
-
-function generateRefreshToken(payload, secret, expiresIn) {
-return jwt.sign(payload, secret, { expiresIn });
-}
-
-
-module.exports = { generateAccessToken, generateRefreshToken };
+console.log("\nYour JWT Secret:\n");
+console.log(generateSecret());
