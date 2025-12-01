@@ -16,65 +16,57 @@ export default function Navbar() {
             <span className="text-[#fdf7ef] text-xl font-semibold">ॐ</span>
           </div>
           <div className="flex flex-col leading-tight">
-            <span className="font-semibold text-[#3e2b20]">
-              AyuCeylon Assistant
+            <span className="text-sm font-semibold text-[#3e2b20]">
+              Dosha Diagnosis
             </span>
-            <span className="text-xs text-[#8b6b4b]">
-              Ancient wisdom · Modern care
+            <span className="text-xs text-[#8b5d33]">
+              AI-Powered Prakriti Analysis
             </span>
           </div>
         </Link>
 
-        {/* Nav links */}
-        <nav className="flex items-center gap-2 text-sm">
+        {/* Nav links only for your component */}
+        <nav className="flex items-center gap-2">
           <NavLink
             to="/"
             className={({ isActive }) =>
-              [navLinkBase, isActive ? navLinkActive : navLinkInactive].join(
-                " "
-              )
+              [navLinkBase, isActive ? navLinkActive : navLinkInactive].join(" ")
             }
           >
             Home
           </NavLink>
+
           <NavLink
-            to="/prakriti/capture/face"
+            to="/prakriti"
             className={({ isActive }) =>
-              [navLinkBase, isActive ? navLinkActive : navLinkInactive].join(
-                " "
-              )
+              [navLinkBase, isActive ? navLinkActive : navLinkInactive].join(" ")
             }
           >
             Prakriti Analysis
           </NavLink>
+
           <NavLink
             to="/prescription"
             className={({ isActive }) =>
-              [navLinkBase, isActive ? navLinkActive : navLinkInactive].join(
-                " "
-              )
+              [navLinkBase, isActive ? navLinkActive : navLinkInactive].join(" ")
             }
           >
             Prescription
           </NavLink>
+
           <NavLink
             to="/about"
             className={({ isActive }) =>
-              [navLinkBase, isActive ? navLinkActive : navLinkInactive].join(
-                " "
-              )
+              [navLinkBase, isActive ? navLinkActive : navLinkInactive].join(" ")
             }
           >
             About
           </NavLink>
+
           <NavLink
             to="/chat"
             className={({ isActive }) =>
-              [
-                navLinkBase,
-                "ml-2",
-                isActive ? navLinkActive : navLinkInactive,
-              ].join(" ")
+              [navLinkBase, isActive ? navLinkActive : navLinkInactive].join(" ")
             }
           >
             Chat
