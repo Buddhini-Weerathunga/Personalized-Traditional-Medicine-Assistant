@@ -1,0 +1,22 @@
+fastapi
+uvicorn
+pydantic
+tensorflow
+mediapipe
+opencv-python
+Pillow
+numpy
+
+# New for CSV-based dosha model:
+pandas
+scikit-learn
+joblib
+
+# For later (when you plug in real logic):
+
+# sentence-transformers
+# langchain
+# langchain-community
+# langchain-chroma
+# langchain-huggingface
+# langchain-groq

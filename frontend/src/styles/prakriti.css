@@ -1,0 +1,46 @@
+/* frontend/src/styles/prakriti.css */
+
+.prakriti-page {
+    min-height: 100vh;
+    padding: 1.5rem 1rem;
+}
+
+.prakriti-layout {
+    max-width: 72rem;
+    margin: 0 auto;
+    display: grid;
+    gap: 1.5rem;
+}
+
+/* Left card with webcam */
+.webcam-card {
+    background-color: #ffffff;
+    border-radius: 1.5rem;
+    box-shadow: 0 10px 25px rgba(15, 23, 42, 0.08);
+    padding: 1rem;
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+    align-items: center;
+}
+
+/* Right side dosha cards grid */
+.dosha-grid {
+    display: grid;
+    gap: 1rem;
+    margin-top: 1rem;
+}
+
+@media (min-width: 768px) {
+    .prakriti-layout {
+        grid-template-columns: minmax(0, 1.5fr) minmax(0, 1fr);
+    }
+
+    .webcam-card {
+        padding: 1.5rem;
+    }
+
+    .dosha-grid {
+        grid-template-columns: repeat(3, minmax(0, 1fr));
+    }
+}
