@@ -30,7 +30,7 @@ export default function Navbar() {
         {/* Nav links only for your component */}
         <nav className="flex items-center gap-2">
           <NavLink
-            to="/"
+            to="/home"
             className={({ isActive }) =>
               [navLinkBase, isActive ? navLinkActive : navLinkInactive].join(" ")
             }
