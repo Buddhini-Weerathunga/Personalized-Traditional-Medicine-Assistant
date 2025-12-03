@@ -22,6 +22,7 @@ export default function PrescriptionPage() {
           organized way.
         </p>
       </section>
+      
     </>
   );
 }
