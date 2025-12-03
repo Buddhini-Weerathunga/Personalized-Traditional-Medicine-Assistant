@@ -186,7 +186,7 @@ export default function PrakritiResultPage() {
                   Share Results
                 </button>
                 <button
-                  onClick={() => navigate("/")}
+                  onClick={() => navigate("/home")}
                   className="px-4 py-2 rounded-full bg-white border border-green-200 text-sm font-semibold text-gray-800 hover:bg-green-50 transition-all"
                 >
                   Back to Home
