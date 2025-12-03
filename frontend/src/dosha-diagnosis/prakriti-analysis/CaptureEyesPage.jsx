@@ -1,66 +1,210 @@
-// frontend/src/pages/CaptureEyesPage.jsx
+// frontend/src/dosha-diagnosis/prakriti-analysis/CaptureEyesPage.jsx
+import React, { useRef, useState } from "react";
 import { Link } from "react-router-dom";
+import Webcam from "react-webcam";
+import axios from "axios";
+
+// ⭐ Same Navbar import pattern as CaptureFacePage
+import Navbar from "../../components/layout/Navbar.jsx";
+
+const VIDEO_CONSTRAINTS = {
+  width: 640,
+  height: 480,
+  facingMode: "user",
+};
+
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 export default function CaptureEyesPage() {
+  const webcamRef = useRef(null);
+  const [capturedImage, setCapturedImage] = useState(null);
+  const [loading, setLoading] = useState(false);
+  const [analysisResult, setAnalysisResult] = useState(null);
+  const [error, setError] = useState("");
+
+  const handleCapture = () => {
+    if (!webcamRef.current) return;
+    const imageSrc = webcamRef.current.getScreenshot();
+    if (!imageSrc) {
+      setError("Could not capture image from webcam.");
+      return;
+    }
+    setCapturedImage(imageSrc);
+    setError("");
+  };
+
+  const handleReset = () => {
+    setCapturedImage(null);
+    setAnalysisResult(null);
+    setError("");
+  };
+
+  const handleAnalyze = async () => {
+    try {
+      if (!capturedImage) {
+        setError("Please capture an image first.");
+        return;
+      }
+      setLoading(true);
+      setError("");
+
+      const base64 = capturedImage.split(",")[1];
+
+      const res = await axios.post(`${API_BASE}/api/prakriti/analyze`, {
+        imageBase64: base64,
+        meta: {
+          step: "eyes",
+          notes: "Eyes region capture from React webcam",
+        },
+      });
+
+      setAnalysisResult(res.data);
+    } catch (err) {
+      console.error("Eyes analyze error:", err?.response?.data || err.message);
+      setError(
+        err?.response?.data?.message ||
+          "Failed to analyze eyes. Please check backend / Python service."
+      );
+    } finally {
+      setLoading(false);
+    }
+  };
+
   return (
-    <section className="pt-6 pb-10">
-      <h1 className="text-2xl font-semibold text-[#3e2b20] mb-4">
-        Prakriti Analysis – Eyes Capture
-      </h1>
+    <>
+      {/* ⭐ NAVBAR ONLY FOR THIS PAGE ⭐ */}
+      <Navbar />
 
-      <div className="grid gap-8 md:grid-cols-2">
-        {/* Left */}
-        <div className="space-y-4">
-          <div className="aspect-[4/3] rounded-2xl border border-dashed border-[#cfae87] bg-[#fdf7ef] flex items-center justify-center text-[#a07b52] text-sm shadow-inner">
-            Webcam Preview – Eyes
-          </div>
+      <section className="pt-6 pb-10 min-h-screen bg-[#f5ebdd]">
+        <div className="max-w-6xl mx-auto px-4">
+          <h1 className="text-2xl md:text-3xl font-semibold text-[#3e2b20] mb-2">
+            Prakriti Analysis – Eyes Capture
+          </h1>
 
-          <div className="flex items-center gap-3">
-            <label className="text-sm font-medium text-[#5a402c]">
-              Eyes:
-            </label>
-            <select className="text-sm px-3 py-1.5 rounded-full border border-[#d7c1a5] bg-[#fdf7ef]">
-              <option>Eyes region</option>
-            </select>
-          </div>
-
-          <p className="text-sm text-[#7a5b3f]">
-            <strong>Instructions:</strong> Look directly at the camera with eyes
-            fully open.
-          </p>
-
-          <div className="flex gap-3">
-            <button className="px-4 py-2 rounded-full bg-[#8b5d33] text-[#fdf7ef] text-sm font-semibold shadow hover:bg-[#6f4725]">
-              Capture
-            </button>
-          </div>
-
-          <div className="flex justify-between text-xs text-[#8b6b4b]">
-            <Link to="/prakriti/capture/face" className="underline">
-              &laquo; Back to face capture
-            </Link>
-            <Link
-              to="/prakriti/capture/mouth"
-              className="underline text-[#8b5d33]"
-            >
-              Next: mouth / teeth &raquo;
-            </Link>
-          </div>
-        </div>
-
-        {/* Right illustration */}
-        <div className="bg-[#fdf7ef] rounded-2xl border border-[#e0cfba] shadow p-6 flex flex-col items-center justify-center">
-          <div className="w-40 h-52 flex items-center justify-center mb-4">
-            <div className="w-32 h-20 border-2 border-[#d4b690] rounded-3xl flex items-center justify-center">
-              <div className="w-10 h-10 border border-[#d4b690] rounded-full" />
-            </div>
-          </div>
-          <p className="text-sm text-center text-[#7a5b3f]">
-            Focus on the eye region. Ensure both eyes are clearly visible and
+          <p className="text-sm md:text-base text-[#7a5b3f] mb-6">
+            Look directly at the camera with both eyes clearly visible and
             well-lit.
           </p>
+
+          <div className="grid gap-8 md:grid-cols-2">
+            {/* Left: webcam + controls */}
+            <div className="space-y-4">
+              <div className="aspect-[4/3] rounded-2xl border border-dashed border-[#cfae87] bg-[#fdf7ef] flex items-center justify-center shadow-inner overflow-hidden">
+                {capturedImage ? (
+                  <img
+                    src={capturedImage}
+                    alt="Captured eyes"
+                    className="w-full h-full object-cover"
+                  />
+                ) : (
+                  <Webcam
+                    ref={webcamRef}
+                    audio={false}
+                    screenshotFormat="image/jpeg"
+                    videoConstraints={VIDEO_CONSTRAINTS}
+                    className="w-full h-full object-cover"
+                  />
+                )}
+              </div>
+
+              <div className="flex items-center gap-3">
+                <label className="text-sm font-medium text-[#5a402c]">
+                  Region:
+                </label>
+                <select className="text-sm px-3 py-1.5 rounded-full border border-[#d7c1a5] bg-[#fdf7ef]">
+                  <option>Eyes region</option>
+                </select>
+              </div>
+
+              <p className="text-sm text-[#7a5b3f]">
+                <strong>Tip:</strong> Relax your face, keep your eyes open
+                naturally, and avoid strong reflections from glasses.
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handleCapture}
+                  className="px-4 py-2 rounded-full bg-[#8b5d33] text-[#fdf7ef] text-sm font-semibold shadow hover:bg-[#6f4725]"
+                  disabled={loading}
+                >
+                  Capture
+                </button>
+                <button
+                  onClick={handleReset}
+                  className="px-4 py-2 rounded-full bg-[#fdf7ef] border border-[#d7c1a5] text-sm font-medium text-[#5a402c] hover:bg-[#f2e4d3]"
+                  disabled={loading}
+                >
+                  Reset
+                </button>
+                <button
+                  onClick={handleAnalyze}
+                  className="ml-auto px-4 py-2 rounded-full bg-[#7b5a3b] text-[#fdf7ef] text-sm font-semibold shadow hover:bg-[#694a31]"
+                  disabled={loading || !capturedImage}
+                >
+                  {loading ? "Analyzing…" : "Analyze Eyes"}
+                </button>
+              </div>
+
+              <div className="flex justify-between text-xs text-[#8b6b4b]">
+                <Link to="/prakriti/face" className="underline">
+                  &laquo; Back to face capture
+                </Link>
+                <Link
+                  to="/prakriti/mouth"
+                  className="underline text-[#8b5d33]"
+                >
+                  Next: mouth / teeth &raquo;
+                </Link>
+              </div>
+
+              {error && (
+                <div className="text-xs text-red-700 bg-red-50 border border-red-200 rounded-lg px-3 py-2">
+                  {error}
+                </div>
+              )}
+            </div>
+
+            {/* Right: illustration + result */}
+            <div className="bg-[#fdf7ef] rounded-2xl border border-[#e0cfba] shadow p-6 flex flex-col">
+              <div className="flex-1 flex flex-col items-center justify-center mb-4">
+                <div className="w-40 h-52 flex items-center justify-center mb-4">
+                  <div className="w-32 h-20 border-2 border-[#d4b690] rounded-3xl flex items-center justify-center">
+                    <div className="w-10 h-10 border border-[#d4b690] rounded-full" />
+                  </div>
+                </div>
+                <p className="text-sm text-center text-[#7a5b3f]">
+                  The eye region helps assess clarity, brightness, moisture and
+                  gaze — important indicators in Vata, Pitta and Kapha
+                  evaluation.
+                </p>
+              </div>
+
+              {analysisResult && (
+                <div className="mt-4 border-t border-[#e2d1b8] pt-4 space-y-2">
+                  <h2 className="text-sm font-semibold text-[#5b3b2a] mb-1">
+                    Eyes Analysis Result
+                  </h2>
+
+                  <p className="text-xs text-[#7a5b3f]">
+                    Dominant Dosha (eyes):{" "}
+                    <span className="font-semibold">
+                      {analysisResult.report?.dominantDosha ??
+                        analysisResult.dominant_dosha ??
+                        "Unknown"}
+                    </span>
+                  </p>
+
+                  {analysisResult.mlResult && (
+                    <pre className="text-[11px] bg-[#f7ecdd] rounded-xl p-3 text-[#5b3b2a] whitespace-pre-wrap">
+                      {JSON.stringify(analysisResult.mlResult, null, 2)}
+                    </pre>
+                  )}
+                </div>
+              )}
+            </div>
+          </div>
         </div>
-      </div>
-    </section>
+      </section>
+    </>
   );
 }
