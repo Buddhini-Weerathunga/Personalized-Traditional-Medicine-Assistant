@@ -1,6 +1,6 @@
 // frontend/src/App.jsx
 import { Routes, Route } from "react-router-dom";
-
+import FacePredictTest from "./dosha-diagnosis/camera-capture/FacePredictTest";
 // import Navbar from "./components/layout/Navbar";  // ⛔ NAVBAR COMMENTED OUT
 import Login from "./pages/login.jsx";
 import Register from "./pages/register.jsx";
@@ -59,6 +59,9 @@ function App() {
           <Route path="/chat" element={<ChatbotPage />} />
           <Route path="/prescription" element={<PrescriptionPage />} />
           <Route path="/about" element={<AboutPage />} />
+
+          {/* Test page for face dosha prediction */}
+          <Route path="/dosha-face-test" element={<FacePredictTest />} />
         </Routes>
       </main>
     </div>
