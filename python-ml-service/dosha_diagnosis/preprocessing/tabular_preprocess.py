@@ -21,7 +21,7 @@ def load_tabular_data():
     df = pd.read_csv(TABULAR_DATA_FILE)
 
     # Change this if your target column name is different
-    target_col = "dosha_label"
+    target_col = "Dominant_Dosha"
 
     if target_col not in df.columns:
         raise ValueError(
