@@ -3,15 +3,17 @@ import React from "react";
 import { useNavigate } from "react-router-dom";
 
 import Navbar from "../../components/layout/Navbar.jsx";
+import { usePrakritiResults } from "./PrakritiResultContext.jsx";
 
 export default function ShareResultsPage() {
   const navigate = useNavigate();
+  const { summary } = usePrakritiResults();
 
-  // Dummy values (replace with actual results later)
-  const vata = 62;
-  const pitta = 25;
-  const kapha = 13;
-  const dominant = "Vata";
+  // ✅ Use REAL values from context (0–1) → convert to %
+  const vata = Math.round((summary.vata || 0) * 100);
+  const pitta = Math.round((summary.pitta || 0) * 100);
+  const kapha = Math.round((summary.kapha || 0) * 100);
+  const dominant = summary.dominant || "Not enough data";
 
   return (
     <>
@@ -45,6 +47,13 @@ export default function ShareResultsPage() {
               friend, or as a saved report. It summarizes your dosha
               percentages, dominant type, and gentle lifestyle suggestions.
             </p>
+
+            {dominant === "Not enough data" && (
+              <p className="mt-2 text-xs text-red-600">
+                Note: Not enough regions analyzed yet. For a clearer summary,
+                complete more capture steps.
+              </p>
+            )}
           </div>
 
           {/* Main card */}
@@ -56,9 +65,21 @@ export default function ShareResultsPage() {
               </h2>
               <div className="flex flex-wrap gap-4">
                 {[
-                  { label: "Vata", value: vata, color: "from-green-500 to-emerald-500" },
-                  { label: "Pitta", value: pitta, color: "from-amber-500 to-orange-500" },
-                  { label: "Kapha", value: kapha, color: "from-sky-500 to-cyan-500" },
+                  {
+                    label: "Vata",
+                    value: vata,
+                    color: "from-green-500 to-emerald-500",
+                  },
+                  {
+                    label: "Pitta",
+                    value: pitta,
+                    color: "from-amber-500 to-orange-500",
+                  },
+                  {
+                    label: "Kapha",
+                    value: kapha,
+                    color: "from-sky-500 to-cyan-500",
+                  },
                 ].map((d) => (
                   <div
                     key={d.label}
@@ -84,24 +105,43 @@ export default function ShareResultsPage() {
             {/* Dominant Dosha */}
             <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
               <p className="text-sm text-emerald-900">
-                <strong>Dominant Dosha: {dominant}</strong> – A{" "}
-                {dominant}-dominant prakriti often reflects lightness,
-                creativity, and variability. Ayurveda gently recommends warm,
-                grounding routines, regular mealtimes, and calming practices to
-                maintain balance.
+                <strong>Dominant Dosha: {dominant}</strong>{" "}
+                {["Vata", "Pitta", "Kapha"].includes(dominant) ? (
+                  <>
+                    – A {dominant}-dominant prakriti often reflects specific
+                    physical and mental patterns. Ayurveda gently recommends
+                    warm, grounding routines, regular mealtimes, and calming
+                    practices to maintain balance.
+                  </>
+                ) : (
+                  <>
+                    – Not enough data to decide a clear dominant dosha yet.
+                    Please complete more capture steps for a more accurate
+                    report.
+                  </>
+                )}
               </p>
             </div>
 
-            {/* Feature analysis */}
+            {/* Feature analysis (still generic text for now) */}
             <div>
               <h2 className="text-sm font-semibold text-gray-900 mb-1">
                 Feature-Based Observations
               </h2>
               <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
-                <li>Face shape suggests subtle Vata predominance.</li>
-                <li>Eyes show alertness and brightness – Pitta/Vata mix.</li>
-                <li>Skin texture tends towards dryness in some zones.</li>
-                <li>Overall impression: light frame and active, quick mind.</li>
+                <li>Face shape may suggest a mix of your dosha tendencies.</li>
+                <li>
+                  Eyes, mouth, skin and profile each contribute to your overall
+                  Prakriti.
+                </li>
+                <li>
+                  Variations in dryness, oiliness, sharpness, or softness point
+                  to Vata, Pitta, and Kapha influences.
+                </li>
+                <li>
+                  This summary is AI-assisted and meant to support, not replace,
+                  expert clinical judgment.
+                </li>
               </ul>
             </div>
 
