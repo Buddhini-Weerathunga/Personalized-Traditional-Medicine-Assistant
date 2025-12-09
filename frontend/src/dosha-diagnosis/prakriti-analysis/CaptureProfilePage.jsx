@@ -6,6 +6,7 @@ import Webcam from "react-webcam";
 import Navbar from "../../components/layout/Navbar.jsx";
 import { predictDoshaFromFace } from "../../services/doshaMlService";
 import { dataUrlToFile } from "../../utils/imageUtils";
+import { usePrakritiResults } from "./PrakritiResultContext";
 
 const VIDEO_CONSTRAINTS = {
   width: 640,
@@ -21,6 +22,8 @@ export default function CaptureProfilePage() {
   const [loading, setLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState("");
+
+  const { setRegionResult } = usePrakritiResults();
 
   const handleCapture = () => {
     if (!webcamRef.current) return;
@@ -53,6 +56,9 @@ export default function CaptureProfilePage() {
       // 👉 Convert webcam dataURL to File and send to ML vision endpoint
       const file = await dataUrlToFile(capturedImage, "profile.jpg");
       const res = await predictDoshaFromFace(file); // { dosha_label, probabilities }
+
+      // 👉 Save into global store under "profile"
+      setRegionResult("profile", res);
 
       setAnalysisResult(res);
     } catch (err) {
