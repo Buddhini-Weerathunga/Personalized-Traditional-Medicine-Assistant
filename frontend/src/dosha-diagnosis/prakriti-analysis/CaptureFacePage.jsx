@@ -6,6 +6,7 @@ import Webcam from "react-webcam";
 import Navbar from "../../components/layout/Navbar.jsx";
 import { predictDoshaFromFace } from "../../services/doshaMlService";
 import { dataUrlToFile } from "../../utils/imageUtils";
+import { usePrakritiResults } from "./PrakritiResultContext";
 
 const VIDEO_CONSTRAINTS = {
   width: 640,
@@ -19,6 +20,8 @@ export default function CaptureFacePage() {
   const [loading, setLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState("");
+
+  const { setRegionResult } = usePrakritiResults();
 
   const handleCapture = () => {
     if (!webcamRef.current) return;
@@ -51,6 +54,9 @@ export default function CaptureFacePage() {
       const file = await dataUrlToFile(capturedImage, "face.jpg");
       const res = await predictDoshaFromFace(file);
 
+      // 👉 Save into global store under "face"
+      setRegionResult("face", res);
+      
       setAnalysisResult(res);
     } catch (err) {
       console.error("Face analyze error:", err);
