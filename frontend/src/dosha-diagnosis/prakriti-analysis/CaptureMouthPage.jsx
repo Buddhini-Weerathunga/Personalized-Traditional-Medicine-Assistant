@@ -6,6 +6,7 @@ import Webcam from "react-webcam";
 import Navbar from "../../components/layout/Navbar.jsx";
 import { predictDoshaFromFace } from "../../services/doshaMlService";
 import { dataUrlToFile } from "../../utils/imageUtils";
+import { usePrakritiResults } from "./PrakritiResultContext";
 
 const VIDEO_CONSTRAINTS = {
   width: 640,
@@ -19,6 +20,8 @@ export default function CaptureMouthPage() {
   const [loading, setLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState("");
+
+  const { setRegionResult } = usePrakritiResults();
 
   const handleCapture = () => {
     if (!webcamRef.current) return;
@@ -50,6 +53,9 @@ export default function CaptureMouthPage() {
       // 👉 Convert webcam dataURL to File and send to ML service
       const file = await dataUrlToFile(capturedImage, "mouth.jpg");
       const res = await predictDoshaFromFace(file);
+
+      // 👉 Save into global store under "mouth"
+      setRegionResult("mouth", res);
 
       setAnalysisResult(res); // { dosha_label, probabilities }
     } catch (err) {
