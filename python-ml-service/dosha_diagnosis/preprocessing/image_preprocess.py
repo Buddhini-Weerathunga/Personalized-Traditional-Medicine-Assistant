@@ -27,27 +27,41 @@ LABEL_MAP = {
 INV_LABEL_MAP = {v: k for k, v in LABEL_MAP.items()}
 
 
-def find_face_image(person_dir: Path) -> Path | None:
+def find_region_images(person_path: Path) -> List[Path]:
     """
-    In each folder (1, 2, ...), try to find face image by multiple possible names.
+    Return ALL region images inside a person folder (face, eyes, mouth, skin, profile)
+    or directly inside the dosha folder.
+
+    We simply take every JPG / JPEG / PNG file.
     """
-    candidates = ["face.jpg", "Face.jpg", "face.jpeg", "Face.jpeg", "face.png"]
-    for name in candidates:
-        p = person_dir / name
-        if p.exists():
-            return p
-    # fallback: any jpg
-    for p in person_dir.glob("*.jpg"):
-        return p
-    return None
+    exts = ["*.jpg", "*.jpeg", "*.png", "*.JPG", "*.JPEG", "*.PNG"]
+    images: List[Path] = []
+
+    for pattern in exts:
+        images.extend(person_path.glob(pattern))
+
+    # remove duplicates and sort (optional)
+    images = sorted(set(images))
+    return images
 
 
 def load_dataset_paths() -> List[Tuple[Path, int]]:
     """
     Returns list of (image_path, label_index)
-    based on folder structure: IMAGES_DIR / (Kapha|Pitta|Vata) / person_id / images...
+    based on folder structure:
+
+        IMAGES_DIR /
+            Vata /
+                1 / face.jpg, eyes.jpg, mouth.jpg, skin.jpg, profile.jpg ...
+                2 / ...
+            Pitta /
+            Kapha /
+
+    If you keep images directly in Vata/Pitta/Kapha (no person subfolder),
+    they will also be picked.
     """
-    data = []
+    data: List[Tuple[Path, int]] = []
+
     if not IMAGES_DIR.exists():
         logger.warning(f"Images directory does not exist: {IMAGES_DIR}")
         return data
@@ -55,18 +69,28 @@ def load_dataset_paths() -> List[Tuple[Path, int]]:
     for dosha_name, label_idx in LABEL_MAP.items():
         class_dir = IMAGES_DIR / dosha_name
         if not class_dir.exists():
+            logger.warning(f"Class directory not found: {class_dir}")
             continue
 
-        for person_dir in class_dir.iterdir():
-            if not person_dir.is_dir():
-                continue
-            face_img = find_face_image(person_dir)
-            if face_img is None:
-                logger.warning(f"No face image found in: {person_dir}")
-                continue
-            data.append((face_img, label_idx))
+        # 1) images directly inside the dosha folder (optional)
+        direct_imgs = find_region_images(class_dir)
+        for img_path in direct_imgs:
+            data.append((img_path, label_idx))
 
-    logger.info(f"Found {len(data)} face images for training.")
+        # 2) images inside person subfolders (recommended structure)
+        for entry in class_dir.iterdir():
+            if not entry.is_dir():
+                continue
+
+            region_imgs = find_region_images(entry)
+            if not region_imgs:
+                logger.warning(f"No region images found in: {entry}")
+                continue
+
+            for img_path in region_imgs:
+                data.append((img_path, label_idx))
+
+    logger.info(f"Found {len(data)} images (all regions) for training.")
     return data
 
 
