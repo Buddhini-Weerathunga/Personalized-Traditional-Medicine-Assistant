@@ -1,4 +1,4 @@
-// frontend/src/dosha-diagnosis/prakriti-analysis/ShareResultsPage.jsx
+// frontend/src/dosha-diagnosis/prakriti-analysis/Use REAL values.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
 
