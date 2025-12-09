@@ -2,17 +2,16 @@
 import React, { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Webcam from "react-webcam";
-import axios from "axios";
 
 import Navbar from "../../components/layout/Navbar.jsx";
+import { predictDoshaFromFace } from "../../services/doshaMlService";
+import { dataUrlToFile } from "../../utils/imageUtils";
 
 const VIDEO_CONSTRAINTS = {
   width: 640,
   height: 480,
   facingMode: "user",
 };
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 export default function CaptureMouthPage() {
   const webcamRef = useRef(null);
@@ -29,6 +28,7 @@ export default function CaptureMouthPage() {
       return;
     }
     setCapturedImage(imageSrc);
+    setAnalysisResult(null);
     setError("");
   };
 
@@ -47,23 +47,14 @@ export default function CaptureMouthPage() {
       setLoading(true);
       setError("");
 
-      const base64 = capturedImage.split(",")[1];
+      // 👉 Convert webcam dataURL to File and send to ML service
+      const file = await dataUrlToFile(capturedImage, "mouth.jpg");
+      const res = await predictDoshaFromFace(file);
 
-      const res = await axios.post(`${API_BASE}/api/prakriti/analyze`, {
-        imageBase64: base64,
-        meta: {
-          step: "mouth",
-          notes: "Mouth/teeth capture from React webcam",
-        },
-      });
-
-      setAnalysisResult(res.data);
+      setAnalysisResult(res); // { dosha_label, probabilities }
     } catch (err) {
-      console.error("Mouth analyze error:", err?.response?.data || err.message);
-      setError(
-        err?.response?.data?.message ||
-          "Failed to analyze mouth region. Please check backend."
-      );
+      console.error("Mouth analyze error:", err);
+      setError("Failed to analyze mouth region. Please check ML service.");
     } finally {
       setLoading(false);
     }
@@ -214,15 +205,13 @@ export default function CaptureMouthPage() {
                   <p className="text-xs text-gray-700">
                     Dominant Dosha (mouth):{" "}
                     <span className="font-semibold text-emerald-700">
-                      {analysisResult.report?.dominantDosha ??
-                        analysisResult.dominant_dosha ??
-                        "Unknown"}
+                      {analysisResult.dosha_label ?? "Unknown"}
                     </span>
                   </p>
 
-                  {analysisResult.mlResult && (
+                  {analysisResult.probabilities && (
                     <pre className="text-[11px] bg-emerald-50 rounded-xl p-3 text-gray-800 whitespace-pre-wrap border border-emerald-100">
-                      {JSON.stringify(analysisResult.mlResult, null, 2)}
+                      {JSON.stringify(analysisResult.probabilities, null, 2)}
                     </pre>
                   )}
                 </div>
