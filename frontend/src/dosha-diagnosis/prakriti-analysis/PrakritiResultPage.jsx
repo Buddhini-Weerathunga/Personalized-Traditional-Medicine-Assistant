@@ -1,6 +1,7 @@
 // frontend/src/dosha-diagnosis/prakriti-analysis/PrakritiResultPage.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import axios from "axios"; // ✅ NEW: to call backend API
 import Navbar from "../../components/layout/Navbar.jsx";
 import { usePrakritiResults } from "./PrakritiResultContext.jsx";
 
@@ -13,6 +14,40 @@ export default function PrakritiResultPage() {
   const kapha = summary.kapha || 0;
   const dominant = summary.dominant || "Not enough data";
   const completedCount = summary.completedCount;
+
+  // ✅ NEW: Save current result as a prescription in backend
+  const handleSavePrescription = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        alert("Please log in first to save your prescription.");
+        navigate("/login");
+        return;
+      }
+
+      await axios.post(
+        "/api/prakriti/reports", // 👈 this must match your backend route
+        {
+          vataScore: summary.vata,
+          pittaScore: summary.pitta,
+          kaphaScore: summary.kapha,
+          dominantDosha: summary.dominant,
+          recommendations: {
+            lifestyle: ["Warm meals", "Regular sleep", "Light yoga"], // simple demo
+          },
+          capturedRegions: results, // face/eyes/mouth/skin/profile ML outputs
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      alert("Prescription saved successfully ✅");
+    } catch (err) {
+      console.error("Failed to save prescription:", err);
+      alert("Failed to save prescription. Please try again.");
+    }
+  };
 
   return (
     <>
@@ -166,6 +201,15 @@ export default function PrakritiResultPage() {
                 <button className="px-4 py-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-semibold shadow hover:from-green-600 hover:to-emerald-600 transition-all">
                   Analyze Features
                 </button>
+
+                {/* ✅ NEW BUTTON */}
+                <button
+                  onClick={handleSavePrescription}
+                  className="px-4 py-2 rounded-full bg-emerald-600 text-white text-sm font-semibold shadow hover:bg-emerald-700 transition-all"
+                >
+                  Save as Prescription
+                </button>
+
                 <button
                   onClick={() => navigate("/prakriti/share")}
                   className="px-4 py-2 rounded-full bg-white text-emerald-700 border border-emerald-300 text-sm font-semibold shadow-sm hover:bg-emerald-50 transition-all"
