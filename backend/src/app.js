@@ -10,7 +10,7 @@ const authRoutes = require("./dosha-diagnosis/routes/auth.routes");
 const chatRoutes = require("./dosha-diagnosis/routes/chat.routes");
 const prakritiRoutes = require("./dosha-diagnosis/routes/prakriti.routes");
 
-const prakritiReportRoutes = require("./routes/prakritiReport.routes");
+const prakritiReportRoutes = require("./src/dosha-diagnosis/routes/prakritiReport.routes");
 
 const app = express();
 
@@ -31,6 +31,7 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/prakriti", prakritiRoutes);
 
 app.use("/api/prakriti", prakritiReportRoutes);
+
 
 // 404 + error handler
 app.use(notFound);
