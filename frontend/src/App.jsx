@@ -1,6 +1,8 @@
 // frontend/src/App.jsx
 import { Routes, Route } from "react-router-dom";
 import FacePredictTest from "./dosha-diagnosis/camera-capture/FacePredictTest";
+import { PrakritiResultProvider } from "./dosha-diagnosis/prakriti-analysis/PrakritiResultContext.jsx";
+
 // import Navbar from "./components/layout/Navbar";  // ⛔ NAVBAR COMMENTED OUT
 import Login from "./pages/login.jsx";
 import Register from "./pages/register.jsx";
@@ -40,30 +42,40 @@ function App() {
           {/* Dosha module homepage */}
           <Route path="/home" element={<HomePage />} />
 
-          {/* Capture flow */}
-          <Route path="/prakriti" element={<CaptureFacePage />} />
-          <Route path="/prakriti/face" element={<CaptureFacePage />} />
-          <Route path="/prakriti/eyes" element={<CaptureEyesPage />} />
-          <Route path="/prakriti/mouth" element={<CaptureMouthPage />} />
-          <Route path="/prakriti/skin" element={<CaptureSkinPage />} />
-          <Route path="/prakriti/profile" element={<CaptureProfilePage />} />
-
-          {/* Form after captures */}
-          <Route path="/prakriti/form" element={<PrakritiAnalysisPage />} />
-
-          {/* Results */}
-          <Route path="/prakriti/results" element={<PrakritiResultPage />} />
-          <Route path="/prakriti/share" element={<ShareResultsPage />} />
-
           {/* Other pages */}
           <Route path="/chat" element={<ChatbotPage />} />
           <Route path="/prescription" element={<PrescriptionPage />} />
           <Route path="/about" element={<AboutPage />} />
 
-          {/* Test page for face dosha prediction */}
-          <Route path="/dosha-face-test" element={<FacePredictTest />} />
-        </Routes>
-      </main>
+          {/* ---------------------------------------------- */}
+        {/* ✅ WRAP ONLY DOSHA DIAGNOSIS ROUTES */}
+        {/* ---------------------------------------------- */}
+
+        <Route
+          path="/prakriti/*"
+          element={
+            <PrakritiResultProvider>
+              <Routes>
+                <Route path="face" element={<CaptureFacePage />} />
+                <Route path="eyes" element={<CaptureEyesPage />} />
+                <Route path="mouth" element={<CaptureMouthPage />} />
+                <Route path="skin" element={<CaptureSkinPage />} />
+                <Route path="profile" element={<CaptureProfilePage />} />
+                <Route path="form" element={<PrakritiAnalysisPage />} />
+                <Route path="results" element={<PrakritiResultPage />} />
+                <Route path="share" element={<ShareResultsPage />} />
+
+                {/* Default route: /prakriti → face */}
+                <Route index element={<CaptureFacePage />} />
+              </Routes>
+            </PrakritiResultProvider>
+          }
+        />
+
+        {/* Test Page */}
+        <Route path="/dosha-face-test" element={<FacePredictTest />} />
+      </Routes>
+    </main>
     </div>
   );
 }
