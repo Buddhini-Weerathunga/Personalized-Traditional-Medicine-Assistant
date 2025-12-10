@@ -1,7 +1,7 @@
-// backend/controllers/prakritiReport.controller.js
-const PrakritiReport = require("../models/PrakritiReport"); // adjust path
+// backend/src/dosha-diagnosis/controllers/prakritiReport.controller.js
+const PrakritiReport = require("../models/PrakritiReport");
 
-// POST /api/prakriti/reports
+// POST /api/prakritiReports/reports
 exports.createPrakritiReport = async (req, res) => {
   try {
     const userId = req.user._id;
@@ -15,102 +15,60 @@ exports.createPrakritiReport = async (req, res) => {
       capturedRegions,
     } = req.body;
 
+    if (
+      typeof vataScore !== "number" ||
+      typeof pittaScore !== "number" ||
+      typeof kaphaScore !== "number"
+    ) {
+      return res.status(400).json({
+        success: false,
+        message: "vataScore, pittaScore, kaphaScore must be numbers",
+      });
+    }
+
     const report = await PrakritiReport.create({
       user: userId,
       vataScore,
       pittaScore,
       kaphaScore,
-      dominantDosha,
+      dominantDosha: dominantDosha || "Not enough data",
       recommendations: recommendations || {},
       capturedRegions: capturedRegions || {},
     });
 
-    return res.status(201).json({ report });
+    return res.status(201).json({
+      success: true,
+      report,
+    });
   } catch (err) {
-    console.error("createPrakritiReport error:", err);
-    return res.status(500).json({ message: "Failed to create report" });
+    console.error("Error creating prakriti report:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while saving prakriti report",
+      error: err.message,
+    });
   }
 };
 
-// GET /api/prakriti/reports
+// GET /api/prakritiReports/reports
 exports.getMyPrakritiReports = async (req, res) => {
   try {
     const userId = req.user._id;
 
-    const reports = await PrakritiReport.find({ user: userId })
-      .sort({ createdAt: -1 })
-      .lean();
-
-    return res.json({ reports });
-  } catch (err) {
-    console.error("getMyPrakritiReports error:", err);
-    return res.status(500).json({ message: "Failed to fetch reports" });
-  }
-};
-
-// GET /api/prakriti/reports/:id
-exports.getPrakritiReportById = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { id } = req.params;
-
-    const report = await PrakritiReport.findOne({
-      _id: id,
-      user: userId,
-    }).lean();
-    if (!report) {
-      return res.status(404).json({ message: "Report not found" });
-    }
-
-    return res.json({ report });
-  } catch (err) {
-    console.error("getPrakritiReportById error:", err);
-    return res.status(500).json({ message: "Failed to fetch report" });
-  }
-};
-
-// PUT /api/prakriti/reports/:id
-exports.updatePrakritiReport = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { id } = req.params;
-    const { recommendations } = req.body; // we mainly allow editing recommendations/notes
-
-    const report = await PrakritiReport.findOneAndUpdate(
-      { _id: id, user: userId },
-      { $set: { recommendations: recommendations || {} } },
-      { new: true }
-    );
-
-    if (!report) {
-      return res.status(404).json({ message: "Report not found" });
-    }
-
-    return res.json({ report });
-  } catch (err) {
-    console.error("updatePrakritiReport error:", err);
-    return res.status(500).json({ message: "Failed to update report" });
-  }
-};
-
-// DELETE /api/prakriti/reports/:id
-exports.deletePrakritiReport = async (req, res) => {
-  try {
-    const userId = req.user._id;
-    const { id } = req.params;
-
-    const report = await PrakritiReport.findOneAndDelete({
-      _id: id,
-      user: userId,
+    const reports = await PrakritiReport.find({ user: userId }).sort({
+      createdAt: -1,
     });
 
-    if (!report) {
-      return res.status(404).json({ message: "Report not found" });
-    }
-
-    return res.json({ message: "Report deleted" });
+    return res.status(200).json({
+      success: true,
+      reports,
+    });
   } catch (err) {
-    console.error("deletePrakritiReport error:", err);
-    return res.status(500).json({ message: "Failed to delete report" });
+    console.error("Error fetching prakriti reports:", err);
+    return res.status(500).json({
+      success: false,
+      message: "Server error while fetching prakriti reports",
+      error: err.message,
+    });
   }
 };
