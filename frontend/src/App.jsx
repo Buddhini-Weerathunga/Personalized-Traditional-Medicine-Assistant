@@ -21,7 +21,7 @@ import CaptureSkinPage from "./dosha-diagnosis/prakriti-analysis/CaptureSkinPage
 import CaptureProfilePage from "./dosha-diagnosis/prakriti-analysis/CaptureProfilePage.jsx";
 import PrakritiResultPage from "./dosha-diagnosis/prakriti-analysis/PrakritiResultPage.jsx";
 import ShareResultsPage from "./dosha-diagnosis/prakriti-analysis/ShareResultsPage.jsx";
-import PrescriptionHistoryPage from "./dosha-diagnosis/prescription/PrescriptionHistoryPage.jsx";
+
 import PrescriptionPage from "./dosha-diagnosis/prescription/PrescriptionPage.jsx";
 import PrescriptionDetailPage from "./dosha-diagnosis/prescription/PrescriptionDetailPage.jsx";
 import AboutPage from "./dosha-diagnosis/about/AboutPage.jsx";
@@ -65,7 +65,7 @@ function App() {
                 <Route path="form" element={<PrakritiAnalysisPage />} />
                 <Route path="results" element={<PrakritiResultPage />} />
                 <Route path="share" element={<ShareResultsPage />} />
-                <Route path="prescription" element={<PrescriptionHistoryPage />} />
+                
                 <Route path="/prescription/:id" element={<PrescriptionDetailPage />} /> {/* NEW */}
 
                 {/* Default route: /prakriti → face */}
