@@ -1,5 +1,4 @@
 // backend/src/dosha-diagnosis/routes/prakriti.routes.js
-
 const express = require("express");
 const router = express.Router();
 
@@ -15,16 +14,13 @@ router.post("/analyze", async (req, res, next) => {
 
     if (!image_base64) {
       res.status(400);
-      return next(new Error("image_base64 field is required"));
+      throw new Error("image_base64 field is required");
     }
 
-    // Call Python ML service
     const result = await analyzePrakriti(image_base64);
-
-    // Send result back to frontend
     return res.json(result);
   } catch (err) {
-    console.error("Error in /api/prakriti/analyze:", err.message);
+    console.error("Error in /api/prakriti/analyze:", err);
     return next(err);
   }
 });
