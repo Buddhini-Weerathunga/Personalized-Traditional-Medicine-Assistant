@@ -1,10 +1,22 @@
 // backend/src/dosha-diagnosis/controllers/prakritiReport.controller.js
 const PrakritiReport = require("../models/PrakritiReport");
 
+// Helper to read user id from token (supports both id and _id)
+function getUserId(req) {
+  if (!req.user) return null;
+  return req.user._id || req.user.id || req.user.userId || null;
+}
+
 // POST /api/prakritiReports/reports
 exports.createPrakritiReport = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Not authorized. User not found in token.",
+      });
+    }
 
     const {
       vataScore,
@@ -53,7 +65,13 @@ exports.createPrakritiReport = async (req, res) => {
 // GET /api/prakritiReports/reports
 exports.getMyPrakritiReports = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Not authorized. User not found in token.",
+      });
+    }
 
     const reports = await PrakritiReport.find({ user: userId }).sort({
       createdAt: -1,
@@ -76,7 +94,14 @@ exports.getMyPrakritiReports = async (req, res) => {
 // GET /api/prakritiReports/reports/:id
 exports.getPrakritiReportById = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Not authorized. User not found in token.",
+      });
+    }
+
     const { id } = req.params;
 
     const report = await PrakritiReport.findOne({ _id: id, user: userId });
@@ -105,11 +130,16 @@ exports.getPrakritiReportById = async (req, res) => {
 // PUT /api/prakritiReports/reports/:id
 exports.updatePrakritiReport = async (req, res) => {
   try {
-    const userId = req.user._id;
-    const { id } = req.params;
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Not authorized. User not found in token.",
+      });
+    }
 
-    // For now we allow updating any fields the frontend sends (mainly "recommendations")
-    const updates = req.body;
+    const { id } = req.params;
+    const updates = req.body; // mainly { recommendations }
 
     const report = await PrakritiReport.findOneAndUpdate(
       { _id: id, user: userId },
@@ -141,7 +171,14 @@ exports.updatePrakritiReport = async (req, res) => {
 // DELETE /api/prakritiReports/reports/:id
 exports.deletePrakritiReport = async (req, res) => {
   try {
-    const userId = req.user._id;
+    const userId = getUserId(req);
+    if (!userId) {
+      return res.status(401).json({
+        success: false,
+        message: "Not authorized. User not found in token.",
+      });
+    }
+
     const { id } = req.params;
 
     const deleted = await PrakritiReport.findOneAndDelete({
