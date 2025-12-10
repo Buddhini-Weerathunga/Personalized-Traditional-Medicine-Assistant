@@ -47,7 +47,7 @@ function App() {
           <Route path="/chat" element={<ChatbotPage />} />
           <Route path="/prescription" element={<PrescriptionPage />} />
           <Route path="/about" element={<AboutPage />} />
-
+          <Route path="/prescription/:id" element={<PrescriptionDetailPage />} /> {/* NEW */}
           {/* ---------------------------------------------- */}
         {/* ✅ WRAP ONLY DOSHA DIAGNOSIS ROUTES */}
         {/* ---------------------------------------------- */}
@@ -66,7 +66,7 @@ function App() {
                 <Route path="results" element={<PrakritiResultPage />} />
                 <Route path="share" element={<ShareResultsPage />} />
                 
-                <Route path="/prescription/:id" element={<PrescriptionDetailPage />} /> {/* NEW */}
+                
 
                 {/* Default route: /prakriti → face */}
                 <Route index element={<CaptureFacePage />} />
