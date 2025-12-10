@@ -1,25 +1,6 @@
-// backend/src/models/User.js
-const mongoose = require("mongoose");
+// backend/src/dosha-diagnosis/models/User.js
+// Reuse the main User model to avoid OverwriteModelError
 
-const userSchema = new mongoose.Schema(
-  {
-    name: {
-      type: String,
-      required: [true, "Name is required"],
-    },
-    email: {
-      type: String,
-      required: [true, "Email is required"],
-      unique: true,
-      lowercase: true,
-      index: true,
-    },
-    passwordHash: {
-      type: String,
-      required: [true, "Password is required"],
-    },
-  },
-  { timestamps: true }
-);
+const User = require("../../models/User");
 
-module.exports = mongoose.model("User", userSchema);
+module.exports = User;
