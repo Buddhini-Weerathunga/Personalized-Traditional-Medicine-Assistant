@@ -1,7 +1,8 @@
 // frontend/src/dosha-diagnosis/prakriti-analysis/PrakritiResultPage.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios"; // ✅ NEW: to call backend API
+import API from "../../api/axios";
+
 import Navbar from "../../components/layout/Navbar.jsx";
 import { usePrakritiResults } from "./PrakritiResultContext.jsx";
 
@@ -15,7 +16,7 @@ export default function PrakritiResultPage() {
   const dominant = summary.dominant || "Not enough data";
   const completedCount = summary.completedCount;
 
-  // ✅ NEW: Save current result as a prescription in backend
+  // Save current result as a prescription in backend
   const handleSavePrescription = async () => {
     try {
       const token = localStorage.getItem("accessToken");
@@ -25,17 +26,17 @@ export default function PrakritiResultPage() {
         return;
       }
 
-      await axios.post(
-        "/api/prakriti/reports", // 👈 this must match your backend route
+      await API.post(
+        "/prakritiReports/reports", // -> http://localhost:5000/api/prakritiReports/reports
         {
           vataScore: summary.vata,
           pittaScore: summary.pitta,
           kaphaScore: summary.kapha,
           dominantDosha: summary.dominant,
           recommendations: {
-            lifestyle: ["Warm meals", "Regular sleep", "Light yoga"], // simple demo
+            lifestyle: ["Warm meals", "Regular sleep", "Light yoga"],
           },
-          capturedRegions: results, // face/eyes/mouth/skin/profile ML outputs
+          capturedRegions: results,
         },
         {
           headers: { Authorization: `Bearer ${token}` },
@@ -45,7 +46,12 @@ export default function PrakritiResultPage() {
       alert("Prescription saved successfully ✅");
     } catch (err) {
       console.error("Failed to save prescription:", err);
-      alert("Failed to save prescription. Please try again.");
+
+      const msg =
+        err.response?.data?.message ||
+        `Error ${err.response?.status || ""}: ${err.message}`;
+
+      alert(`Failed to save prescription:\n${msg}`);
     }
   };
 
@@ -178,12 +184,13 @@ export default function PrakritiResultPage() {
                 </h3>
                 <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
                   <li>
-                    Favor <span className="font-medium">warm, freshly cooked meals</span> and
+                    Favor{" "}
+                    <span className="font-medium">warm, freshly cooked meals</span> and
                     avoid skipping meals.
                   </li>
                   <li>
-                    Keep a <span className="font-medium">regular routine</span> for sleep, work,
-                    and relaxation.
+                    Keep a <span className="font-medium">regular routine</span> for sleep,
+                    work, and relaxation.
                   </li>
                   <li>
                     Include simple movement (walking, yoga, stretches) and{" "}
@@ -202,7 +209,6 @@ export default function PrakritiResultPage() {
                   Analyze Features
                 </button>
 
-                {/* ✅ NEW BUTTON */}
                 <button
                   onClick={handleSavePrescription}
                   className="px-4 py-2 rounded-full bg-emerald-600 text-white text-sm font-semibold shadow hover:bg-emerald-700 transition-all"
