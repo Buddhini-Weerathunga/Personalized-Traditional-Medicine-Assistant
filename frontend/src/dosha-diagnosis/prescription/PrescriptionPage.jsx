@@ -1,7 +1,7 @@
 // frontend/src/dosha-diagnosis/prescription/PrescriptionPage.jsx
 import React, { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import axios from "axios";
+import API from "../../api/axios"; // ✅ use shared axios instance
 import Navbar from "../../components/layout/Navbar.jsx";
 
 export default function PrescriptionPage() {
@@ -17,9 +17,9 @@ export default function PrescriptionPage() {
         return;
       }
 
-      const res = await API.get("/api/prakriti/reports", {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // ✅ matches backend: app.use("/api/prakritiReports", ...)
+      // baseURL = http://localhost:5000/api
+      const res = await API.get("/prakritiReports/reports");
       setReports(res.data.reports || []);
     } catch (err) {
       console.error("Failed to fetch prescriptions:", err);
@@ -38,10 +38,8 @@ export default function PrescriptionPage() {
     if (!window.confirm("Delete this prescription?")) return;
 
     try {
-      const token = localStorage.getItem("accessToken");
-      await axios.delete(`/api/prakriti/reports/${id}`, {
-        headers: { Authorization: `Bearer ${token}` },
-      });
+      // ✅ same baseURL, same route style
+      await API.delete(`/prakritiReports/reports/${id}`);
 
       setReports((prev) => prev.filter((r) => r._id !== id));
     } catch (err) {
@@ -58,35 +56,35 @@ export default function PrescriptionPage() {
 
       <main className="bg-gradient-to-br from-green-50 via-emerald-50 to-white min-h-screen">
         <section className="max-w-6xl mx-auto px-4 pt-8 pb-12">
-          <div className="mb-6">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
-              <span>💊 Prakriti Prescription History</span>
-              <span className="h-4 w-px bg-green-300" />
-              <span>AyuCeylon Ayurveda Assistant</span>
+          <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+            <div>
+              <p className="text-xs font-semibold tracking-[0.2em] uppercase text-emerald-700">
+                Ayurveda Assistant – History
+              </p>
+              <h1 className="mt-2 text-3xl md:text-4xl font-bold text-gray-900">
+                Saved{" "}
+                <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+                  Prescriptions
+                </span>
+              </h1>
+              <p className="mt-2 text-sm md:text-base text-gray-700 max-w-2xl leading-relaxed">
+                Each time you save your Prakriti results as a prescription, it
+                appears here. You can reopen, review or export them anytime.
+              </p>
             </div>
-
-            <h1 className="mt-4 text-3xl md:text-4xl font-bold text-gray-900">
-              Saved{" "}
-              <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                Prescriptions
-              </span>
-            </h1>
-
-            <p className="mt-2 text-sm md:text-base text-gray-700 max-w-2xl leading-relaxed">
-              Each time you save your Prakriti results as a prescription, it
-              appears here. You can reopen, review or export them anytime.
-            </p>
           </div>
 
           {loading ? (
-            <p className="text-gray-600 text-sm">Loading prescriptions...</p>
+            <p className="mt-6 text-gray-600 text-sm">
+              Loading prescriptions...
+            </p>
           ) : reports.length === 0 ? (
-            <p className="text-gray-600 text-sm">
+            <p className="mt-6 text-gray-600 text-sm">
               No prescriptions saved yet. Complete a Prakriti analysis and click
               “Save as Prescription” on the results page.
             </p>
           ) : (
-            <div className="space-y-4 mt-4">
+            <div className="space-y-4 mt-6">
               {reports.map((r) => {
                 const created = r.createdAt
                   ? new Date(r.createdAt).toLocaleString()
@@ -95,7 +93,7 @@ export default function PrescriptionPage() {
                 return (
                   <div
                     key={r._id}
-                    className="bg-white/90 border border-green-100 rounded-2xl shadow-sm p-4 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
+                    className="bg-white/90 border border-green-100 rounded-2xl shadow-sm px-4 py-3 flex flex-col md:flex-row md:items-center md:justify-between gap-3"
                   >
                     <div>
                       <p className="text-xs text-gray-500">{created}</p>
@@ -112,16 +110,16 @@ export default function PrescriptionPage() {
                       </p>
                     </div>
 
-                    <div className="flex flex-wrap gap-2">
+                    <div className="flex gap-2">
                       <button
                         onClick={() => navigate(`/prescription/${r._id}`)}
-                        className="px-3 py-1.5 rounded-full bg-emerald-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-all"
+                        className="px-3 py-1.5 rounded-full bg-gradient-to-r from-emerald-500 to-green-600 text-white text-xs font-semibold hover:bg-emerald-700 transition-all"
                       >
                         View Full Report
                       </button>
                       <button
                         onClick={() => handleDelete(r._id)}
-                        className="px-3 py-1.5 rounded-full bg-white border border-red-200 text-red-600 text-xs font-semibold hover:bg-red-50 transition-all"
+                        className="px-3 py-1.5 rounded-full border border-red-200 bg-red-50/60 text-red-600 text-xs font-semibold hover:bg-red-100 transition-all"
                       >
                         Delete
                       </button>
