@@ -1,28 +1,20 @@
-// backend/routes/prakritiReport.routes.js
+// backend/src/dosha-diagnosis/routes/prakritiReport.routes.js
+
 const express = require("express");
 const router = express.Router();
-const auth = require("../middleware/authMiddleware");
+
+// Get the protect middleware function
+const { protect } = require("../middleware/authMiddleware");
+
 const {
   createPrakritiReport,
   getMyPrakritiReports,
-  getPrakritiReportById,
-  updatePrakritiReport,
-  deletePrakritiReport,
 } = require("../controllers/prakritiReport.controller");
 
-// POST /api/prakriti/reports  -> save one report
-router.post("/reports", auth, createPrakritiReport);
+// POST /api/prakritiReports/reports
+router.post("/reports", protect, createPrakritiReport);
 
-// GET /api/prakriti/reports   -> list all my reports
-router.get("/reports", auth, getMyPrakritiReports);
-
-// GET /api/prakriti/reports/:id -> get one report
-router.get("/reports/:id", auth, getPrakritiReportById);
-
-// PUT /api/prakriti/reports/:id -> update (e.g. recommendations/notes)
-router.put("/reports/:id", auth, updatePrakritiReport);
-
-// DELETE /api/prakriti/reports/:id -> delete one
-router.delete("/reports/:id", auth, deletePrakritiReport);
+// GET /api/prakritiReports/reports
+router.get("/reports", protect, getMyPrakritiReports);
 
 module.exports = router;
