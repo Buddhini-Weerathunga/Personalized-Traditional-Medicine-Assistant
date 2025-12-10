@@ -17,7 +17,7 @@ export default function PrescriptionPage() {
         return;
       }
 
-      const res = await axios.get("/api/prakriti/reports", {
+      const res = await API.get("/api/prakriti/reports", {
         headers: { Authorization: `Bearer ${token}` },
       });
       setReports(res.data.reports || []);
