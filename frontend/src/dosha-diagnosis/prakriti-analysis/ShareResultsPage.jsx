@@ -1,17 +1,51 @@
 // frontend/src/dosha-diagnosis/prakriti-analysis/ShareResultsPage.jsx
-import React from "react";
+import React, { useRef } from "react";
 import { useNavigate } from "react-router-dom";
 
 import Navbar from "../../components/layout/Navbar.jsx";
+import { usePrakritiResults } from "./PrakritiResultContext.jsx";
+import html2pdf from "html2pdf.js";
 
 export default function ShareResultsPage() {
   const navigate = useNavigate();
+  const { summary } = usePrakritiResults(); // 👉 get values from context
+  const reportRef = useRef(null);
 
-  // Dummy values (replace with actual results later)
-  const vata = 62;
-  const pitta = 25;
-  const kapha = 13;
-  const dominant = "Vata";
+  // Convert 0–1 values to percentages
+  const vataPct = Math.round((summary?.vata || 0) * 100);
+  const pittaPct = Math.round((summary?.pitta || 0) * 100);
+  const kaphaPct = Math.round((summary?.kapha || 0) * 100);
+  const dominant = summary?.dominant || "Not enough data";
+
+  // ✅ Simplest: share via WhatsApp
+  const handleShareWhatsApp = () => {
+    const msg = `My Prakriti Results (AyuCeylon):
+
+Vata: ${vataPct}%
+Pitta: ${pittaPct}%
+Kapha: ${kaphaPct}%
+Dominant Dosha: ${dominant}
+
+Shared from AyuCeylon – AI-powered Ayurveda assistant.`;
+
+    const url = `https://wa.me/?text=${encodeURIComponent(msg)}`;
+    window.open(url, "_blank");
+  };
+
+  // ✅ Simplest: save visible card as PDF
+  const handleDownloadPdf = () => {
+    if (!reportRef.current) return;
+
+    const opt = {
+      margin: 10,
+      filename: "AyuCeylon_Prakriti_Report.pdf",
+      image: { type: "jpeg", quality: 0.98 },
+      html2canvas: { scale: 2, useCORS: true },
+      jsPDF: { unit: "mm", format: "a4", orientation: "portrait" },
+    };
+
+    html2pdf().set(opt).from(reportRef.current).save();
+  };
 
   return (
     <>
@@ -47,8 +81,11 @@ export default function ShareResultsPage() {
             </p>
           </div>
 
-          {/* Main card */}
-          <div className="bg-white/90 rounded-2xl border border-green-100 shadow-lg p-6 space-y-6">
+          {/* Main card – this part will become the PDF */}
+          <div
+            ref={reportRef}
+            className="bg-white/90 rounded-2xl border border-green-100 shadow-lg p-6 space-y-6"
+          >
             {/* Dosha summary */}
             <div>
               <h2 className="text-sm font-semibold text-gray-900 mb-3">
@@ -56,9 +93,21 @@ export default function ShareResultsPage() {
               </h2>
               <div className="flex flex-wrap gap-4">
                 {[
-                  { label: "Vata", value: vata, color: "from-green-500 to-emerald-500" },
-                  { label: "Pitta", value: pitta, color: "from-amber-500 to-orange-500" },
-                  { label: "Kapha", value: kapha, color: "from-sky-500 to-cyan-500" },
+                  {
+                    label: "Vata",
+                    value: vataPct,
+                    color: "from-green-500 to-emerald-500",
+                  },
+                  {
+                    label: "Pitta",
+                    value: pittaPct,
+                    color: "from-amber-500 to-orange-500",
+                  },
+                  {
+                    label: "Kapha",
+                    value: kaphaPct,
+                    color: "from-sky-500 to-cyan-500",
+                  },
                 ].map((d) => (
                   <div
                     key={d.label}
@@ -84,44 +133,72 @@ export default function ShareResultsPage() {
             {/* Dominant Dosha */}
             <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
               <p className="text-sm text-emerald-900">
-                <strong>Dominant Dosha: {dominant}</strong> – A{" "}
-                {dominant}-dominant prakriti often reflects lightness,
-                creativity, and variability. Ayurveda gently recommends warm,
-                grounding routines, regular mealtimes, and calming practices to
-                maintain balance.
+                <strong>Dominant Dosha: {dominant}</strong>{" "}
+                {["Vata", "Pitta", "Kapha"].includes(dominant) ? (
+                  <>
+                    – A {dominant}-dominant prakriti often reflects unique
+                    physical and mental tendencies. Ayurveda gently recommends
+                    aligning food, sleep, and lifestyle with your dosha to
+                    maintain balance.
+                  </>
+                ) : (
+                  <>
+                    – Not enough capture steps were completed to confidently
+                    determine a single dominant dosha. Please repeat the
+                    analysis when possible.
+                  </>
+                )}
               </p>
             </div>
 
-            {/* Feature analysis */}
+            {/* Feature analysis – keep generic for now */}
             <div>
               <h2 className="text-sm font-semibold text-gray-900 mb-1">
                 Feature-Based Observations
               </h2>
               <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
-                <li>Face shape suggests subtle Vata predominance.</li>
-                <li>Eyes show alertness and brightness – Pitta/Vata mix.</li>
-                <li>Skin texture tends towards dryness in some zones.</li>
-                <li>Overall impression: light frame and active, quick mind.</li>
+                <li>
+                  Facial structure and expressions may reflect a combination of
+                  Vata, Pitta and Kapha qualities.
+                </li>
+                <li>
+                  Eye region, mouth, skin texture and profile each contribute to
+                  your unique prakriti pattern.
+                </li>
+                <li>
+                  Subtle changes over time may indicate temporary{" "}
+                  <span className="font-medium">imbalance</span> rather than
+                  your core constitution.
+                </li>
+                <li>
+                  This digital analysis is a{" "}
+                  <span className="font-medium">supporting tool</span>, not a
+                  replacement for a full Ayurvedic consultation.
+                </li>
               </ul>
             </div>
 
-            {/* Lifestyle suggestions */}
+            {/* Lifestyle suggestions – generic & safe */}
             <div>
               <h2 className="text-sm font-semibold text-gray-900 mb-1">
                 Gentle Lifestyle Suggestions
               </h2>
               <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
                 <li>
-                  Prefer warm, nourishing meals and avoid skipping meals or
-                  eating very late.
+                  Prefer warm, freshly prepared meals and avoid overeating or
+                  long gaps without food.
                 </li>
                 <li>
                   Maintain a regular sleep/wake routine and simple evening
-                  wind-down ritual.
+                  wind-down practice.
                 </li>
                 <li>
-                  Practice gentle yoga, pranayama, and self-oil massage
-                  (abhyanga) to ground the nervous system.
+                  Include gentle movement such as walking, yoga or stretching
+                  most days of the week.
+                </li>
+                <li>
+                  Practice simple breathing or mindfulness techniques to support
+                  emotional balance.
                 </li>
               </ul>
               <p className="mt-2 text-[11px] text-gray-500">
@@ -129,28 +206,34 @@ export default function ShareResultsPage() {
                 personalized guidance from a qualified Ayurvedic doctor.
               </p>
             </div>
+          </div>
 
-            {/* Buttons */}
-            <div className="flex flex-wrap gap-3 pt-2">
-              <button className="px-4 py-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-semibold shadow hover:from-green-600 hover:to-emerald-600 transition-all">
-                Send to Contact
-              </button>
-              <button className="px-4 py-2 rounded-full bg-white text-emerald-700 border border-emerald-300 text-sm font-semibold shadow-sm hover:bg-emerald-50 transition-all">
-                Save as PDF
-              </button>
-              <button
-                onClick={() => navigate("/prakriti/results")}
-                className="px-4 py-2 rounded-full bg-white border border-green-200 text-sm font-semibold text-gray-800 hover:bg-green-50 transition-all"
-              >
-                Back to Results
-              </button>
-              <button
-                onClick={() => navigate("/")}
-                className="px-4 py-2 rounded-full bg-white border border-green-200 text-sm font-semibold text-gray-800 hover:bg-green-50 transition-all"
-              >
-                Home
-              </button>
-            </div>
+          {/* Buttons (outside ref, not included in PDF) */}
+          <div className="flex flex-wrap gap-3 pt-4">
+            <button
+              onClick={handleShareWhatsApp}
+              className="px-4 py-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-semibold shadow hover:from-green-600 hover:to-emerald-600 transition-all"
+            >
+              Send to Contact (WhatsApp)
+            </button>
+            <button
+              onClick={handleDownloadPdf}
+              className="px-4 py-2 rounded-full bg-white text-emerald-700 border border-emerald-300 text-sm font-semibold shadow-sm hover:bg-emerald-50 transition-all"
+            >
+              Save as PDF
+            </button>
+            <button
+              onClick={() => navigate("/prakriti/results")}
+              className="px-4 py-2 rounded-full bg-white border border-green-200 text-sm font-semibold text-gray-800 hover:bg-green-50 transition-all"
+            >
+              Back to Results
+            </button>
+            <button
+              onClick={() => navigate("/")}
+              className="px-4 py-2 rounded-full bg-white border border-green-200 text-sm font-semibold text-gray-800 hover:bg-green-50 transition-all"
+            >
+              Home
+            </button>
           </div>
         </section>
       </main>

@@ -2,17 +2,17 @@
 import React, { useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import Webcam from "react-webcam";
-import axios from "axios";
 
 import Navbar from "../../components/layout/Navbar.jsx";
+import { predictDoshaFromFace } from "../../services/doshaMlService";
+import { dataUrlToFile } from "../../utils/imageUtils";
+import { usePrakritiResults } from "./PrakritiResultContext";
 
 const VIDEO_CONSTRAINTS = {
   width: 640,
   height: 480,
   facingMode: "user",
 };
-
-const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
 
 export default function CaptureProfilePage() {
   const navigate = useNavigate();
@@ -23,6 +23,8 @@ export default function CaptureProfilePage() {
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState("");
 
+  const { setRegionResult } = usePrakritiResults();
+
   const handleCapture = () => {
     if (!webcamRef.current) return;
     const imageSrc = webcamRef.current.getScreenshot();
@@ -31,6 +33,7 @@ export default function CaptureProfilePage() {
       return;
     }
     setCapturedImage(imageSrc);
+    setAnalysisResult(null);
     setError("");
   };
 
@@ -50,23 +53,17 @@ export default function CaptureProfilePage() {
       setLoading(true);
       setError("");
 
-      const base64 = capturedImage.split(",")[1];
+      // 👉 Convert webcam dataURL to File and send to ML vision endpoint
+      const file = await dataUrlToFile(capturedImage, "profile.jpg");
+      const res = await predictDoshaFromFace(file); // { dosha_label, probabilities }
 
-      const res = await axios.post(`${API_BASE}/api/prakriti/analyze`, {
-        imageBase64: base64,
-        meta: {
-          step: "profile",
-          notes: "Profile view capture",
-        },
-      });
+      // 👉 Save into global store under "profile"
+      setRegionResult("profile", res);
 
-      setAnalysisResult(res.data);
+      setAnalysisResult(res);
     } catch (err) {
-      console.error("Profile analyze error:", err?.response?.data || err.message);
-      setError(
-        err?.response?.data?.message ||
-          "Profile analysis failed. Please check backend."
-      );
+      console.error("Profile analyze error:", err);
+      setError("Profile analysis failed. Please check ML service.");
     } finally {
       setLoading(false);
     }
@@ -235,15 +232,13 @@ export default function CaptureProfilePage() {
                   <p className="text-xs text-gray-700">
                     Dominant Dosha:{" "}
                     <span className="font-semibold text-emerald-700">
-                      {analysisResult.report?.dominantDosha ??
-                        analysisResult.dominant_dosha ??
-                        "Unknown"}
+                      {analysisResult.dosha_label ?? "Unknown"}
                     </span>
                   </p>
 
-                  {analysisResult.mlResult && (
+                  {analysisResult.probabilities && (
                     <pre className="text-[11px] bg-emerald-50 rounded-xl p-3 text-gray-800 whitespace-pre-wrap border border-emerald-100">
-                      {JSON.stringify(analysisResult.mlResult, null, 2)}
+                      {JSON.stringify(analysisResult.probabilities, null, 2)}
                     </pre>
                   )}
                 </div>
