@@ -3,6 +3,7 @@ const express = require("express");
 const dotenv = require("dotenv");
 const cors = require("cors");
 const connectDB = require("./src/config/db");
+const voiceRoutes = require("./src/routes/health-profile-analysis/voice");
 
 dotenv.config();
 
@@ -21,6 +22,12 @@ connectDB();
 // Routes
 app.use("/api/auth", require("./src/routes/auth"));
 app.use("/api/user", require("./src/routes/userRoutes"));
+app.use("/api/voice", voiceRoutes);
+app.use(
+  "/api/my-profile",
+  require("./src/routes/health-profile-analysis/healthProfile")
+);
+
 
 const PORT = process.env.PORT || 5000;
 
