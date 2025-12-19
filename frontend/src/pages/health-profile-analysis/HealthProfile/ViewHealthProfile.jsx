@@ -7,20 +7,13 @@ export default function ViewHealthProfile() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
-  // 🔐 Auth + fetch profile
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
-
-    if (!token) {
-      navigate("/login");
-      return;
-    }
+    if (!token) return navigate("/login");
 
     axios
       .get("http://localhost:5000/api/my-profile", {
-        headers: {
-          Authorization: `Bearer ${token}`
-        }
+        headers: { Authorization: `Bearer ${token}` }
       })
       .then(res => {
         setProfile(res.data.profile);
@@ -34,106 +27,332 @@ export default function ViewHealthProfile() {
 
   if (loading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-gray-500">
-        Loading your health profile...
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="text-center">
+          <div className="inline-block w-12 h-12 border-4 border-green-600 border-t-transparent rounded-full animate-spin mb-4"></div>
+          <p className="text-gray-600">Loading your health profile…</p>
+        </div>
       </div>
     );
   }
 
   if (!profile) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center">
-        <p className="text-gray-600 mb-4">
-          No health profile found.
-        </p>
-        <button
-          onClick={() => navigate("/health-profile/menu")}
-          className="px-6 py-3 bg-purple-600 text-white rounded-lg"
-        >
-          Create Health Profile
-        </button>
+      <div className="min-h-screen flex flex-col items-center justify-center bg-gray-50">
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-12 text-center max-w-md">
+          <div className="w-20 h-20 bg-green-100 rounded-full flex items-center justify-center mx-auto mb-6">
+            <span className="text-4xl">🌿</span>
+          </div>
+          <h2 className="text-2xl font-semibold text-gray-800 mb-2">No Health Profile Found</h2>
+          <p className="text-gray-500 mb-6 text-sm">Create your personalized health profile to get started</p>
+          <button
+            onClick={() => navigate("/health-profile/menu")}
+            className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition-colors"
+          >
+            Create Health Profile
+          </button>
+        </div>
       </div>
     );
   }
 
+  const getInitials = (name) => {
+    return name?.charAt(0).toUpperCase() || "U";
+  };
+
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-amber-50 to-orange-50 p-8">
-      <div className="max-w-4xl mx-auto bg-white rounded-2xl shadow-xl p-8">
-
-        <h2 className="text-3xl font-bold mb-6 text-green-700">
-          🧾 Your Health Profile
-        </h2>
-
-        {/* BASIC INFO */}
-        <Section title="Basic Information">
-          <Item label="Age" value={profile.age} />
-          <Item label="Gender" value={profile.gender} />
-        </Section>
-
-        {/* BODY & APPETITE */}
-        <Section title="Body & Appetite">
-          <Item label="Body Frame" value={profile.body_frame} />
-          <Item label="Appetite Level" value={profile.appetite_level} />
-          <Item label="Meal Regularity" value={profile.meal_regular} />
-        </Section>
-
-        {/* DOSHA SCORES */}
-        <Section title="Prakriti (Dosha Scores)">
-          <Item label="Vata" value={profile.prakriti_vata_score} />
-          <Item label="Pitta" value={profile.prakriti_pitta_score} />
-          <Item label="Kapha" value={profile.prakriti_kapha_score} />
-        </Section>
-
-        {/* LIFESTYLE */}
-        <Section title="Lifestyle & Wellness">
-          <Item label="Stress Level" value={profile.stress_level} />
-          <Item label="Sleep Issues" value={profile.sleep_issues} />
-          <Item label="Fatigue" value={profile.fatigue} />
-        </Section>
-
-        <div className="mt-8 flex gap-4">
+    <div className="min-h-screen bg-gray-50">
+      {/* Header */}
+      <header className="bg-white border-b border-gray-200">
+        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
+              <span className="text-white font-semibold">🌿</span>
+            </div>
+            <span className="text-xl font-semibold text-gray-800">AyurDiet Coach</span>
+          </div>
           <button
             onClick={() => navigate("/health-profile/menu")}
-            className="px-6 py-3 bg-purple-600 text-white rounded-lg hover:bg-purple-700"
+            className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
           >
-            Edit / Recreate Profile
-          </button>
-
-          <button
-            onClick={() => navigate("/dashboard")}
-            className="px-6 py-3 bg-gray-200 rounded-lg"
-          >
-            Back to Dashboard
+            <span>✏️</span>
+            Edit Profile
           </button>
         </div>
+      </header>
 
+      {/* Main Content */}
+      <main className="max-w-5xl mx-auto px-6 py-8">
+        {/* Profile Header */}
+        <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-8 mb-6">
+          <div className="flex items-start justify-between">
+            <div className="flex items-center gap-4">
+              <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center">
+                <span className="text-white text-2xl font-semibold">
+                  {getInitials(profile.name)}
+                </span>
+              </div>
+              <div>
+                <h1 className="text-2xl font-semibold text-gray-800 mb-1">
+                  {profile.name}
+                </h1>
+                <p className="text-gray-500 text-sm mb-2">{profile.email}</p>
+                <div className="flex items-center gap-2 text-sm text-gray-600">
+                  <span className="flex items-center gap-1">
+                    <span className="w-2 h-2 bg-green-600 rounded-full"></span>
+                    Profile Complete
+                  </span>
+                </div>
+              </div>
+            </div>
+            <button
+              onClick={() => navigate("/")}
+              className="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-2"
+            >
+              ← Back to Home
+            </button>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+          {/* Left Column - Main Content */}
+          <div className="lg:col-span-2 space-y-6">
+            
+            {/* Basic Info Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 bg-blue-100 rounded-lg flex items-center justify-center">
+                    <span className="text-xl">👤</span>
+                  </div>
+                  <div>
+                    <h2 className="font-semibold text-gray-800">Basic Information</h2>
+                    <p className="text-xs text-gray-500">Personal details</p>
+                  </div>
+                </div>
+                <span className="px-3 py-1 bg-blue-50 text-blue-700 text-xs font-medium rounded-full">
+                  Primary
+                </span>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <InfoItem label="Age" value={`${profile.age} years`} />
+                  <InfoItem label="Gender" value={profile.gender} />
+                  <InfoItem label="Body Frame" value={profile.body_frame} />
+                  <InfoItem label="Diet Type" value={profile.veg_nonveg} />
+                </div>
+              </div>
+            </div>
+
+            {/* Eating Pattern Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-orange-100 rounded-lg flex items-center justify-center">
+                  <span className="text-xl">🍽️</span>
+                </div>
+                <div>
+                  <h2 className="font-semibold text-gray-800">Eating Pattern</h2>
+                  <p className="text-xs text-gray-500">Dietary habits and preferences</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <InfoItem label="Appetite Level" value={profile.appetite_level} />
+                <InfoItem label="Meal Regularity" value={profile.meal_regular} />
+                
+                <div className="pt-4 border-t border-gray-100">
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">Food Intake Frequency (1-5 scale)</h3>
+                  <div className="space-y-3">
+                    <ProgressBar label="🌶️ Spicy Food" value={profile.spicy_food_frequency} />
+                    <ProgressBar label="🍳 Oily Food" value={profile.oily_food_frequency} />
+                    <ProgressBar label="🍰 Sweet Food" value={profile.sweet_food_frequency} />
+                    <ProgressBar label="☕ Caffeine" value={profile.caffeine_intake} />
+                    <ProgressBar label="🍔 Processed Food" value={profile.processed_food_intake} />
+                    <ProgressBar label="🍎 Fruits" value={profile.fruits_intake} />
+                    <ProgressBar label="🥬 Vegetables" value={profile.vegetables_intake} />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            {/* Lifestyle Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center gap-3 mb-6">
+                <div className="w-10 h-10 bg-purple-100 rounded-lg flex items-center justify-center">
+                  <span className="text-xl">🧠</span>
+                </div>
+                <div>
+                  <h2 className="font-semibold text-gray-800">Lifestyle & Mental Health</h2>
+                  <p className="text-xs text-gray-500">Daily habits and wellbeing</p>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <div className="grid grid-cols-2 gap-4">
+                  <InfoItem label="Living Environment" value={profile.living_environment} />
+                  <InfoItem label="Urine Color" value={profile.urine_color} />
+                </div>
+
+                <div className="pt-4 border-t border-gray-100">
+                  <h3 className="text-sm font-medium text-gray-700 mb-3">Health Indicators</h3>
+                  <div className="space-y-3">
+                    <ProgressBar label="😰 Stress Level" value={profile.stress_level} color="red" />
+                    <ProgressBar label="🎯 Focus Level" value={profile.focus_level} color="blue" />
+                    <ProgressBar label="😴 Sleep Issues" value={profile.sleep_issues} color="indigo" />
+                    <ProgressBar label="🤕 Headaches" value={profile.headaches} color="red" />
+                    <ProgressBar label="🦴 Joint Pain" value={profile.joint_pain} color="orange" />
+                  </div>
+                </div>
+              </div>
+            </div>
+
+          </div>
+
+          {/* Right Column - Sidebar */}
+          <div className="space-y-6">
+            
+            {/* Health Goals Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-2">
+                  <span className="text-green-600">🎯</span>
+                  <h3 className="font-semibold text-gray-800">Health Summary</h3>
+                </div>
+                <span className="text-xs text-gray-500">Overview</span>
+              </div>
+
+              <div className="space-y-3">
+                <SummaryItem 
+                  title="Age Group" 
+                  value={`${profile.age} years`}
+                  priority="info"
+                />
+                <SummaryItem 
+                  title="Body Type" 
+                  value={profile.body_frame}
+                  priority="info"
+                />
+                <SummaryItem 
+                  title="Diet Preference" 
+                  value={profile.veg_nonveg}
+                  priority="info"
+                />
+              </div>
+            </div>
+
+            {/* Family History Card */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <div className="flex items-center gap-2 mb-4">
+                <span className="text-red-600">👨‍👩‍👧‍👦</span>
+                <h3 className="font-semibold text-gray-800">Family Medical History</h3>
+              </div>
+
+              <div className="space-y-2">
+                <HistoryBadge label="Diabetes" value={profile.family_diabetes} />
+                <HistoryBadge label="Thyroid" value={profile.family_thyroid} />
+                <HistoryBadge label="Cholesterol" value={profile.family_cholesterol} />
+                <HistoryBadge label="Obesity" value={profile.family_obesity} />
+                <HistoryBadge label="Asthma" value={profile.family_asthma} />
+                <HistoryBadge label="Heart Disease" value={profile.family_heart_disease} />
+                <HistoryBadge label="Mental Health" value={profile.family_mental_health} />
+              </div>
+            </div>
+
+            {/* Quick Actions */}
+            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+              <h3 className="font-semibold text-gray-800 mb-4">Quick Actions</h3>
+              <div className="space-y-2">
+                <ActionButton icon="📊" label="View Diet Analysis" />
+                <ActionButton icon="💡" label="View Recommendations" />
+                <ActionButton icon="🍽️" label="Log New Meal" />
+              </div>
+            </div>
+
+          </div>
+        </div>
+      </main>
+    </div>
+  );
+}
+
+/* ---------------- UI COMPONENTS ---------------- */
+
+function InfoItem({ label, value }) {
+  return (
+    <div>
+      <p className="text-xs text-gray-500 mb-1">{label}</p>
+      <p className="text-sm font-medium text-gray-800">{value ?? "—"}</p>
+    </div>
+  );
+}
+
+function ProgressBar({ label, value, color = "green" }) {
+  const percentage = value ? (value / 5) * 100 : 0;
+  
+  const colorClasses = {
+    green: "bg-green-600",
+    blue: "bg-blue-600",
+    red: "bg-red-600",
+    orange: "bg-orange-600",
+    indigo: "bg-indigo-600"
+  };
+
+  return (
+    <div>
+      <div className="flex justify-between items-center mb-1.5">
+        <span className="text-xs text-gray-600">{label}</span>
+        <span className="text-xs font-semibold text-gray-700">{value ?? 0}/5</span>
+      </div>
+      <div className="h-2 bg-gray-100 rounded-full overflow-hidden">
+        <div
+          className={`h-2 ${colorClasses[color]} rounded-full transition-all duration-300`}
+          style={{ width: `${percentage}%` }}
+        />
       </div>
     </div>
   );
 }
 
-/* -------------------- SMALL COMPONENTS -------------------- */
+function SummaryItem({ title, value, priority }) {
+  const priorityColors = {
+    high: "bg-red-50 text-red-700 border-red-200",
+    medium: "bg-yellow-50 text-yellow-700 border-yellow-200",
+    info: "bg-blue-50 text-blue-700 border-blue-200"
+  };
 
-function Section({ title, children }) {
   return (
-    <div className="mb-6">
-      <h3 className="text-xl font-semibold text-gray-800 mb-3">
-        {title}
-      </h3>
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-        {children}
-      </div>
+    <div className={`p-3 rounded-lg border ${priorityColors[priority]}`}>
+      <p className="text-xs font-medium mb-0.5">{title}</p>
+      <p className="text-sm font-semibold">{value}</p>
     </div>
   );
 }
 
-function Item({ label, value }) {
+function HistoryBadge({ label, value }) {
+  const isYes = value === "Yes";
   return (
-    <div className="bg-gray-50 rounded-lg p-4 border">
-      <p className="text-sm text-gray-500">{label}</p>
-      <p className="text-lg font-semibold text-gray-800">
-        {value ?? "—"}
-      </p>
+    <div className="flex justify-between items-center p-2.5 bg-gray-50 rounded-lg">
+      <span className="text-sm text-gray-700">{label}</span>
+      <span
+        className={`px-2.5 py-1 text-xs font-medium rounded ${
+          isYes
+            ? "bg-red-100 text-red-700"
+            : "bg-green-100 text-green-700"
+        }`}
+      >
+        {value}
+      </span>
     </div>
+  );
+}
+
+function ActionButton({ icon, label }) {
+  return (
+    <button className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors border border-gray-200">
+      <span className="text-xl">{icon}</span>
+      <span className="text-sm text-gray-700 font-medium">{label}</span>
+      <span className="ml-auto text-gray-400">→</span>
+    </button>
   );
 }

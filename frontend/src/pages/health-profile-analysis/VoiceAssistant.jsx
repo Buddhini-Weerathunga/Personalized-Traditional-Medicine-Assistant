@@ -8,14 +8,14 @@ const SpeechRecognition =
 /* ---------------- QUESTIONS ---------------- */
 
 const questions = [
-  "How would you describe your body type and appetite?",
-  "Do you feel more dry and restless, hot and intense, or heavy and calm?",
-  "How often do you eat spicy, oily, sweet food and caffeine?",
-  "Do you face constipation, gas, diarrhea or acidity?",
-  "How is your stress, anger and focus level?",
-  "How well do you sleep and how tired do you feel?",
-  "Do you have joint pain, headaches, cold hands or dry skin?",
-  "What is your living environment like and AC usage?",
+  "How would you describe your body type?",
+  "How would you describe your appetite, and how regular are your meals?",
+  "How would you describe your daily diet and eating habits, including spicy, oily, sweet foods, caffeine intake, fruits, vegetables, processed foods, and whether you are vegetarian, eggetarian, or non-vegetarian?",
+  "What is the usual color of your urine?",
+  "How are your stress and focus levels?",
+  "How would you rate your sleep quality?",
+  "Do you have headaches or joint pain, and how strong are they?",
+  "How would you describe your living environment: mostly hot, cool, or moderate?",
   "Does your family have diabetes, cholesterol, thyroid or heart disease?",
   "Please tell me your age and gender"
 ];
@@ -23,17 +23,47 @@ const questions = [
 /* ---------------- KEYWORD HINTS ---------------- */
 
 const questionHints = [
-  "thin, medium, heavy | low appetite, moderate appetite, high appetite",
-  "dry, restless | hot, intense | heavy, calm",
-  "spicy food, oily food, sweet food | coffee, tea",
-  "constipation, gas, bloating, diarrhea, acidity",
-  "calm, stressed, very stressed | angry, irritated | focused, distracted",
+  // 0 – Body type
+  "thin, medium, heavy",
+
+  // 1 – Appetite + meal regularity
+  "high, moderate, low, variable appetite | regular, irregular, sometimes",
+
+  // 2 – Daily diet & eating habits (MULTI-LINE STRING FIXED)
+  `Spicy food: very low, low, moderate, high, very high
+Oily food: very low, low, moderate, high, very high
+Sweet food: very low, low, moderate, high, very high
+Caffeine: very low, low, moderate, high, very high
+Processed food: very low, low, moderate, high, very high
+Fruits: very low, low, moderate, high, very high
+Vegetables: very low, low, moderate, high, very high
+
+Diet type: vegetarian | eggetarian | non-vegetarian`,
+
+ 
+
+  // 3– Urine color
+  "clear | pale yellow | yellow | dark yellow",
+
+  // 4 – Stress + focus
+  "Stress: very low, low, moderate, high, very high | Focus: very low, low, moderate, high, very high",
+
+  // 5 – Sleep
   "good sleep, poor sleep | tired, fatigued, energetic",
-  "joint pain, headache | cold hands, cold feet | dry skin",
-  "hot, cold, moderate | air conditioner, AC usage",
+
+  // 6 – Headache + joint pain
+  "Headache: very low, low, moderate, high, very high | Joint pain: very low, low, moderate, high, very high",
+
+  // 7 – Living environment
+  "hot, cool, moderate",
+
+  // 8 – Family history
   "diabetes, cholesterol, thyroid, heart disease",
+
+  // 9 – Age & gender
   "age number | male, female, other"
 ];
+
 
 export default function VoiceAssistant() {
   const navigate = useNavigate();
