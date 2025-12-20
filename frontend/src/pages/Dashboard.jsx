@@ -55,7 +55,8 @@ export default function Dashboard() {
       icon: Heart,
       color: "bg-purple-50 hover:bg-purple-100 border-purple-200",
       iconColor: "text-purple-600",
-      path: "/personalized-treatment"
+      path:  "/personalized-treatment"
+
     }
   ];
 
