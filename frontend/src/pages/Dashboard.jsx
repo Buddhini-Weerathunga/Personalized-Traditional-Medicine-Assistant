@@ -31,7 +31,7 @@ export default function Dashboard() {
       icon: Stethoscope,
       color: "bg-red-50 hover:bg-red-100 border-red-200",
       iconColor: "text-red-600",
-      path: "/disease-detection"
+      path: "/home"
     },
     {
       title: "Plant Identification",
@@ -55,7 +55,8 @@ export default function Dashboard() {
       icon: Heart,
       color: "bg-purple-50 hover:bg-purple-100 border-purple-200",
       iconColor: "text-purple-600",
-      path: "/personalized-treatment"
+      path:  "/personalized-treatment"
+
     }
   ];
 
