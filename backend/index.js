@@ -11,26 +11,11 @@ const chatRoutes = require("./src/dosha-diagnosis/routes/chat.routes");
 const prakritiRoutes = require("./src/dosha-diagnosis/routes/prakriti.routes");
 const prakritiReportRoutes = require("./src/dosha-diagnosis/routes/prakritiReport.routes");
 
-// ⚙️ Main auth & user routes (your existing ones)
+// ⚙️ Main auth & user routes
 const authRoutes = require("./src/routes/auth");
 const userRoutes = require("./src/routes/userRoutes");
 
-// 🛑 Error handlers (from dosha-diagnosis)
-const {
-  notFound,
-  errorHandler,
-} = require("./src/dosha-diagnosis/middleware/errorHandler");
-
-// 🧠 Dosha / Prakriti routes
-const chatRoutes = require("./src/dosha-diagnosis/routes/chat.routes");
-const prakritiRoutes = require("./src/dosha-diagnosis/routes/prakriti.routes");
-const prakritiReportRoutes = require("./src/dosha-diagnosis/routes/prakritiReport.routes");
-
-// ⚙️ Main auth & user routes (your existing ones)
-const authRoutes = require("./src/routes/auth");
-const userRoutes = require("./src/routes/userRoutes");
-
-// 🛑 Error handlers (from dosha-diagnosis)
+// 🛑 Error handlers
 const {
   notFound,
   errorHandler,
@@ -54,24 +39,19 @@ app.use(morgan("dev"));
 // ---------- DB ----------
 connectDB();
 
-<<<<<<< HEAD
-=======
-// Routes
-app.use("/api/auth", require("./src/routes/auth"));
-app.use("/api/user", require("./src/routes/userRoutes"));
+// ---------- HEALTH PROFILE ROUTES ----------
 app.use("/api/voice", voiceRoutes);
 app.use(
   "/api/my-profile",
   require("./src/routes/health-profile-analysis/healthProfile")
 );
 
->>>>>>> a2ff1f47b5c71df0d2ff37ded59704d760b57b6f
 // ---------- HEALTH CHECK ----------
 app.get("/api/health", (req, res) => {
   res.json({ status: "ok", message: "Backend API running" });
 });
 
-// ---------- EXISTING APP ROUTES ----------
+// ---------- AUTH & USER ROUTES ----------
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 
@@ -79,7 +59,7 @@ app.use("/api/user", userRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/prakriti", prakritiRoutes);
 
-// 👇 New prescription/history routes
+// 👇 Prescription / history routes
 // Full URL: POST http://localhost:5000/api/prakritiReports/reports
 app.use("/api/prakritiReports", prakritiReportRoutes);
 
