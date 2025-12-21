@@ -7,6 +7,7 @@ export default function ViewHealthProfile() {
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
 
+
   useEffect(() => {
     const token = localStorage.getItem("accessToken");
     if (!token) return navigate("/login");
@@ -24,6 +25,33 @@ export default function ViewHealthProfile() {
         navigate("/login");
       });
   }, [navigate]);
+
+  const handlePrediction = async () => {
+  try {
+    const token = localStorage.getItem("accessToken");
+
+    const res = await axios.post(
+      "http://localhost:5000/api/health-prediction/predict",
+      profile,
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      }
+    );
+
+    navigate("/health-prediction", {
+      state: res.data.prediction
+    });
+
+  } catch (error) {
+    console.error(error);
+    alert("Failed to get health prediction");
+  }
+};
+
+
 
   if (loading) {
     return (
@@ -51,6 +79,8 @@ export default function ViewHealthProfile() {
           >
             Create Health Profile
           </button>
+   
+
         </div>
       </div>
     );
@@ -111,7 +141,7 @@ export default function ViewHealthProfile() {
             >
               ← Back to Home
             </button>
-          </div>
+      </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -263,10 +293,15 @@ export default function ViewHealthProfile() {
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h3 className="font-semibold text-gray-800 mb-4">Quick Actions</h3>
               <div className="space-y-2">
-                <ActionButton icon="📊" label="View Diet Analysis" />
-                <ActionButton icon="💡" label="View Recommendations" />
-                <ActionButton icon="🍽️" label="Log New Meal" />
-              </div>
+  <ActionButton
+    icon="📊"
+    label="View Health Prediction"
+    onClick={handlePrediction}
+  />
+  <ActionButton icon="💡" label="View Recommendations" />
+  <ActionButton icon="🍽️" label="Log New Meal" />
+</div>
+
             </div>
 
           </div>
@@ -347,9 +382,14 @@ function HistoryBadge({ label, value }) {
   );
 }
 
-function ActionButton({ icon, label }) {
+
+
+function ActionButton({ icon, label, onClick }) {
   return (
-    <button className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors border border-gray-200">
+    <button
+      onClick={onClick}
+      className="w-full flex items-center gap-3 p-3 text-left hover:bg-gray-50 rounded-lg transition-colors border border-gray-200"
+    >
       <span className="text-xl">{icon}</span>
       <span className="text-sm text-gray-700 font-medium">{label}</span>
       <span className="ml-auto text-gray-400">→</span>

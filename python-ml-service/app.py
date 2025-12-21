@@ -6,6 +6,9 @@ from utils.schemas import QuizFeatures, DoshaPredictionResponse
 from dosha_diagnosis.inference.predict_from_quiz import predict_dosha_from_quiz
 from dosha_diagnosis.inference.predict_from_face import predict_dosha_from_face_image
 
+# IMPORT Health Profile Analysis ML APP
+from health_profile_analysis.models.app import predict_health
+
 app = FastAPI(
     title="Dosha Diagnosis ML Service",
     version="1.0.0",
@@ -18,7 +21,13 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+# IMPORT YOUR ML APP
+from health_profile_analysis.models.app import predict_health
 
+
+@app.post("/predict")
+def predict(data: dict):
+    return predict_health(data)
 
 @app.get("/health")
 def health_check():
@@ -51,3 +60,5 @@ async def predict_face(file: UploadFile = File(...)):
         dosha_label=best_label,
         probabilities=probs,
     )
+
+

@@ -15,6 +15,7 @@ import ViewHealthProfile from "./pages/health-profile-analysis/HealthProfile/Vie
 import VoiceAssistant from "./pages/health-profile-analysis/VoiceAssistant.jsx";
 import HealthProfileMenu from "./pages/health-profile-analysis/HealthProfile/HealthProfileMenu.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import HealthPrediction from "./pages/health-profile-analysis/HealthProfile/HealthPrediction.jsx";
 
 // ✅ Dosha Diagnosis pages
 import HomePage from "./dosha-diagnosis/home/HomePage.jsx";
@@ -114,6 +115,14 @@ function App() {
     </ProtectedRoute>
   }
 />
+
+
+
+<Route
+  path="/health-prediction"
+  element={<HealthPrediction />}
+/>
+
 
       
         {/* Test Page */}
