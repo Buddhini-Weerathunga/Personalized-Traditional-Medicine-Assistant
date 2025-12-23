@@ -1,23 +1,44 @@
-// Full completed React code here...
-// (Provide entire component)
 import React, { useState } from "react";
+import axios from "axios";
 
 export default function AyurvedaMultiStepForm() {
   const [step, setStep] = useState(1);
   const [formData, setFormData] = useState({});
 
   const updateField = (e) => {
-    setFormData({ ...formData, [e.target.name]: e.target.value });
+    const { name, type, value, checked } = e.target;
+
+    // Handle checkboxes as Yes / No
+    if (type === "checkbox") {
+      setFormData({ ...formData, [name]: checked ? "Yes" : "No" });
+    } else {
+      setFormData({ ...formData, [name]: value });
+    }
   };
 
-  const next = () => setStep(step + 1);
-  const prev = () => setStep(step - 1);
+  const next = () => setStep((s) => Math.min(s + 1, 7));
+  const prev = () => setStep((s) => Math.max(s - 1, 1));
 
-  const handleSubmit = () => {
-    console.log("Form Data:", formData);
-    alert("Health Profile Created Successfully!");
+  const handleSubmit = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+
+      await axios.post(
+        "http://localhost:5000/api/patient-input",
+        formData,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+          },
+        }
+      );
+
+      alert("✅ Health Profile Saved Successfully!");
+    } catch (err) {
+      console.error(err);
+      alert("❌ Failed to save profile");
+    }
   };
- 
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 to-emerald-100 py-8 px-4">
@@ -305,26 +326,7 @@ export default function AyurvedaMultiStepForm() {
         </select>
       </div>
 
-      {/* Constipation Frequency */}
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
-          Constipation Frequency
-        </label>
-        <select
-          name="constipation_frequency"
-          onChange={updateField}
-          className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg 
-                     focus:border-green-500 focus:outline-none transition-colors"
-        >
-          <option value="">Select</option>
-          <option value="1">None</option>
-          <option value="2">Mild</option>
-          <option value="3">Moderate</option>
-          <option value="4">Frequent</option>
-          <option value="5">Severe</option>
-        </select>
-      </div>
-
+     
       {/* Urine Color (kept descriptive, not numeric) */}
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -344,25 +346,6 @@ export default function AyurvedaMultiStepForm() {
         </select>
       </div>
 
-      {/* Anger Frequency */}
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
-          Anger Frequency
-        </label>
-        <select
-          name="anger_frequency"
-          onChange={updateField}
-          className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg 
-                     focus:border-green-500 focus:outline-none transition-colors"
-        >
-          <option value="">Select</option>
-          <option value="1">None</option>
-          <option value="2">Low</option>
-          <option value="3">Moderate</option>
-          <option value="4">High</option>
-          <option value="5">Very High</option>
-        </select>
-      </div>
 
       {/* Focus Level */}
       <div>
@@ -404,26 +387,7 @@ export default function AyurvedaMultiStepForm() {
         </select>
       </div>
 
-      {/* Fatigue */}
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
-          Fatigue
-        </label>
-        <select
-          name="fatigue"
-          onChange={updateField}
-          className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg 
-                     focus:border-green-500 focus:outline-none transition-colors"
-        >
-          <option value="">Select</option>
-          <option value="1">None</option>
-          <option value="2">Low</option>
-          <option value="3">Moderate</option>
-          <option value="4">High</option>
-          <option value="5">Very High</option>
-        </select>
-      </div>
-
+     
       {/* Headaches */}
       <div>
         <label className="block text-sm font-semibold text-gray-700 mb-2">
@@ -464,25 +428,7 @@ export default function AyurvedaMultiStepForm() {
         </select>
       </div>
 
-      {/* Cold Hands and Feet */}
-      <div>
-        <label className="block text-sm font-semibold text-gray-700 mb-2">
-          Cold Hands & Feet
-        </label>
-        <select
-          name="cold_hands_feet"
-          onChange={updateField}
-          className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg 
-                     focus:border-green-500 focus:outline-none transition-colors"
-        >
-          <option value="">Select</option>
-          <option value="1">None</option>
-          <option value="2">Mild</option>
-          <option value="3">Moderate</option>
-          <option value="4">Severe</option>
-          <option value="5">Very Severe</option>
-        </select>
-      </div>
+      
 
       {/* Sleep Issues */}
       <div>
@@ -535,51 +481,9 @@ export default function AyurvedaMultiStepForm() {
                 <span className="text-green-600 mr-2">🧠</span> Mental & Emotional Health
               </h2>
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Anxiety Level</label>
-                  <select
-                    name="anxiety_level"
-                    onChange={updateField}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none transition-colors"
-                  >
-                    <option>Select</option>
-                    <option>None</option>
-                    <option>Low</option>
-                    <option>Moderate</option>
-                    <option>High</option>
-                    <option>Very High</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Anger Frequency</label>
-                  <select
-                    name="anger_frequency"
-                    onChange={updateField}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none transition-colors"
-                  >
-                    <option>Select</option>
-                    <option>Never</option>
-                    <option>Rarely</option>
-                    <option>Sometimes</option>
-                    <option>Often</option>
-                    <option>Very Often</option>
-                  </select>
-                </div>
-                <div>
-                  <label className="block text-sm font-semibold text-gray-700 mb-2">Mood Swings</label>
-                  <select
-                    name="mood_swings"
-                    onChange={updateField}
-                    className="w-full px-4 py-3 border-2 border-gray-200 rounded-lg focus:border-green-500 focus:outline-none transition-colors"
-                  >
-                    <option>Select</option>
-                    <option>Never</option>
-                    <option>Rarely</option>
-                    <option>Sometimes</option>
-                    <option>Often</option>
-                    <option>Very Often</option>
-                  </select>
-                </div>
+               
+               
+               
                 <div>
                   <label className="block text-sm font-semibold text-gray-700 mb-2">Focus Level</label>
                   <select
