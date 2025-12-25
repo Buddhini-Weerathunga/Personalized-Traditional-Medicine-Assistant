@@ -11,36 +11,38 @@ const SpeechRecognition =
 const questions = [
   "How would you describe your body type?",
   "How would you describe your appetite, and how regular are your meals?",
-  "How would you describe your daily diet and eating habits, including spicy, oily, sweet foods, caffeine intake, processed foods, and whether you are vegetarian, eggetarian, or non-vegetarian?",
+  "How would you describe your daily diet including spicy, oily, sweet foods, caffeine intake, processed foods, and whether you are vegetarian, eggetarian, or non-vegetarian?",
   "What is the usual color of your urine?",
-  "How are your stress and focus levels?",
+  "How would you describe your stress level?",
   "How would you rate your sleep quality?",
-  "Do you have headaches or joint pain, and how strong are they?",
-  "How would you describe your living environment: mostly hot, cool, or moderate?",
+  "Do you experience headaches or joint pain, and how strong are they?",
+  "How would you describe your environment: mostly hot, cool, or moderate?",
   "Does your family have diabetes, cholesterol, thyroid or heart disease?",
   "Please tell me your age and gender"
 ];
 
+
 /* ---------------- KEYWORD HINTS ---------------- */
 
 const questionHints = [
-  "thin, medium, heavy",
-  "high, moderate, low, variable appetite | regular, irregular, sometimes",
-  `Spicy food: very low, low, moderate, high, very high
-Oily food: very low, low, moderate, high, very high
-Sweet food: very low, low, moderate, high, very high
-Caffeine: very low, low, moderate, high, very high
-Processed food: very low, low, moderate, high, very high
+  "thin | medium | heavy",
+  "high | moderate | low | variable appetite — regular | irregular | sometimes",
+  `Spicy food: very low → very high
+Oily food: very low → very high
+Sweet food: very low → very high
+Caffeine: very low → very high
+Processed food: very low → very high
 
 Diet type: vegetarian | eggetarian | non-vegetarian`,
   "clear | pale yellow | yellow | dark yellow",
-  "Stress: very low, low, moderate, high, very high | Focus: very low, low, moderate, high, very high",
-  "good sleep, poor sleep | tired, fatigued, energetic",
-  "Headache: very low, low, moderate, high, very high | Joint pain: very low, low, moderate, high, very high",
-  "hot, cool, moderate",
-  "diabetes, cholesterol, thyroid, heart disease",
-  "age number | male, female, other"
+  "Stress: very low | low | moderate | high | very high",
+  "Sleep quality: very poor | poor | average | good | very good",
+  "Headache & joint pain: very low | low | moderate | high | very high",
+  "hot | cool | moderate",
+  "diabetes | cholesterol | thyroid | heart disease",
+  "age number | male | female | other"
 ];
+
 
 export default function VoiceAssistant() {
   const navigate = useNavigate();

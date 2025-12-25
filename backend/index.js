@@ -51,6 +51,7 @@ app.use(
   "/api/health-prediction",
   require("./src/routes/health-profile-analysis/healthPrediction")
 );
+
 app.use("/api/patient-input", require("./src/routes/health-profile-analysis/patientInput"));
 
 

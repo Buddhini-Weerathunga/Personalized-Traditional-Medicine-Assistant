@@ -1,16 +1,9 @@
 const express = require("express");
 const router = express.Router();
+const controller = require("../../controllers/health-profile-analysis/healthController");
+const protect = require("../../middleware/authMiddleware");
 
-// 🔐 Auth middleware (adjust path if needed)
-const auth = require("../../middleware/authMiddleware");
-
-// 🎯 Controller
-const {
-  analyzeHealthProfile
-} = require("../../controllers/health-profile-analysis/healthController");
-
-// 🔮 ML prediction route
-// POST /api/health/predict
-router.post("/predict", auth, analyzeHealthProfile);
+// 🔐 Predict using logged-in user's latest profile
+router.get("/predict/me", protect, controller.predictMyProfile);
 
 module.exports = router;

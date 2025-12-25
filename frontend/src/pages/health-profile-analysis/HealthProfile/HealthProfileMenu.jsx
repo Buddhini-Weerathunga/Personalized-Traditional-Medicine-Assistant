@@ -37,6 +37,14 @@ export default function HealthProfileMenu() {
     >
       👁 View Health Profile
     </button>
+
+    <button
+  onClick={() => navigate("/health-prediction")}
+  className="px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition"
+>
+  🔮 Predict My Health
+</button>
+
         {/* OPTIONS */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
 
