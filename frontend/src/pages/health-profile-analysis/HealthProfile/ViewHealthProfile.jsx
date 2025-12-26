@@ -101,13 +101,12 @@ export default function ViewHealthProfile() {
             </div>
             <span className="text-xl font-semibold text-gray-800">AyurDiet Coach</span>
           </div>
-          <button
-            onClick={() => navigate("/health-profile/menu")}
-            className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
-          >
-            <span>✏️</span>
-            Edit Profile
-          </button>
+            <button
+              onClick={() => navigate("/")}
+              className="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-2"
+            >
+              Back to Home
+            </button>
         </div>
       </header>
 
@@ -135,12 +134,15 @@ export default function ViewHealthProfile() {
                 </div>
               </div>
             </div>
-            <button
-              onClick={() => navigate("/")}
-              className="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-2"
-            >
-              ← Back to Home
-            </button>
+              <button
+            onClick={() => navigate("/health-profile/edit")}
+
+            className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
+          >
+            <span>✏️</span>
+            Edit Profile
+          </button>
+          
       </div>
         </div>
 
@@ -242,34 +244,7 @@ export default function ViewHealthProfile() {
           {/* Right Column - Sidebar */}
           <div className="space-y-6">
             
-            {/* Health Goals Card */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <div className="flex items-center justify-between mb-4">
-                <div className="flex items-center gap-2">
-                  <span className="text-green-600">🎯</span>
-                  <h3 className="font-semibold text-gray-800">Health Summary</h3>
-                </div>
-                <span className="text-xs text-gray-500">Overview</span>
-              </div>
-
-              <div className="space-y-3">
-                <SummaryItem 
-                  title="Age Group" 
-                  value={`${profile.age} years`}
-                  priority="info"
-                />
-                <SummaryItem 
-                  title="Body Type" 
-                  value={profile.body_frame}
-                  priority="info"
-                />
-                <SummaryItem 
-                  title="Diet Preference" 
-                  value={profile.veg_nonveg}
-                  priority="info"
-                />
-              </div>
-            </div>
+      
 
             {/* Family History Card */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">

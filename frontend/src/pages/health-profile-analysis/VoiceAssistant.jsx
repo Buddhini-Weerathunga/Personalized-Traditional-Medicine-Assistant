@@ -232,17 +232,17 @@ export default function VoiceAssistant() {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-purple-600 via-purple-700 to-indigo-800 p-4 md:p-8">
+    <div className="min-h-screen  bg-gradient-to-br from-green-50 via-white to-green-100 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
 
           {/* LEFT - Conversation Panel */}
           <div className="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[700px]">
-            <div className="bg-gradient-to-r from-purple-600 to-indigo-600 p-6">
+            <div className=" bg-gradient-to-br from-green-400  to-green-200 p-6">
               <h2 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
-                🧘 AI Ayurveda Assistant
+                AI Ayurveda Assistant
               </h2>
-              <p className="text-purple-100 mt-2 text-sm">
+              <p className="text-white mt-2 text-sm">
                 Question {step + 1} of {questions.length}
               </p>
             </div>
@@ -250,7 +250,7 @@ export default function VoiceAssistant() {
             {/* Conversation Display */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
               {conversation.length === 0 ? (
-                <div className="text-center py-12">
+                <div className="text-center ">
                   <div className="text-6xl mb-4">🎙️</div>
                   <p className="text-gray-500 mb-6">Ready to start your health assessment</p>
                      {/* Instructions */}
@@ -284,7 +284,7 @@ export default function VoiceAssistant() {
                   <button
                     onClick={startConversation}
                     disabled={isSpeaking}
-                    className="bg-gradient-to-r from-purple-600 to-indigo-600 text-white px-8 py-3 rounded-xl hover:scale-105 transition disabled:opacity-50"
+                    className="bg-gradient-to-br from-green-400  to-green-400 text-white px-8 py-3 rounded-xl hover:scale-105 transition disabled:opacity-50"
                   >
                     Start Conversation
                   </button>
@@ -410,11 +410,11 @@ export default function VoiceAssistant() {
 
           {/* RIGHT - Health Profile */}
           <div className="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[600px]">
-            <div className="bg-gradient-to-r from-indigo-600 to-purple-600 p-6">
+            <div className="bg-gradient-to-br from-green-400  to-green-200 p-6">
               <h3 className="text-2xl font-bold text-white flex items-center gap-2">
-                📋 Health Profile
+                 Health Profile
               </h3>
-              <p className="text-indigo-100 mt-2 text-sm">
+              <p className="text-white mt-2 text-sm">
                 Extracted data from your responses
               </p>
             </div>

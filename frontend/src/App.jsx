@@ -12,6 +12,8 @@ import AyurvedaDashboard from "./pages/health-profile-analysis/Dashboard.jsx";
 import HealthProfileCreation from "./pages/health-profile-analysis/HealthProfile/Menu.jsx";
 import AyurvedaMultiStepForm from "./pages/health-profile-analysis/HealthProfile/create.jsx";
 import ViewHealthProfile from "./pages/health-profile-analysis/HealthProfile/ViewHealthProfile.jsx";
+import EditHealthProfile from "./pages/health-profile-analysis/HealthProfile/EditHealthProfile.jsx";
+import CreateHealthProfile from "./pages/health-profile-analysis/HealthProfile/CreateHealthProfile.jsx";
 import VoiceAssistant from "./pages/health-profile-analysis/VoiceAssistant.jsx";
 import HealthProfileMenu from "./pages/health-profile-analysis/HealthProfile/HealthProfileMenu.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
@@ -83,50 +85,18 @@ function App() {
           }
         />
 
+
         {/* Health Profie Analysis Routes*/} 
         <Route path="/personalized-treatment" element={<AyurvedaDashboard />} />
-      
-        <Route path="/health-profile/create" element={<AyurvedaMultiStepForm />} />
-        
-        
-        {/* 🔐 PROTECTED ROUTE */}
-        <Route
-          path="/health-profile/voice-assistant"
-          element={
-            <ProtectedRoute>
-              <VoiceAssistant />
-            </ProtectedRoute>
-          }
-        />
-         {/* 🔐 PROTECTED ROUTE */}
-        <Route
-          path="/health-profile/menu"
-          element={
-            <ProtectedRoute>
-              <HealthProfileMenu />
-            </ProtectedRoute>
-          }
-        />
-        <Route
-  path="/health-profile/view"
-  element={
-    <ProtectedRoute>
-      <ViewHealthProfile />
-    </ProtectedRoute>
-  }
-/>
-
-
-
-<Route
-  path="/health-prediction"
-  element={<HealthPrediction />}
-/>
-
-
-      
-        {/* Test Page */}
+        <Route path="/health-profile/voice-assistant" element={<ProtectedRoute><VoiceAssistant /></ProtectedRoute>}/>
+        <Route path="/health-profile/menu" element={<ProtectedRoute><HealthProfileMenu /></ProtectedRoute>}/>
+        <Route path="/health-profile/view" element={<ProtectedRoute><ViewHealthProfile /></ProtectedRoute>}/>
+        <Route path="/health-profile/edit" element={<EditHealthProfile />} />
+        <Route path="/health-profile/create" element={<CreateHealthProfile />} />
+        <Route path="/health-prediction" element={<HealthPrediction />}/>
         <Route path="/dosha-face-test" element={<FacePredictTest />} />
+
+        
       </Routes>
     </main>
     </div>

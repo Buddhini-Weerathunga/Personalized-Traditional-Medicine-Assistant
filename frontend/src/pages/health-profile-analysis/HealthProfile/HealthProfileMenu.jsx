@@ -5,45 +5,39 @@ export default function HealthProfileMenu() {
   const navigate = useNavigate();
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-amber-50 to-orange-50 flex items-center justify-center px-4">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-100 flex items-center justify-center px-4">
       <div className="w-full max-w-5xl">
 
-        {/* HEADER */}
-        <div className="flex items-center gap-3 mb-10">
-          <button
-            onClick={() => navigate(-1)}
-            className="p-2 rounded-lg hover:bg-white transition"
-          >
-            <ArrowLeft className="w-6 h-6 text-gray-700" />
-          </button>
+        {/* HEADER + ACTIONS */}
+        <div className="flex items-center justify-between mb-8">
 
-          <div className="flex items-center gap-2">
-            <div className="bg-green-600 p-2 rounded-lg">
-              <span className="text-white text-lg">❤</span>
+          {/* LEFT: BACK + TITLE */}
+          <div className="flex items-center gap-3">
+            <button
+              onClick={() => navigate(-1)}
+              className="p-2 rounded-lg hover:bg-green-100 transition"
+            >
+              <ArrowLeft className="w-6 h-6 text-green-700" />
+            </button>
+
+            <div className="flex items-center gap-2">
+             
+              <h1 className="text-2xl font-semibold text-gray-800">
+                Create Health Profile
+              </h1>
             </div>
-            <h1 className="text-2xl font-bold text-gray-800">
-              Create Health Profile
-            </h1>
           </div>
+
+          {/* RIGHT: VIEW PROFILE BUTTON */}
+          <button
+            onClick={() => navigate("/health-profile/view")}
+            className="px-6 py-3 bg-green-600 text-white rounded-lg font-medium hover:bg-green-700 transition shadow-sm"
+          >
+             View Health Profile
+          </button>
         </div>
 
-        {/* SUBTITLE */}
-        <p className="text-center text-gray-600 mb-12">
-          Choose your preferred method to create your Ayurvedic health profile
-        </p>
- <button
-      onClick={() => navigate("/health-profile/view")}
-      className="px-6 py-3 bg-green-600 text-white rounded-lg font-semibold hover:bg-green-700 transition"
-    >
-      👁 View Health Profile
-    </button>
-
-    <button
-  onClick={() => navigate("/health-prediction")}
-  className="px-6 py-3 bg-purple-600 text-white rounded-lg font-semibold hover:bg-purple-700 transition"
->
-  🔮 Predict My Health
-</button>
+        
 
         {/* OPTIONS */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
@@ -51,7 +45,8 @@ export default function HealthProfileMenu() {
           {/* VOICE BASED */}
           <div
             onClick={() => navigate("/health-profile/voice-assistant")}
-            className="cursor-pointer bg-white border-2 border-blue-200 rounded-2xl p-8 hover:shadow-xl hover:scale-105 transition"
+            className="cursor-pointer bg-white border border-blue-200 rounded-2xl p-8
+                       hover:shadow-lg hover:-translate-y-1 transition"
           >
             <div className="flex justify-center mb-6">
               <div className="bg-blue-100 p-4 rounded-full">
@@ -59,7 +54,7 @@ export default function HealthProfileMenu() {
               </div>
             </div>
 
-            <h2 className="text-xl font-bold text-center mb-3">
+            <h2 className="text-xl font-semibold text-center mb-3">
               Voice-Based Profile
             </h2>
 
@@ -78,7 +73,8 @@ export default function HealthProfileMenu() {
           {/* MANUAL FORM */}
           <div
             onClick={() => navigate("/health-profile/create")}
-            className="cursor-pointer bg-white border-2 border-green-200 rounded-2xl p-8 hover:shadow-xl hover:scale-105 transition"
+            className="cursor-pointer bg-white border border-green-200 rounded-2xl p-8
+                       hover:shadow-lg hover:-translate-y-1 transition"
           >
             <div className="flex justify-center mb-6">
               <div className="bg-green-100 p-4 rounded-full">
@@ -86,7 +82,7 @@ export default function HealthProfileMenu() {
               </div>
             </div>
 
-            <h2 className="text-xl font-bold text-center mb-3">
+            <h2 className="text-xl font-semibold text-center mb-3">
               Fill Manual Form
             </h2>
 
