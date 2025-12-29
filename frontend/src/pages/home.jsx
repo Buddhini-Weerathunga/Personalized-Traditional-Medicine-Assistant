@@ -231,10 +231,17 @@ export default function HomePage() {
                   {service.description}
                 </p>
 
-                <button className="mt-4 text-green-600 hover:text-green-700 font-semibold flex items-center gap-2 group-hover:gap-3 transition-all">
-                  Learn More 
-                  <span>→</span>
-                </button>
+                {service.title === "Medicinal Plant ID" ? (
+                  <Link to="/plant-scan" className="mt-4 text-green-600 hover:text-green-700 font-semibold flex items-center gap-2 group-hover:gap-3 transition-all">
+                    Try Now 
+                    <span>→</span>
+                  </Link>
+                ) : (
+                  <button className="mt-4 text-green-600 hover:text-green-700 font-semibold flex items-center gap-2 group-hover:gap-3 transition-all">
+                    Learn More 
+                    <span>→</span>
+                  </button>
+                )}
               </div>
             ))}
           </div>
