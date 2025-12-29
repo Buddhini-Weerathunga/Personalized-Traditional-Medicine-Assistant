@@ -12,7 +12,10 @@
   "dependencies": {
     "@tailwindcss/vite": "^4.1.17",
     "axios": "^1.13.2",
+<<<<<<< HEAD
+=======
     "html2pdf.js": "^0.12.1",
+>>>>>>> 76feb730b4a3a1d2fd7d756d571511539825c729
     "lucide-react": "^0.555.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0",

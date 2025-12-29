@@ -8,6 +8,15 @@ import Login from "./pages/login.jsx";
 import Register from "./pages/register.jsx";
 import Home from "./pages/home.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
+
+/* Plant Identification Pages */
+import PlantScan from "./pages/plant-identification/PlantScan.jsx";
+import PlantResults from "./pages/plant-identification/PlantResults.jsx";
+import PlantHistory from "./pages/plant-identification/PlantHistory.jsx";
+import RiskAlerts from "./pages/plant-identification/RiskAlerts.jsx";
+import PlantSafety from "./pages/plant-identification/PlantSafety.jsx";
+
+/* Health Profile Analysis Pages */
 import AyurvedaDashboard from "./pages/health-profile-analysis/Dashboard.jsx";
 import AyurvedaMultiStepForm from "./pages/health-profile-analysis/HealthProfile/create.jsx";
 import ViewHealthProfile from "./pages/health-profile-analysis/HealthProfile/ViewHealthProfile.jsx";
@@ -107,6 +116,15 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          {/* ---------------------------------------------- */}
+          {/* Plant Identification Routes */}
+          {/* ---------------------------------------------- */}
+          <Route path="/plant-scan" element={<PlantScan />} />
+          <Route path="/plant-results" element={<PlantResults />} />
+          <Route path="/plant-history" element={<PlantHistory />} />
+          <Route path="/risk-alerts" element={<RiskAlerts />} />
+          <Route path="/plant-safety/:plantId" element={<PlantSafety />} />
 
           {/* Test Page */}
           <Route path="/dosha-face-test" element={<FacePredictTest />} />
