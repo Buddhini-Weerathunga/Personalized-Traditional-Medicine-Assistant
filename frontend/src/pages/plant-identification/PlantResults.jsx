@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
+import PlantNavbar from '../../components/plant-identification/PlantNavbar';
 import PlantCard from '../../components/plant-identification/PlantCard';
 import LoadingSpinner from '../../components/plant-identification/LoadingSpinner';
 import { savePlantIdentification, generatePersonalizedAlerts } from '../../services/plant-identification/plantApi';
@@ -189,57 +190,33 @@ const PlantResults = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-white">
+    <>
+      <PlantNavbar />
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-white">
       {/* Background Decorations */}
-      <div className="absolute top-20 right-10 w-64 h-64 bg-green-200 rounded-full blur-3xl opacity-30 pointer-events-none"></div>
-      <div className="absolute bottom-20 left-10 w-96 h-96 bg-emerald-200 rounded-full blur-3xl opacity-30 pointer-events-none"></div>
-
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="text-center mb-8">
-        <h1 className="text-4xl md:text-5xl font-bold mb-3">
-          <span className="text-green-600">
-            Plant Description
-          </span>
-        </h1>
-        <p className="text-xl text-gray-600">Detailed analysis and safety information</p>
+      <div className="pointer-events-none">
+        <div className="absolute -top-16 -left-10 w-72 h-72 bg-green-200 rounded-full blur-3xl opacity-40" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-emerald-200 rounded-full blur-3xl opacity-40" />
       </div>
 
-      {/* Quick Navigation Bar */}
-      <div className="flex flex-wrap gap-3 justify-center mb-8">
-        <button
-          onClick={() => navigate('/')}
-          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-        >
-          🏠 Home
-        </button>
-        <button
-          onClick={() => navigate('/plant-scan')}
-          className="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors font-medium"
-        >
-          🔍 Plant Identification
-        </button>
-        <button
-          className="px-4 py-2 bg-green-200 text-green-800 rounded-lg font-medium cursor-default"
-        >
-          🌿 Plant Description
-        </button>
-        <button
-          onClick={() => navigate('/plant-history')}
-          className="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors font-medium"
-        >
-          📚 History
-        </button>
-        <button
-          onClick={() => navigate('/risk-alerts')}
-          className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
-        >
-          🚨 Safety Alerts
-        </button>
-      </div>
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-100 text-green-700 text-xs font-semibold mb-4">
+            <span>🌿 Plant Analysis Complete</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-4">
+            <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+              Plant Details
+            </span>
+          </h1>
+          <p className="text-lg md:text-xl text-gray-600 leading-relaxed max-w-2xl mx-auto">
+            Detailed analysis and safety information
+          </p>
+        </div>
 
       {!result && (
-        <div className="mb-4 bg-yellow-50 border border-yellow-300 rounded-lg p-4">
-          <p className="text-yellow-800 flex items-center gap-2">
+        <div className="mb-6 bg-amber-50/50 border border-amber-200 rounded-xl p-4">
+          <p className="text-amber-800 flex items-center gap-2 text-sm">
             <span>ℹ️</span>
             <span className="font-medium">Development Mode: Showing sample data for demonstration</span>
           </p>
@@ -248,14 +225,14 @@ const PlantResults = () => {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
         <div className="lg:sticky lg:top-8 h-fit">
-          <div className="w-full rounded-2xl overflow-hidden shadow-2xl border-2 border-green-100">
+          <div className="w-full rounded-2xl overflow-hidden shadow-md border border-green-100">
             <img src={displayImage} alt="Identified plant" className="w-full h-auto" />
           </div>
         </div>
 
         <div className="lg:col-span-2 flex flex-col gap-6">
-          <div className="bg-white p-8 rounded-2xl shadow-xl border-2 border-green-100">
-            <h2 className="text-green-800 text-4xl font-bold mb-2">{displayResult.plantName}</h2>
+          <div className="bg-white/80 p-6 rounded-2xl shadow-md border border-green-100">
+            <h2 className="text-gray-900 text-3xl font-bold mb-2">{displayResult.plantName}</h2>
             {displayResult.scientificName && (
               <p className="text-gray-500 text-xl mb-4">
                 <em>{displayResult.scientificName}</em>
@@ -607,6 +584,7 @@ const PlantResults = () => {
       )}
       </div>
     </div>
+    </>
   );
 };
 

@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
+import PlantNavbar from '../../components/plant-identification/PlantNavbar';
 import PlantCard from '../../components/plant-identification/PlantCard';
 import LoadingSpinner from '../../components/plant-identification/LoadingSpinner';
 import { getPlantHistory, deletePlantIdentification } from '../../services/plant-identification/plantApi';
@@ -93,60 +94,40 @@ const PlantHistory = () => {
   }
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-white">
+    <>
+      <PlantNavbar />
+      <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-white">
       {/* Background Decorations */}
-      <div className="absolute top-20 left-10 w-64 h-64 bg-green-200 rounded-full blur-3xl opacity-30 pointer-events-none"></div>
-      <div className="absolute bottom-20 right-10 w-96 h-96 bg-emerald-200 rounded-full blur-3xl opacity-30 pointer-events-none"></div>
-
-      <div className="relative max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
-      <div className="text-center mb-8">
-        <h1 className="text-4xl md:text-5xl font-bold mb-3">
-          <span className="text-green-600">
-            History
-          </span>
-        </h1>
-        <p className="text-xl text-gray-600">View and manage your previously identified plants</p>
+      <div className="pointer-events-none">
+        <div className="absolute -top-16 -left-10 w-72 h-72 bg-green-200 rounded-full blur-3xl opacity-40" />
+        <div className="absolute bottom-0 right-0 w-96 h-96 bg-emerald-200 rounded-full blur-3xl opacity-40" />
       </div>
 
-      {/* Quick Navigation Bar */}
-      <div className="flex flex-wrap gap-3 justify-center mb-8">
-        <button
-          onClick={() => navigate('/')}
-          className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 transition-colors font-medium"
-        >
-          🏠 Home
-        </button>
-        <button
-          onClick={() => navigate('/plant-scan')}
-          className="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors font-medium"
-        >
-          🔍 Plant Identification
-        </button>
-        <button
-          onClick={() => navigate('/plant-results')}
-          className="px-4 py-2 bg-green-100 text-green-700 rounded-lg hover:bg-green-200 transition-colors font-medium"
-        >
-          🌿 Plant Description
-        </button>
-        <button
-          className="px-4 py-2 bg-green-200 text-green-800 rounded-lg font-medium cursor-default"
-        >
-          📚 History
-        </button>
-        <button
-          onClick={() => navigate('/risk-alerts')}
-          className="px-4 py-2 bg-red-100 text-red-700 rounded-lg hover:bg-red-200 transition-colors font-medium"
-        >
-          🚨 Safety Alerts
-        </button>
-      </div>
+      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
+        <div className="text-center mb-12">
+          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-100 text-green-700 text-xs font-semibold mb-4">
+            <span>📚 Your Plant Journey</span>
+          </div>
+          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-4">
+            <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
+              Plant History
+            </span>
+          </h1>
+          <p className="text-lg md:text-xl text-gray-600 leading-relaxed max-w-2xl mx-auto">
+            View and manage your previously identified plants
+          </p>
+        </div>
 
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
         <button 
-          className="px-6 py-3 text-base font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 hover:-translate-y-0.5 hover:shadow-lg transition-all"
+          className="group inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-green-800 bg-white border-2 border-green-300 rounded-full shadow-[0_8px_24px_rgba(16,185,129,0.12)] hover:bg-green-50 hover:border-green-500 transition-all hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
           onClick={() => navigate('/plant-scan')}
         >
-          + Identify New Plant
+          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 text-white text-base shadow-inner">+</span>
+          <span className="leading-tight">
+            <span className="block">Identify New Plant</span>
+            <span className="block text-[11px] font-normal text-green-700/80">Scan or upload a photo</span>
+          </span>
         </button>
       </div>
 
@@ -212,10 +193,11 @@ const PlantHistory = () => {
           <h2 className="text-green-800 text-3xl font-bold mb-2">No plants identified yet</h2>
           <p className="text-gray-600 text-lg mb-8">Start by scanning your first plant!</p>
           <button 
-            className="px-8 py-3.5 text-base font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 hover:-translate-y-0.5 hover:shadow-lg transition-all"
+            className="group inline-flex items-center gap-2 px-8 py-3.5 text-base font-semibold text-green-800 bg-white border-2 border-green-300 rounded-full shadow-[0_10px_30px_rgba(16,185,129,0.15)] hover:bg-green-50 hover:border-green-500 hover:-translate-y-0.5 hover:shadow-lg transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
             onClick={() => navigate('/plant-scan')}
           >
-            Identify a Plant
+            <span className="flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 text-white text-lg shadow-inner">🌿</span>
+            <span>Identify a Plant</span>
           </button>
         </div>
       ) : (
@@ -280,6 +262,7 @@ const PlantHistory = () => {
       )}
       </div>
     </div>
+    </>
   );
 };
 
