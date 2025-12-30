@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
+import PlantNavbar from '../../components/plant-identification/PlantNavbar';
 import LoadingSpinner from '../../components/plant-identification/LoadingSpinner';
 import { getPlantSafetyInfo } from '../../services/plant-identification/plantApi';
 
@@ -77,7 +78,9 @@ const PlantSafety = () => {
   };
 
   return (
-    <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+    <>
+      <PlantNavbar />
+      <div className="max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
       {/* Header */}
       <div className="bg-gradient-to-r from-red-600 to-orange-600 text-white rounded-xl p-8 mb-8 shadow-lg">
         <button
@@ -302,6 +305,7 @@ const PlantSafety = () => {
         </div>
       )}
     </div>
+    </>
   );
 };
 
