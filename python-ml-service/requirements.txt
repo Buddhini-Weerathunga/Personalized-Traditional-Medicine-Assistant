@@ -12,5 +12,6 @@ Pillow
 opencv-python
 torch
 torchvision
+xgboost
 
 mediapipe
