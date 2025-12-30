@@ -121,6 +121,15 @@ export default function CreateHealthProfile() {
         {/* ================= STEP 3 ================= */}
         {step === 3 && (
           <Section title="Food Intake (1–5)">
+             <p className="text-sm text-gray-600 mb-4">
+    Rate how often you consume each food type:
+    <br />
+    <b>1</b> = Very Low / Never &nbsp;&nbsp;
+    <b>2</b> = Low &nbsp;&nbsp;
+    <b>3</b> = Moderate &nbsp;&nbsp;
+    <b>4</b> = High &nbsp;&nbsp;
+    <b>5</b> = Very High
+  </p>
             {foodKeys.map(k => (
               <Range key={k} label={k.replace(/_/g, " ")}
                 name={k} value={form[k]} onChange={updateField} />
@@ -132,6 +141,15 @@ export default function CreateHealthProfile() {
         {step === 4 && (
           <>
             <Section title="Mental & Sleep">
+               <p className="text-sm text-gray-600 mb-4">
+    Rate how often you consume each food type:
+    <br />
+    <b>1</b> = Very Low / Never &nbsp;&nbsp;
+    <b>2</b> = Low &nbsp;&nbsp;
+    <b>3</b> = Moderate &nbsp;&nbsp;
+    <b>4</b> = High &nbsp;&nbsp;
+    <b>5</b> = Very High
+  </p>
               <Range label="Stress Level" name="stress_level"
                 value={form.stress_level} onChange={updateField} />
               <Range label="Sleep Quality" name="sleep_quality"

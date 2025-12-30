@@ -83,7 +83,7 @@ export default function AyurvedaDashboard() {
             </div>
             <div>
               <h1 className="text-2xl font-semibold text-green-800">
-                Ayurveda Portal
+                Ayu Ceylon
               </h1>
               <p className="text-xs text-green-600">
                 Holistic Wellness Platform
