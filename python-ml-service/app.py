@@ -29,6 +29,26 @@ from health_profile_analysis.models.app import predict_health
 def predict(data: dict):
     return predict_health(data)
 
+from fastapi import FastAPI, HTTPException
+from diets_predictions.predictor import predict_diet
+
+app = FastAPI(
+    title="Ayurveda Diet Prediction API",
+    version="1.0.0"
+)
+
+@app.post("/api/diet/predict")
+def predict(data: dict):
+    try:
+        result = predict_diet(data)
+        return {
+            "status": "success",
+            "prediction": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
+
+
 @app.get("/health")
 def health_check():
     return {"status": "ok"}
