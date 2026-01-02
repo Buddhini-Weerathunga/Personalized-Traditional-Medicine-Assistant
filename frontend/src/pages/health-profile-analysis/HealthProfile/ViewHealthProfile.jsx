@@ -6,25 +6,55 @@ export default function ViewHealthProfile() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
+const [prakriti, setPrakriti] = useState(null);
+const [user, setUser] = useState(null); // ✅ FIX
+
 
 
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) return navigate("/login");
+  const token = localStorage.getItem("accessToken");
+  if (!token) return navigate("/login");
+
+  const headers = {
+    Authorization: `Bearer ${token}`
+  };
+
+  // Fetch health profile
+  axios
+    .get("http://localhost:5000/api/my-profile", { headers })
+    .then(res => {
+      setProfile(res.data.profile);
+      setLoading(false);
+    })
+    .catch(() => {
+      localStorage.removeItem("accessToken");
+      navigate("/login");
+    });
+
+  // ✅ Fetch prakriti report (FIXED)
+  axios
+    .get("http://localhost:5000/api/prakriti/my-report", { headers })
+    .then(res => {
+      setPrakriti(res.data.report); // ✅ FIX HERE
+    })
+    .catch(() => {
+      setPrakriti(null);
+    });
 
     axios
-      .get("http://localhost:5000/api/my-profile", {
-        headers: { Authorization: `Bearer ${token}` }
-      })
-      .then(res => {
-        setProfile(res.data.profile);
-        setLoading(false);
-      })
-      .catch(() => {
-        localStorage.removeItem("accessToken");
-        navigate("/login");
-      });
-  }, [navigate]);
+  .get("http://localhost:5000/api/user/profile", { headers })
+  .then(res => {
+    setUser(res.data.user);
+  })
+  .catch(() => {
+    localStorage.removeItem("accessToken");
+    navigate("/login");
+  });
+
+
+}, [navigate]);
+
+
 
   const handlePrediction = async () => {
   try {
@@ -90,6 +120,63 @@ export default function ViewHealthProfile() {
     return name?.charAt(0).toUpperCase() || "U";
   };
 
+
+  function ScoreCircle({ label, value = 0, color }) {
+  const radius = 36;
+  const stroke = 6;
+  const normalizedRadius = radius - stroke * 2;
+  const circumference = normalizedRadius * 2 * Math.PI;
+  const strokeDashoffset =
+    circumference - (value / 100) * circumference;
+
+  const colors = {
+    blue: "stroke-blue-600",
+    red: "stroke-red-600",
+    green: "stroke-green-600"
+  };
+
+  return (
+    <div className="flex flex-col items-center relative">
+      {/* Circle */}
+      <svg width={radius * 2} height={radius * 2}>
+        <circle
+          stroke="#e5e7eb"
+          fill="transparent"
+          strokeWidth={stroke}
+          r={normalizedRadius}
+          cx={radius}
+          cy={radius}
+        />
+        <circle
+          fill="transparent"
+          strokeWidth={stroke}
+          strokeLinecap="round"
+          r={normalizedRadius}
+          cx={radius}
+          cy={radius}
+          className={colors[color]}
+          strokeDasharray={`${circumference} ${circumference}`}
+          strokeDashoffset={strokeDashoffset}
+          style={{ transition: "stroke-dashoffset 0.6s ease" }}
+        />
+      </svg>
+
+      {/* CENTER TEXT */}
+      <div className="absolute inset-0 flex items-center justify-center mt-10 px-10">
+        <span className="text-xs font-semibold text-gray-800">
+          {value}%
+        </span>
+      </div>
+
+      {/* LABEL */}
+      <p className="mt-2 text-sm font-medium text-gray-700">
+        {label}
+      </p>
+    </div>
+  );
+}
+
+
   return (
     <div className="min-h-screen bg-gray-50">
       {/* Header */}
@@ -99,13 +186,13 @@ export default function ViewHealthProfile() {
             <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
               <span className="text-white font-semibold">🌿</span>
             </div>
-            <span className="text-xl font-semibold text-gray-800">AyurDiet Coach</span>
+            <span className="text-xl font-semibold text-gray-800">Health Profile</span>
           </div>
             <button
-              onClick={() => navigate("/")}
+              onClick={() => navigate("/personalized-treatment")}
               className="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-2"
             >
-              Back to Home
+              Back to Dashboard
             </button>
         </div>
       </header>
@@ -118,20 +205,15 @@ export default function ViewHealthProfile() {
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center">
                 <span className="text-white text-2xl font-semibold">
-                  {getInitials(profile.name)}
+                  {getInitials(user.name)}
                 </span>
               </div>
               <div>
                 <h1 className="text-2xl font-semibold text-gray-800 mb-1">
-                  {profile.name}
+                 {user.name}
                 </h1>
-                <p className="text-gray-500 text-sm mb-2">{profile.email}</p>
-                <div className="flex items-center gap-2 text-sm text-gray-600">
-                  <span className="flex items-center gap-1">
-                    <span className="w-2 h-2 bg-green-600 rounded-full"></span>
-                    Profile Complete
-                  </span>
-                </div>
+                <p className="text-gray-500 text-sm mb-2"> {user.email}</p>
+              
               </div>
             </div>
               <button
@@ -139,7 +221,7 @@ export default function ViewHealthProfile() {
 
             className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
           >
-            <span>✏️</span>
+         
             Edit Profile
           </button>
           
@@ -166,6 +248,26 @@ export default function ViewHealthProfile() {
                   Primary
                 </span>
               </div>
+              {prakriti && (
+  <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-10 py-6 mb-10">
+    <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+      🌿 Current Dosha Scores
+    </h3>
+
+    <div className="flex justify-between mt-18 text-sm">
+      <ScoreCircle label="Vata" value={prakriti.vataScore} color="blue" />
+      <ScoreCircle label="Pitta" value={prakriti.pittaScore} color="red" />
+      <ScoreCircle label="Kapha" value={prakriti.kaphaScore} color="green" />
+    </div>
+
+    <p className="mt-4 text-sm text-gray-600 text-center">
+      Dominant Dosha:
+      <span className="ml-2 font-semibold text-green-600">
+        {prakriti.dominantDosha}
+      </span>
+    </p>
+  </div>
+)}
 
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">

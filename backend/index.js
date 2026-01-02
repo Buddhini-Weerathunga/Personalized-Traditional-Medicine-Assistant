@@ -53,6 +53,8 @@ app.use(
 );
 
 app.use("/api/patient-input", require("./src/routes/health-profile-analysis/patientInput"));
+app.use("/api/prakriti", require("./src/routes/health-profile-analysis/prakritiGet"));
+
 
 
 // ---------- HEALTH CHECK ----------
