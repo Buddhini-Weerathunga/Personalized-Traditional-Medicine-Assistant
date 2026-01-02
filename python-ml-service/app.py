@@ -21,24 +21,26 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-# IMPORT YOUR ML APP
-from health_profile_analysis.models.app import predict_health
-
-
-@app.post("/predict")
-def predict(data: dict):
-    return predict_health(data)
-
 from fastapi import FastAPI, HTTPException
+
+# IMPORT YOUR ML LOGIC
+from health_profile_analysis.models.app import predict_health
 from diets_predictions.predictor import predict_diet
 
+# ✅ CREATE APP FIRST
 app = FastAPI(
     title="Ayurveda Diet Prediction API",
     version="1.0.0"
 )
 
+# ✅ HEALTH PROFILE PREDICTION
+@app.post("/predict")
+def predict_health_profile(data: dict):
+    return predict_health(data)
+
+# ✅ DIET PREDICTION
 @app.post("/api/diet/predict")
-def predict(data: dict):
+def predict_diet_api(data: dict):
     try:
         result = predict_diet(data)
         return {

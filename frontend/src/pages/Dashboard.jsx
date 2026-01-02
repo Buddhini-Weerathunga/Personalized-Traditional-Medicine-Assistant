@@ -66,8 +66,13 @@ export default function Dashboard() {
       <header className="bg-white shadow-sm">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-4 flex justify-between items-center">
           <div className="flex items-center gap-3">
-            <Leaf className="w-8 h-8 text-green-600" />
-            <h1 className="text-2xl font-bold text-green-800">Ayu Ceylon</h1>
+       
+          <div className="flex items-center gap-2">
+            <span className="text-3xl font-bold tracking-tight">
+              <span className="text-green-600">Ayu</span>
+              <span className="text-gray-800">Ceylon</span>
+            </span>
+          </div>
           </div>
           
           <div className="flex items-center gap-4">
