@@ -8,8 +8,16 @@ import Login from "./pages/login.jsx";
 import Register from "./pages/register.jsx";
 import Home from "./pages/home.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
+
+/* Plant Identification Pages */
+import PlantScan from "./pages/plant-identification/PlantScan.jsx";
+import PlantResults from "./pages/plant-identification/PlantResults.jsx";
+import PlantHistory from "./pages/plant-identification/PlantHistory.jsx";
+import RiskAlerts from "./pages/plant-identification/RiskAlerts.jsx";
+import PlantSafety from "./pages/plant-identification/PlantSafety.jsx";
+
+/* Health Profile Analysis Pages */
 import AyurvedaDashboard from "./pages/health-profile-analysis/Dashboard.jsx";
-import HealthProfileCreation from "./pages/health-profile-analysis/HealthProfile/Menu.jsx";
 import AyurvedaMultiStepForm from "./pages/health-profile-analysis/HealthProfile/create.jsx";
 import ViewHealthProfile from "./pages/health-profile-analysis/HealthProfile/ViewHealthProfile.jsx";
 import EditHealthProfile from "./pages/health-profile-analysis/HealthProfile/EditHealthProfile.jsx";
@@ -19,10 +27,9 @@ import HealthProfileMenu from "./pages/health-profile-analysis/HealthProfile/Hea
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import HealthPrediction from "./pages/health-profile-analysis/HealthProfile/HealthPrediction.jsx";
 
-// ✅ Dosha Diagnosis pages
+/* Dosha Diagnosis Pages */
 import HomePage from "./dosha-diagnosis/home/HomePage.jsx";
 import ChatbotPage from "./dosha-diagnosis/chat/ChatbotPage.jsx";
-
 import PrakritiAnalysisPage from "./dosha-diagnosis/prakriti-analysis/PrakritiAnalysisPage.jsx";
 import CaptureFacePage from "./dosha-diagnosis/prakriti-analysis/CaptureFacePage.jsx";
 import CaptureEyesPage from "./dosha-diagnosis/prakriti-analysis/CaptureEyesPage.jsx";
@@ -31,18 +38,16 @@ import CaptureSkinPage from "./dosha-diagnosis/prakriti-analysis/CaptureSkinPage
 import CaptureProfilePage from "./dosha-diagnosis/prakriti-analysis/CaptureProfilePage.jsx";
 import PrakritiResultPage from "./dosha-diagnosis/prakriti-analysis/PrakritiResultPage.jsx";
 import ShareResultsPage from "./dosha-diagnosis/prakriti-analysis/ShareResultsPage.jsx";
-
 import PrescriptionPage from "./dosha-diagnosis/prescription/PrescriptionPage.jsx";
 import PrescriptionDetailPage from "./dosha-diagnosis/prescription/PrescriptionDetailPage.jsx";
 import AboutPage from "./dosha-diagnosis/about/AboutPage.jsx";
 
 function App() {
   return (
-    <div >
+    <div>
+      {/* <Navbar /> ⛔ NAVBAR COMMENTED OUT */}
 
-      {/* <Navbar />   ⛔ NAVBAR COMMENTED OUT */}
-
-      <main >
+      <main>
         <Routes>
           {/* Auth pages */}
           <Route path="/" element={<Home />} />
@@ -53,52 +58,81 @@ function App() {
           {/* Dosha module homepage */}
           <Route path="/home" element={<HomePage />} />
 
-          {/* Other pages */}
+          {/* Dosha general pages */}
           <Route path="/chat" element={<ChatbotPage />} />
           <Route path="/prescription" element={<PrescriptionPage />} />
+          <Route path="/prescription/:id" element={<PrescriptionDetailPage />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="/prescription/:id" element={<PrescriptionDetailPage />} /> {/* NEW */}
+
           {/* ---------------------------------------------- */}
-        {/* ✅ WRAP ONLY DOSHA DIAGNOSIS ROUTES */}
-        {/* ---------------------------------------------- */}
+          {/* PRAKRITI ROUTES (CONTEXT WRAPPED) */}
+          {/* ---------------------------------------------- */}
+          <Route
+            path="/prakriti/*"
+            element={
+              <PrakritiResultProvider>
+                <Routes>
+                  <Route index element={<CaptureFacePage />} />
+                  <Route path="face" element={<CaptureFacePage />} />
+                  <Route path="eyes" element={<CaptureEyesPage />} />
+                  <Route path="mouth" element={<CaptureMouthPage />} />
+                  <Route path="skin" element={<CaptureSkinPage />} />
+                  <Route path="profile" element={<CaptureProfilePage />} />
+                  <Route path="form" element={<PrakritiAnalysisPage />} />
+                  <Route path="results" element={<PrakritiResultPage />} />
+                  <Route path="share" element={<ShareResultsPage />} />
+                </Routes>
+              </PrakritiResultProvider>
+            }
+          />
 
-        <Route
-          path="/prakriti/*"
-          element={
-            <PrakritiResultProvider>
-              <Routes>
-                <Route path="face" element={<CaptureFacePage />} />
-                <Route path="eyes" element={<CaptureEyesPage />} />
-                <Route path="mouth" element={<CaptureMouthPage />} />
-                <Route path="skin" element={<CaptureSkinPage />} />
-                <Route path="profile" element={<CaptureProfilePage />} />
-                <Route path="form" element={<PrakritiAnalysisPage />} />
-                <Route path="results" element={<PrakritiResultPage />} />
-                <Route path="share" element={<ShareResultsPage />} />
-                
-                
+          {/* ---------------------------------------------- */}
+          {/* Health Profile Analysis Routes */}
+          {/* ---------------------------------------------- */}
+          <Route path="/personalized-treatment" element={<AyurvedaDashboard />} />
+          <Route path="/health-profile/create" element={<AyurvedaMultiStepForm />} />
+          <Route path="/health-profile/edit" element={<EditHealthProfile />} />
+          <Route path="/health-prediction" element={<HealthPrediction />} />
 
-                {/* Default route: /prakriti → face */}
-                <Route index element={<CaptureFacePage />} />
-              </Routes>
-            </PrakritiResultProvider>
-          }
-        />
+          {/* Protected Health Routes */}
+          <Route
+            path="/health-profile/voice-assistant"
+            element={
+              <ProtectedRoute>
+                <VoiceAssistant />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/health-profile/menu"
+            element={
+              <ProtectedRoute>
+                <HealthProfileMenu />
+              </ProtectedRoute>
+            }
+          />
+          <Route
+            path="/health-profile/view"
+            element={
+              <ProtectedRoute>
+                <ViewHealthProfile />
+              </ProtectedRoute>
+            }
+          />
 
+          {/* ---------------------------------------------- */}
+          {/* Plant Identification Routes */}
+          {/* ---------------------------------------------- */}
+          <Route path="/plant-scan" element={<PlantScan />} />
+          <Route path="/plant-results" element={<PlantResults />} />
+          <Route path="/plant-history" element={<PlantHistory />} />
+          <Route path="/risk-alerts" element={<RiskAlerts />} />
+          <Route path="/plant-safety/:plantId" element={<PlantSafety />} />
 
-        {/* Health Profie Analysis Routes*/} 
-        <Route path="/personalized-treatment" element={<AyurvedaDashboard />} />
-        <Route path="/health-profile/voice-assistant" element={<ProtectedRoute><VoiceAssistant /></ProtectedRoute>}/>
-        <Route path="/health-profile/menu" element={<ProtectedRoute><HealthProfileMenu /></ProtectedRoute>}/>
-        <Route path="/health-profile/view" element={<ProtectedRoute><ViewHealthProfile /></ProtectedRoute>}/>
-        <Route path="/health-profile/edit" element={<EditHealthProfile />} />
-        <Route path="/health-profile/create" element={<CreateHealthProfile />} />
-        <Route path="/health-prediction" element={<HealthPrediction />}/>
-        <Route path="/dosha-face-test" element={<FacePredictTest />} />
-
-        
-      </Routes>
-    </main>
+          {/* Test Page */}
+          <Route path="/dosha-face-test" element={<FacePredictTest />} />
+        </Routes>
+      </main>
     </div>
   );
 }
