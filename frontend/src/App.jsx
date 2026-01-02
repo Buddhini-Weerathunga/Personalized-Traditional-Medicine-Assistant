@@ -20,11 +20,14 @@ import PlantSafety from "./pages/plant-identification/PlantSafety.jsx";
 import AyurvedaDashboard from "./pages/health-profile-analysis/Dashboard.jsx";
 import AyurvedaMultiStepForm from "./pages/health-profile-analysis/HealthProfile/create.jsx";
 import ViewHealthProfile from "./pages/health-profile-analysis/HealthProfile/ViewHealthProfile.jsx";
+import EditHealthProfile from "./pages/health-profile-analysis/HealthProfile/EditHealthProfile.jsx";
+import CreateHealthProfile from "./pages/health-profile-analysis/HealthProfile/CreateHealthProfile.jsx";
 import VoiceAssistant from "./pages/health-profile-analysis/VoiceAssistant.jsx";
 import HealthProfileMenu from "./pages/health-profile-analysis/HealthProfile/HealthProfileMenu.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
+import HealthPrediction from "./pages/health-profile-analysis/HealthProfile/HealthPrediction.jsx";
 
-/* ✅ Dosha Diagnosis Pages */
+/* Dosha Diagnosis Pages */
 import HomePage from "./dosha-diagnosis/home/HomePage.jsx";
 import ChatbotPage from "./dosha-diagnosis/chat/ChatbotPage.jsx";
 import PrakritiAnalysisPage from "./dosha-diagnosis/prakriti-analysis/PrakritiAnalysisPage.jsx";
@@ -62,7 +65,7 @@ function App() {
           <Route path="/about" element={<AboutPage />} />
 
           {/* ---------------------------------------------- */}
-          {/* ✅ PRAKRITI ROUTES (CONTEXT WRAPPED CORRECTLY) */}
+          {/* PRAKRITI ROUTES (CONTEXT WRAPPED) */}
           {/* ---------------------------------------------- */}
           <Route
             path="/prakriti/*"
@@ -88,8 +91,10 @@ function App() {
           {/* ---------------------------------------------- */}
           <Route path="/personalized-treatment" element={<AyurvedaDashboard />} />
           <Route path="/health-profile/create" element={<AyurvedaMultiStepForm />} />
+          <Route path="/health-profile/edit" element={<EditHealthProfile />} />
+          <Route path="/health-prediction" element={<HealthPrediction />} />
 
-          {/* 🔐 Protected Routes */}
+          {/* Protected Health Routes */}
           <Route
             path="/health-profile/voice-assistant"
             element={
@@ -98,7 +103,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/health-profile/menu"
             element={
@@ -107,7 +111,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
           <Route
             path="/health-profile/view"
             element={
