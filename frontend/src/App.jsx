@@ -23,6 +23,8 @@ import ShareResultsPage from "./dosha-diagnosis/prakriti-analysis/ShareResultsPa
 import PrescriptionPage from "./dosha-diagnosis/prescription/PrescriptionPage.jsx";
 import AboutPage from "./dosha-diagnosis/about/AboutPage.jsx";
 
+import YogaConsultation from './pages/YogaConsultation';
+
 function App() {
   return (
     <div >
@@ -59,6 +61,7 @@ function App() {
           <Route path="/chat" element={<ChatbotPage />} />
           <Route path="/prescription" element={<PrescriptionPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/yoga-consultation" element={<YogaConsultation />} />
         </Routes>
       </main>
     </div>
