@@ -1,6 +1,7 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { Wind, Sun, Droplets, ArrowLeft } from "lucide-react";
 
 export default function ViewHealthProfile() {
   const navigate = useNavigate();
@@ -259,23 +260,56 @@ export default function ViewHealthProfile() {
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
-              <span className="text-white font-semibold">🌿</span>
-            </div>
-            <span className="text-xl font-semibold text-gray-800">Health Profile</span>
-          </div>
+      {/* Header with Back Button */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-5xl mx-auto px-6 py-4">
           <button
-            onClick={() => navigate("/personalized-treatment")}
-            className="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-2"
+            onClick={() => navigate("/dashboard")}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
           >
-            Back to Dashboard
+            <ArrowLeft className="w-5 h-5" />
+            <span className="font-medium">Back to Dashboard</span>
           </button>
         </div>
-      </header>
+      </div>
+
+      {/* Ayurveda Info Banner */}
+      <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white">
+        <div className="max-w-5xl mx-auto px-6 py-8">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
+                🌿 Ayurveda Health Profile
+              </h2>
+            <p className="text-green-50 text-sm max-w-2xl">
+  This profile summarizes your health details, Dosha tendencies, lifestyle habits, and environmental factors to support personalized Ayurvedic care.
+</p>
+
+
+            </div>
+           <div className="hidden lg:flex gap-6 text-sm">
+  <div className="flex flex-col items-center bg-white/10 px-4 py-3 rounded-lg text-center">
+    <Wind className="w-5 h-5 mb-1" />
+    <span className="font-semibold">Vata</span>
+    <span className="text-xs text-green-100">Movement</span>
+  </div>
+
+  <div className="flex flex-col items-center bg-white/10 px-4 py-3 rounded-lg text-center">
+    <Sun className="w-5 h-5 mb-1" />
+    <span className="font-semibold">Pitta</span>
+    <span className="text-xs text-green-100">Digestion</span>
+  </div>
+
+  <div className="flex flex-col items-center bg-white/10 px-4 py-3 rounded-lg text-center">
+    <Droplets className="w-5 h-5 mb-1" />
+    <span className="font-semibold">Kapha</span>
+    <span className="text-xs text-green-100">Stability</span>
+  </div>
+</div>
+
+          </div>
+        </div>
+      </div>
 
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-6 py-8">
@@ -307,7 +341,7 @@ export default function ViewHealthProfile() {
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            {/* Weather Card - Added Here */}
+            {/* Weather Card */}
             <WeatherCard weather={weather} city={city} error={geoError} />
 
             {/* Basic Info Card */}
@@ -382,8 +416,7 @@ export default function ViewHealthProfile() {
                     <ProgressBar label="🍰 Sweet Food" value={profile.sweet_food_frequency} />
                     <ProgressBar label="☕ Caffeine" value={profile.caffeine_intake} />
                     <ProgressBar label="🍔 Processed Food" value={profile.processed_food_intake} />
-                    <ProgressBar label="🍎 Fruits" value={profile.fruits_intake} />
-                    <ProgressBar label="🥬 Vegetables" value={profile.vegetables_intake} />
+                    
                   </div>
                 </div>
               </div>
@@ -411,7 +444,7 @@ export default function ViewHealthProfile() {
                   <h3 className="text-sm font-medium text-gray-700 mb-3">Health Indicators</h3>
                   <div className="space-y-3">
                     <ProgressBar label="😰 Stress Level" value={profile.stress_level} color="red" />
-                    <ProgressBar label="🎯 Focus Level" value={profile.focus_level} color="blue" />
+                  
                     <ProgressBar label="😴 Sleep Issues" value={profile.sleep_issues} color="indigo" />
                     <ProgressBar label="🤕 Headaches" value={profile.headaches} color="red" />
                     <ProgressBar label="🦴 Joint Pain" value={profile.joint_pain} color="orange" />

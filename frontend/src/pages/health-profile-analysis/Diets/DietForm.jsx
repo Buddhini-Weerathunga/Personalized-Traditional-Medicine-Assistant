@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { Leaf, Clock, Droplet, Flame, Wind, Activity, Sun, Sparkles, Heart, TrendingUp } from 'lucide-react';
 
 export default function AyurvedaDietCoach() {
@@ -14,6 +14,92 @@ export default function AyurvedaDietCoach() {
     physical_activity: 'moderate',
     climate: 'moderate'
   });
+
+  const [weatherInfo, setWeatherInfo] = useState({
+    detected: false,
+    temp: null,
+    humidity: null,
+    wind: null,
+    location: '',
+    condition: ''
+  });
+
+  useEffect(() => {
+    const detectClimate = (temp, humidity) => {
+      if (humidity >= 70) return "humid";
+      if (temp >= 30) return "hot";
+      if (temp <= 18) return "cold";
+      return "moderate";
+    };
+
+    const detectClimateFromLocation = async () => {
+      try {
+        navigator.geolocation.getCurrentPosition(async (position) => {
+          const latitude = position.coords.latitude;
+          const longitude = position.coords.longitude;
+          const apiKey = "bd5e378503939ddaee76f12ad7a97608";
+
+          try {
+            // Reverse Geocoding (Lat/Lon → City)
+            const geoUrl = `https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${apiKey}`;
+            const geoResponse = await fetch(geoUrl);
+            const geoData = await geoResponse.json();
+            const detectedCity = geoData?.[0]?.name || "Your Location";
+
+            // Fetch Weather
+            const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apiKey}&units=metric`;
+            const weatherResponse = await fetch(weatherUrl);
+            const weatherData = await weatherResponse.json();
+            
+            const temp = weatherData.main.temp;
+            const humidity = weatherData.main.humidity;
+            const wind = weatherData.wind.speed;
+            const condition = weatherData.weather[0].description;
+
+            const detectedClimate = detectClimate(temp, humidity);
+
+            setFormData(prev => ({
+              ...prev,
+              climate: detectedClimate
+            }));
+
+            setWeatherInfo({
+              detected: true,
+              temp: temp,
+              humidity: humidity,
+              wind: wind,
+              location: detectedCity,
+              condition: condition
+            });
+          } catch (error) {
+            console.error("Weather fetch failed", error);
+            setWeatherInfo({
+              detected: false,
+              temp: null,
+              humidity: null,
+              wind: null,
+              location: '',
+              condition: ''
+            });
+          }
+        }, (error) => {
+          console.error("Geolocation error:", error);
+          setWeatherInfo({
+            detected: false,
+            temp: null,
+            humidity: null,
+            wind: null,
+            location: '',
+            condition: ''
+          });
+        });
+      } catch (error) {
+        console.error("Climate auto-detection failed", error);
+      }
+    };
+
+    detectClimateFromLocation();
+  }, []);
 
   const handleChange = (e) => {
     const { name, value } = e.target;
@@ -122,13 +208,17 @@ export default function AyurvedaDietCoach() {
                 </h3>
 
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-2">Meal Time</label>
+                  <label className="block text-sm font-medium text-gray-700 mb-2">
+                    Meal Time
+                  </label>
                   <input
                     type="time"
                     name="meal_time"
                     value={formData.meal_time}
                     onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg bg-white
+                               focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
+                    required
                   />
                 </div>
 
@@ -212,27 +302,38 @@ export default function AyurvedaDietCoach() {
                     onChange={handleChange}
                     className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
                   >
-                    <option value="sedentary">Sedentary</option>
-                    <option value="light">Light</option>
+                    <option value="low">Low</option>
                     <option value="moderate">Moderate</option>
-                    <option value="active">Active</option>
-                    <option value="very_active">Very Active</option>
+                    <option value="high">High</option>
                   </select>
                 </div>
 
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Climate</label>
-                  <select
-                    name="climate"
-                    value={formData.climate}
-                    onChange={handleChange}
-                    className="w-full px-4 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition"
-                  >
-                    <option value="cold">Cold</option>
-                    <option value="moderate">Moderate</option>
-                    <option value="hot">Hot</option>
-                    <option value="humid">Humid</option>
-                  </select>
+                  {weatherInfo.detected ? (
+                    <div className="w-full px-4 py-3 border border-green-300 bg-green-50 rounded-lg">
+                      <div className="flex items-center justify-between mb-2">
+                        <span className="text-sm font-semibold text-green-800 capitalize">
+                          {formData.climate} Climate Detected
+                        </span>
+                        <Sun className="w-5 h-5 text-yellow-500" />
+                      </div>
+                      <div className="text-xs text-gray-600 space-y-1">
+                        <p><strong>Location:</strong> {weatherInfo.location}</p>
+                        <p><strong>Temperature:</strong> {weatherInfo.temp.toFixed(1)}°C</p>
+                        <p><strong>Humidity:</strong> {weatherInfo.humidity}%</p>
+                        <p><strong>Wind Speed:</strong> {weatherInfo.wind} m/s</p>
+                        <p><strong>Condition:</strong> {weatherInfo.condition}</p>
+                      </div>
+                    </div>
+                  ) : (
+                    <div className="w-full px-4 py-3 border border-gray-300 bg-gray-50 rounded-lg">
+                      <div className="flex items-center gap-2">
+                        <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                        <span className="text-sm text-gray-600">Detecting climate...</span>
+                      </div>
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
