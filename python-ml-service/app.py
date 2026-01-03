@@ -6,6 +6,9 @@ from utils.schemas import QuizFeatures, DoshaPredictionResponse
 from dosha_diagnosis.inference.predict_from_quiz import predict_dosha_from_quiz
 from dosha_diagnosis.inference.predict_from_face import predict_dosha_from_face_image
 
+# IMPORT Health Profile Analysis ML APP
+from health_profile_analysis.models.app import predict_health
+
 app = FastAPI(
     title="Dosha Diagnosis ML Service",
     version="1.0.0",
@@ -18,6 +21,34 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
+from fastapi import FastAPI, HTTPException
+
+# IMPORT YOUR ML LOGIC
+from health_profile_analysis.models.app import predict_health
+from diets_predictions.predictor import predict_diet
+
+# ✅ CREATE APP FIRST
+app = FastAPI(
+    title="Ayurveda Diet Prediction API",
+    version="1.0.0"
+)
+
+# ✅ HEALTH PROFILE PREDICTION
+@app.post("/predict")
+def predict_health_profile(data: dict):
+    return predict_health(data)
+
+# ✅ DIET PREDICTION
+@app.post("/api/diet/predict")
+def predict_diet_api(data: dict):
+    try:
+        result = predict_diet(data)
+        return {
+            "status": "success",
+            "prediction": result
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=str(e))
 
 
 @app.get("/health")
@@ -51,3 +82,5 @@ async def predict_face(file: UploadFile = File(...)):
         dosha_label=best_label,
         probabilities=probs,
     )
+
+
