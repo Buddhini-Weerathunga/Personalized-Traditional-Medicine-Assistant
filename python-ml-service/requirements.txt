@@ -1,22 +1,17 @@
 fastapi
 uvicorn
 pydantic
-tensorflow
-mediapipe
-opencv-python
-Pillow
-numpy
+python-multipart
 
-# New for CSV-based dosha model:
+numpy
 pandas
-scikit-learn
+scikit-learn==1.3.2
 joblib
 
-# For later (when you plug in real logic):
+Pillow
+opencv-python
+torch
+torchvision
+xgboost
 
-# sentence-transformers
-# langchain
-# langchain-community
-# langchain-chroma
-# langchain-huggingface
-# langchain-groq
+mediapipe

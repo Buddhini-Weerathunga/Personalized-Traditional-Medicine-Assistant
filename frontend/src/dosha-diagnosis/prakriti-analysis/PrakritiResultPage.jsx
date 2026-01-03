@@ -1,16 +1,59 @@
 // frontend/src/dosha-diagnosis/prakriti-analysis/PrakritiResultPage.jsx
 import React from "react";
 import { useNavigate } from "react-router-dom";
+import API from "../../api/axios";
+
 import Navbar from "../../components/layout/Navbar.jsx";
+import { usePrakritiResults } from "./PrakritiResultContext.jsx";
 
 export default function PrakritiResultPage() {
   const navigate = useNavigate();
+  const { summary, results } = usePrakritiResults();
 
-  // Example values – later replace with real API result / context
-  const vata = 0.62;
-  const pitta = 0.25;
-  const kapha = 0.13;
-  const dominant = "Vata";
+  const vata = summary.vata || 0;
+  const pitta = summary.pitta || 0;
+  const kapha = summary.kapha || 0;
+  const dominant = summary.dominant || "Not enough data";
+  const completedCount = summary.completedCount;
+
+  // Save current result as a prescription in backend
+  const handleSavePrescription = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
+      if (!token) {
+        alert("Please log in first to save your prescription.");
+        navigate("/login");
+        return;
+      }
+
+      await API.post(
+        "/prakritiReports/reports", // -> http://localhost:5000/api/prakritiReports/reports
+        {
+          vataScore: summary.vata,
+          pittaScore: summary.pitta,
+          kaphaScore: summary.kapha,
+          dominantDosha: summary.dominant,
+          recommendations: {
+            lifestyle: ["Warm meals", "Regular sleep", "Light yoga"],
+          },
+          capturedRegions: results,
+        },
+        {
+          headers: { Authorization: `Bearer ${token}` },
+        }
+      );
+
+      alert("Prescription saved successfully ✅");
+    } catch (err) {
+      console.error("Failed to save prescription:", err);
+
+      const msg =
+        err.response?.data?.message ||
+        `Error ${err.response?.status || ""}: ${err.message}`;
+
+      alert(`Failed to save prescription:\n${msg}`);
+    }
+  };
 
   return (
     <>
@@ -41,49 +84,60 @@ export default function PrakritiResultPage() {
 
             <p className="mt-2 text-sm md:text-base text-gray-700 max-w-2xl leading-relaxed">
               Based on your facial features, eyes, mouth, skin texture and side
-              profile, this is your estimated mind–body constitution
-              (Prakriti) and gentle recommendations for daily life.
+              profile, this is your estimated mind–body constitution (Prakriti)
+              and gentle recommendations for daily life.
             </p>
+
+            {completedCount < 3 && (
+              <p className="mt-2 text-xs text-red-600">
+                Note: Less than 3 capture steps analyzed. For better accuracy,
+                please complete all 5 steps (Face, Eyes, Mouth, Skin, Profile).
+              </p>
+            )}
           </div>
 
           <div className="grid gap-8 lg:grid-cols-[2fr,3fr] items-start">
-            {/* LEFT: captured images placeholder */}
+            {/* LEFT: captured steps summary */}
             <div className="bg-white/85 rounded-2xl border border-green-100 shadow p-5 flex flex-col gap-4">
               <div className="flex items-center justify-between mb-1">
                 <h2 className="text-sm font-semibold text-gray-900">
                   Captured Steps
                 </h2>
                 <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 border border-emerald-100">
-                  5 of 5 completed
+                  {completedCount} of 5 analyzed
                 </span>
               </div>
 
               <div className="flex gap-2 overflow-x-auto pb-1">
-                {["Front", "Eyes", "Mouth", "Skin", "Profile"].map((label, idx) => (
-                  <div
-                    key={label}
-                    className={`min-w-[4rem] h-16 rounded-xl flex items-center justify-center text-[11px] ${
-                      idx === 0
-                        ? "bg-emerald-100 border border-emerald-300 text-emerald-800 font-semibold"
-                        : "bg-green-50 border border-green-200 text-gray-700"
-                    }`}
-                  >
-                    {label}
-                  </div>
-                ))}
+                {["face", "eyes", "mouth", "skin", "profile"].map((key) => {
+                  const labelMap = {
+                    face: "Front",
+                    eyes: "Eyes",
+                    mouth: "Mouth",
+                    skin: "Skin",
+                    profile: "Profile",
+                  };
+                  const hasResult = !!results[key];
+
+                  return (
+                    <div
+                      key={key}
+                      className={`min-w-[4rem] h-16 rounded-xl flex items-center justify-center text-[11px] border ${
+                        hasResult
+                          ? "bg-emerald-100 border-emerald-300 text-emerald-800 font-semibold"
+                          : "bg-green-50 border-green-200 text-gray-500"
+                      }`}
+                    >
+                      {labelMap[key]}
+                    </div>
+                  );
+                })}
               </div>
 
               <p className="text-[11px] text-gray-600">
-                (Later you can render the actual captured thumbnails for each
-                step here: face, eyes, mouth, skin, and profile.)
+                (Later you can render the actual captured thumbnails and scores
+                for each step here.)
               </p>
-
-              <div className="mt-2 rounded-xl bg-emerald-50/60 border border-emerald-100 px-3 py-2">
-                <p className="text-xs text-emerald-900">
-                  Tip: You can store image URLs and analysis scores in your
-                  backend, then show them here for a full visual report.
-                </p>
-              </div>
             </div>
 
             {/* RIGHT: results panel */}
@@ -111,65 +165,40 @@ export default function PrakritiResultPage() {
               {/* Dominant description */}
               <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-100">
                 <p className="text-sm text-emerald-900">
-                  <strong>{dominant}-dominant profile:</strong> Vata types are
-                  often creative, quick-thinking, and sensitive. When balanced,
-                  they feel energetic, enthusiastic, and inspired. When
-                  imbalanced, they may experience anxiety, dryness, irregular
-                  sleep or appetite, and overthinking.
+                  <strong>{dominant}-dominant profile:</strong>{" "}
+                  {dominant === "Vata" &&
+                    "Vata types are often creative, quick-thinking, and sensitive. When balanced, they feel energetic and inspired. When imbalanced, they may experience anxiety, dryness, or irregular sleep."}
+                  {dominant === "Pitta" &&
+                    "Pitta types tend to be focused, driven, and sharp. In balance they show strong digestion and confidence, but when imbalanced may feel irritable, overheated, or inflamed."}
+                  {dominant === "Kapha" &&
+                    "Kapha types are usually calm, steady, and nurturing. In balance they are grounded and resilient, but when imbalanced may feel heavy, sluggish, or emotionally stuck."}
+                  {!["Vata", "Pitta", "Kapha"].includes(dominant) &&
+                    "Please complete more steps to get a clearer dominant dosha description."}
                 </p>
               </div>
 
-              {/* Feature Analysis */}
-              <div>
-                <h3 className="text-sm font-semibold text-gray-900 mb-1">
-                  Feature-Based Insights
-                </h3>
-                <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
-                  <li>
-                    Face shape slightly elongated – aligns with{' '}
-                    <span className="font-medium">Vata</span> qualities
-                    (lightness, movement).
-                  </li>
-                  <li>
-                    Eyes appear bright and alert – suggests active{' '}
-                    <span className="font-medium">Vata–Pitta</span> influence.
-                  </li>
-                  <li>
-                    Mouth and lips show moderate dryness – commonly associated
-                    with <span className="font-medium">Vata</span> imbalance.
-                  </li>
-                  <li>
-                    Overall impression of light frame and variability – supports{' '}
-                    <span className="font-medium">Vata predominance</span>.
-                  </li>
-                </ul>
-              </div>
-
-              {/* Personalized Recommendations */}
+              {/* Generic recommendations */}
               <div>
                 <h3 className="text-sm font-semibold text-gray-900 mb-1">
                   Gentle Daily Recommendations
                 </h3>
                 <ul className="text-sm text-gray-700 list-disc pl-5 space-y-1">
                   <li>
-                    Favor <span className="font-medium">warm, cooked, mildly spiced foods</span>;
-                    reduce cold, raw, and very dry items.
+                    Favor{" "}
+                    <span className="font-medium">warm, freshly cooked meals</span> and
+                    avoid skipping meals.
                   </li>
                   <li>
-                    Keep a <span className="font-medium">steady daily routine</span> for meals,
-                    sleep, and screen time.
+                    Keep a <span className="font-medium">regular routine</span> for sleep,
+                    work, and relaxation.
                   </li>
                   <li>
-                    Practice <span className="font-medium">grounding yoga, slow walks, oil massage
-                    (abhyanga)</span>, and calming breathing (e.g. deep belly
-                    breaths).
+                    Include simple movement (walking, yoga, stretches) and{" "}
+                    <span className="font-medium">short screen breaks</span>.
                   </li>
                   <li>
-                    Common Vata-supportive herbs include{' '}
-                    <span className="font-medium">
-                      ashwagandha, licorice, warm digestive teas
-                    </span>
-                    , always guided by a qualified Ayurvedic practitioner.
+                    Always discuss herbs or treatments with a{" "}
+                    <span className="font-medium">qualified Ayurvedic doctor</span>.
                   </li>
                 </ul>
               </div>
@@ -179,6 +208,14 @@ export default function PrakritiResultPage() {
                 <button className="px-4 py-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-semibold shadow hover:from-green-600 hover:to-emerald-600 transition-all">
                   Analyze Features
                 </button>
+
+                <button
+                  onClick={handleSavePrescription}
+                  className="px-4 py-2 rounded-full bg-emerald-600 text-white text-sm font-semibold shadow hover:bg-emerald-700 transition-all"
+                >
+                  Save as Prescription
+                </button>
+
                 <button
                   onClick={() => navigate("/prakriti/share")}
                   className="px-4 py-2 rounded-full bg-white text-emerald-700 border border-emerald-300 text-sm font-semibold shadow-sm hover:bg-emerald-50 transition-all"
@@ -199,59 +236,6 @@ export default function PrakritiResultPage() {
 
       {/* FOOTER */}
       <footer className="bg-gray-900 text-white py-12 px-4">
-        <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-8">
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
-                <span className="text-xl">🕉️</span>
-              </div>
-              <span className="text-xl font-bold">AyuCeylon</span>
-            </div>
-            <p className="text-gray-400 text-sm">
-              Ancient Ayurvedic wisdom meets modern AI to bring holistic,
-              personalized wellness insights.
-            </p>
-          </div>
-
-          <div>
-            <h4 className="font-bold mb-4">Services</h4>
-            <ul className="space-y-2 text-sm text-gray-400">
-              <li className="hover:text-green-400 cursor-pointer">
-                Yoga Consultation
-              </li>
-              <li className="hover:text-green-400 cursor-pointer">
-                Disease Detection
-              </li>
-              <li className="hover:text-green-400 cursor-pointer">
-                Treatment Plans
-              </li>
-              <li className="hover:text-green-400 cursor-pointer">
-                Plant Identification
-              </li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-bold mb-4">Company</h4>
-            <ul className="space-y-2 text-sm text-gray-400">
-              <li className="hover:text-green-400 cursor-pointer">About Us</li>
-              <li className="hover:text-green-400 cursor-pointer">Contact</li>
-              <li className="hover:text-green-400 cursor-pointer">Blog</li>
-              <li className="hover:text-green-400 cursor-pointer">Careers</li>
-            </ul>
-          </div>
-
-          <div>
-            <h4 className="font-bold mb-4">Connect</h4>
-            <div className="flex gap-4 text-2xl">
-              <span className="hover:text-green-400 cursor-pointer">📘</span>
-              <span className="hover:text-green-400 cursor-pointer">📷</span>
-              <span className="hover:text-green-400 cursor-pointer">🐦</span>
-              <span className="hover:text-green-400 cursor-pointer">💼</span>
-            </div>
-          </div>
-        </div>
-
         <div className="max-w-7xl mx-auto mt-8 pt-8 border-t border-gray-800 text-center text-sm text-gray-400">
           <p>© 2025 AyuCeylon. All rights reserved. Made with 💚 for wellness.</p>
         </div>
@@ -261,7 +245,7 @@ export default function PrakritiResultPage() {
 }
 
 function DoshaBar({ label, value, color }) {
-  const percent = Math.round(value * 100);
+  const percent = Math.round((value || 0) * 100);
 
   return (
     <div>
