@@ -1,6 +1,4 @@
 import React, { useState, useEffect, useRef } from "react";
-import axios from "axios";
-import { useNavigate } from "react-router-dom";
 import { Mic, Volume2, StopCircle } from "lucide-react";
 
 const SpeechRecognition =
@@ -11,12 +9,12 @@ const SpeechRecognition =
 const questions = [
   "How would you describe your body type?",
   "How would you describe your appetite, and how regular are your meals?",
-  "How would you describe your daily diet including spicy, oily, sweet foods, caffeine intake, processed foods, and whether you are vegetarian, eggetarian, or non-vegetarian?",
+  "How would you describe your daily diet including spicy, oily, sweet foods?",
+  "What is your caffeine intake, processed food consumption, and are you vegetarian, eggetarian, or non-vegetarian?",
   "What is the usual color of your urine?",
   "How would you describe your stress level?",
   "How would you rate your sleep quality?",
   "Do you experience headaches or joint pain, and how strong are they?",
-  "How would you describe your environment: mostly hot, cool, or moderate?",
   "Does your family have diabetes, cholesterol, thyroid or heart disease?",
   "Please tell me your age and gender"
 ];
@@ -29,23 +27,20 @@ const questionHints = [
   "high | moderate | low | variable appetite — regular | irregular | sometimes",
   `Spicy food: very low → very high
 Oily food: very low → very high
-Sweet food: very low → very high
-Caffeine: very low → very high
+Sweet food: very low → very high`,
+  `Caffeine: very low → very high
 Processed food: very low → very high
-
 Diet type: vegetarian | eggetarian | non-vegetarian`,
   "clear | pale yellow | yellow | dark yellow",
   "Stress: very low | low | moderate | high | very high",
   "Sleep quality: very poor | poor | average | good | very good",
   "Headache & joint pain: very low | low | moderate | high | very high",
-  "hot | cool | moderate",
   "diabetes | cholesterol | thyroid | heart disease",
   "age number | male | female | other"
 ];
 
 
 export default function VoiceAssistant() {
-  const navigate = useNavigate();
   const recognitionRef = useRef(null);
   const conversationEndRef = useRef(null);
 
@@ -55,14 +50,6 @@ export default function VoiceAssistant() {
   const [isListening, setIsListening] = useState(false);
   const [isSpeaking, setIsSpeaking] = useState(false);
   const [currentTranscript, setCurrentTranscript] = useState("");
-
-  // 🔐 Auth check
-  useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token || token === "undefined" || token === "null") {
-      navigate("/login");
-    }
-  }, [navigate]);
 
   // Auto-scroll to latest message
   useEffect(() => {
@@ -154,28 +141,154 @@ export default function VoiceAssistant() {
     window.speechSynthesis.speak(utterance);
   };
 
+  const parseText = (step, text) => {
+    text = text.toLowerCase();
+    let data = {};
+
+    const has = (keywords) => keywords.some(k => text.includes(k));
+    const clamp = (v, min = 1, max = 5) => Math.min(max, Math.max(min, v));
+
+    switch (step) {
+      case 0:
+        data.body_frame =
+          has(["thin", "slim", "lean"]) ? "thin" :
+          has(["heavy", "fat", "broad", "obese"]) ? "heavy" :
+          "medium";
+        break;
+
+      case 1:
+        data.appetite_level =
+          has(["very hungry", "high appetite"]) ? "High" :
+          has(["low appetite", "less hungry"]) ? "Low" :
+          has(["variable", "changes", "irregular appetite"]) ? "Variable" :
+          "Moderate";
+
+        data.meal_regular =
+          has(["sometimes", "occasionally"]) ? "Sometime" :
+          has(["irregular", "skip", "not regular"]) ? "No" :
+          "Yes";
+        break;
+
+      case 2: {
+        const level = (topic) =>
+          has([`very high ${topic}`]) ? 5 :
+          has([`high ${topic}`]) ? 4 :
+          has([`moderate ${topic}`, `average ${topic}`]) ? 3 :
+          has([`low ${topic}`]) ? 2 :
+          has([`very low ${topic}`, `no ${topic}`]) ? 1 :
+          3;
+
+        data.spicy_food_frequency = clamp(level("spicy"));
+        data.oily_food_frequency = clamp(level("oily"));
+        data.sweet_food_frequency = clamp(level("sweet"));
+        break;
+      }
+
+      case 3: {
+        const level = (topic) =>
+          has([`very high ${topic}`]) ? 5 :
+          has([`high ${topic}`]) ? 4 :
+          has([`moderate ${topic}`, `average ${topic}`]) ? 3 :
+          has([`low ${topic}`]) ? 2 :
+          has([`very low ${topic}`, `no ${topic}`]) ? 1 :
+          3;
+
+        data.caffeine_intake = clamp(level("caffeine"));
+        data.processed_food_intake = clamp(level("processed"));
+
+        data.veg_nonveg =
+          has(["non vegetarian", "meat", "fish", "chicken"]) ? "Non-Vegetarian" :
+          has(["eggetarian", "eggs only"]) ? "Eggetarian" :
+          "Vegetarian";
+        break;
+      }
+
+      case 4:
+        data.urine_color =
+          has(["clear"]) ? "clear" :
+          has(["dark"]) ? "Dark Yellow" :
+          has(["pale"]) ? "Pale Yellow" :
+          "Yellow";
+        break;
+
+      case 5:
+        data.stress_level = clamp(
+          has(["extremely stressed", "very high stress"]) ? 5 :
+          has(["high stress", "stressed"]) ? 4 :
+          has(["moderate stress"]) ? 3 :
+          has(["low stress", "relaxed"]) ? 2 :
+          3
+        );
+        break;
+
+      case 6: {
+        const severity =
+          has(["hardly sleep", "very poor sleep"]) ? 5 :
+          has(["poor sleep", "bad sleep"]) ? 4 :
+          has(["average sleep"]) ? 3 :
+          has(["good sleep"]) ? 2 :
+          3;
+
+        data.sleep_quality = clamp(6 - severity);
+        break;
+      }
+
+      case 7:
+        data.headache_severity = clamp(
+          has(["severe headache", "extreme headache"]) ? 5 :
+          has(["moderate headache"]) ? 3 :
+          has(["mild headache"]) ? 2 :
+          3
+        );
+
+        data.joint_pain_severity = clamp(
+          has(["severe joint pain", "extreme joint pain"]) ? 5 :
+          has(["moderate joint pain"]) ? 3 :
+          has(["mild joint pain"]) ? 2 :
+          3
+        );
+        break;
+
+      case 8:
+        data.family_diabetes = has(["diabetes"]) ? "Yes" : "No";
+        data.family_thyroid = has(["thyroid"]) ? "Yes" : "No";
+        data.family_cholesterol = has(["cholesterol"]) ? "Yes" : "No";
+        data.family_obesity = has(["obesity", "obese"]) ? "Yes" : "No";
+        data.family_asthma = has(["asthma"]) ? "Yes" : "No";
+        data.family_heart_disease = has(["heart"]) ? "Yes" : "No";
+        data.family_mental_health =
+          has(["mental", "depression", "anxiety"]) ? "Yes" : "No";
+        break;
+
+      case 9: {
+        const ageMatch = text.match(/\d+/);
+        data.age = ageMatch ? Number(ageMatch[0]) : null;
+
+        data.gender =
+          has(["male"]) && !has(["female"]) ? "Male" :
+          has(["female"]) ? "Female" :
+          "Other";
+        break;
+      }
+    }
+
+    return data;
+  };
+
   const handleUserResponse = async (text) => {
     setIsListening(false);
     setCurrentTranscript("");
 
-    // Add user message to conversation
     setConversation(prev => [...prev, { type: "user", text }]);
 
     try {
-      const token = localStorage.getItem("accessToken");
-
-      const res = await axios.post(
-        "http://localhost:5000/api/voice",
-        { step, text },
-        { headers: { Authorization: `Bearer ${token}` } }
-      );
+      const parsed = parseText(step, text);
 
       setHealthProfile(prev => ({
         ...prev,
-        ...res.data.parsed
+        ...parsed
       }));
 
-      // Move to next question or finish
       if (step < questions.length - 1) {
         const nextStep = step + 1;
         setStep(nextStep);
@@ -232,13 +345,13 @@ export default function VoiceAssistant() {
   };
 
   return (
-    <div className="min-h-screen  bg-gradient-to-br from-green-50 via-white to-green-100 p-4 md:p-8">
+    <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-100 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6 md:gap-8">
 
           {/* LEFT - Conversation Panel */}
           <div className="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[700px]">
-            <div className=" bg-gradient-to-br from-green-400  to-green-200 p-6">
+            <div className="bg-gradient-to-br from-green-400 to-green-200 p-6">
               <h2 className="text-2xl md:text-3xl font-bold text-white flex items-center gap-3">
                 AI Ayurveda Assistant
               </h2>
@@ -250,41 +363,43 @@ export default function VoiceAssistant() {
             {/* Conversation Display */}
             <div className="flex-1 overflow-y-auto p-6 space-y-4 bg-gray-50">
               {conversation.length === 0 ? (
-                <div className="text-center ">
+                <div className="text-center">
                   <div className="text-6xl mb-4">🎙️</div>
                   <p className="text-gray-500 mb-6">Ready to start your health assessment</p>
-                     {/* Instructions */}
-      <div className="bg-white rounded-xl p-6 shadow-md mb-8 text-left max-w-md mx-auto">
-        <h4 className="text-lg font-bold text-purple-700 mb-4 flex items-center gap-2">
-          💡 Tips for Best Results
-        </h4>
-        <div className="space-y-3 text-sm text-gray-700">
-          <div className="flex items-start gap-3">
-            <span className="text-green-500 text-lg flex-shrink-0">✅</span>
-            <p>Wait for the AI to finish speaking before you respond</p>
-          </div>
-          <div className="flex items-start gap-3">
-            <span className="text-green-500 text-lg flex-shrink-0">✅</span>
-            <p>Listen to the full question before answering</p>
-          </div>
-          <div className="flex items-start gap-3">
-            <span className="text-green-500 text-lg flex-shrink-0">✅</span>
-            <p>Check the hint box for keyword suggestions</p>
-          </div>
-          <div className="flex items-start gap-3">
-            <span className="text-green-500 text-lg flex-shrink-0">✅</span>
-            <p>Speak in a quiet environment</p>
-          </div>
-          <div className="flex items-start gap-3">
-            <span className="text-green-500 text-lg flex-shrink-0">✅</span>
-            <p>Hold the microphone/device steady while speaking</p>
-          </div>
-        </div>
-      </div>
+                  
+                  {/* Instructions */}
+                  <div className="bg-white rounded-xl p-6 shadow-md mb-8 text-left max-w-md mx-auto">
+                    <h4 className="text-lg font-bold text-purple-700 mb-4 flex items-center gap-2">
+                      💡 Tips for Best Results
+                    </h4>
+                    <div className="space-y-3 text-sm text-gray-700">
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-500 text-lg flex-shrink-0">✅</span>
+                        <p>Wait for the AI to finish speaking before you respond</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-500 text-lg flex-shrink-0">✅</span>
+                        <p>Listen to the full question before answering</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-500 text-lg flex-shrink-0">✅</span>
+                        <p>Check the hint box for keyword suggestions</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-500 text-lg flex-shrink-0">✅</span>
+                        <p>Speak in a quiet environment</p>
+                      </div>
+                      <div className="flex items-start gap-3">
+                        <span className="text-green-500 text-lg flex-shrink-0">✅</span>
+                        <p>Hold the microphone/device steady while speaking</p>
+                      </div>
+                    </div>
+                  </div>
+                  
                   <button
                     onClick={startConversation}
                     disabled={isSpeaking}
-                    className="bg-gradient-to-br from-green-400  to-green-400 text-white px-8 py-3 rounded-xl hover:scale-105 transition disabled:opacity-50"
+                    className="bg-gradient-to-br from-green-400 to-green-400 text-white px-8 py-3 rounded-xl hover:scale-105 transition disabled:opacity-50"
                   >
                     Start Conversation
                   </button>
@@ -410,9 +525,9 @@ export default function VoiceAssistant() {
 
           {/* RIGHT - Health Profile */}
           <div className="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[600px]">
-            <div className="bg-gradient-to-br from-green-400  to-green-200 p-6">
+            <div className="bg-gradient-to-br from-green-400 to-green-200 p-6">
               <h3 className="text-2xl font-bold text-white flex items-center gap-2">
-                 Health Profile
+                Health Profile
               </h3>
               <p className="text-white mt-2 text-sm">
                 Extracted data from your responses

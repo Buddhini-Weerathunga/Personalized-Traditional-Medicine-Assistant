@@ -6,82 +6,123 @@ export default function ViewHealthProfile() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-const [prakriti, setPrakriti] = useState(null);
-const [user, setUser] = useState(null); // ✅ FIX
-
-
+  const [prakriti, setPrakriti] = useState(null);
+  const [user, setUser] = useState(null);
+  const [weather, setWeather] = useState(null);
+  const [city, setCity] = useState(null);
+  const [geoError, setGeoError] = useState(null);
 
   useEffect(() => {
-  const token = localStorage.getItem("accessToken");
-  if (!token) return navigate("/login");
-
-  const headers = {
-    Authorization: `Bearer ${token}`
-  };
-
-  // Fetch health profile
-  axios
-    .get("http://localhost:5000/api/my-profile", { headers })
-    .then(res => {
-      setProfile(res.data.profile);
-      setLoading(false);
-    })
-    .catch(() => {
-      localStorage.removeItem("accessToken");
-      navigate("/login");
-    });
-
-  // ✅ Fetch prakriti report (FIXED)
-  axios
-    .get("http://localhost:5000/api/prakriti/my-report", { headers })
-    .then(res => {
-      setPrakriti(res.data.report); // ✅ FIX HERE
-    })
-    .catch(() => {
-      setPrakriti(null);
-    });
-
-    axios
-  .get("http://localhost:5000/api/user/profile", { headers })
-  .then(res => {
-    setUser(res.data.user);
-  })
-  .catch(() => {
-    localStorage.removeItem("accessToken");
-    navigate("/login");
-  });
-
-
-}, [navigate]);
-
-
-
-  const handlePrediction = async () => {
-  try {
     const token = localStorage.getItem("accessToken");
+    if (!token) return navigate("/login");
 
-    const res = await axios.post(
-      "http://localhost:5000/api/health-prediction/predict",
-      profile,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
+    const headers = {
+      Authorization: `Bearer ${token}`
+    };
+
+    // Fetch health profile
+    axios
+      .get("http://localhost:5000/api/my-profile", { headers })
+      .then(res => {
+        setProfile(res.data.profile);
+        setLoading(false);
+      })
+      .catch(() => {
+        localStorage.removeItem("accessToken");
+        navigate("/login");
+      });
+
+    // Fetch prakriti report
+    axios
+      .get("http://localhost:5000/api/prakriti/my-report", { headers })
+      .then(res => {
+        setPrakriti(res.data.report);
+      })
+      .catch(() => {
+        setPrakriti(null);
+      });
+
+    // Fetch user profile
+    axios
+      .get("http://localhost:5000/api/user/profile", { headers })
+      .then(res => {
+        setUser(res.data.user);
+      })
+      .catch(() => {
+        localStorage.removeItem("accessToken");
+        navigate("/login");
+      });
+
+    // Detect location and weather
+    detectLocationAndWeather();
+  }, [navigate]);
+
+  const detectLocationAndWeather = () => {
+    if (!navigator.geolocation) {
+      setGeoError("Geolocation not supported");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const apiKey = "1c4d2ecacaee7185aef5d828013692d7";
+          
+          // Reverse Geocoding (Lat/Lon → City)
+          const geoUrl = `https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${apiKey}`;
+          const geoRes = await axios.get(geoUrl);
+          const detectedCity = geoRes.data?.[0]?.name || "Your Location";
+          setCity(detectedCity);
+          
+          // Fetch Weather
+          const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apiKey}&units=metric`;
+          const weatherRes = await axios.get(weatherUrl);
+          const temp = weatherRes.data.main.temp;
+          const humidity = weatherRes.data.main.humidity;
+          const wind = weatherRes.data.wind.speed;
+          
+          setWeather({
+            temp,
+            humidity,
+            wind,
+            temperatureLevel: temp < 20 ? "Cold" : temp < 30 ? "Moderate" : "Hot",
+            humidityLevel: humidity < 40 ? "Low" : humidity < 70 ? "Moderate" : "High",
+            windLevel: wind < 2 ? "Low" : wind < 6 ? "Moderate" : "High"
+          });
+        } catch (err) {
+          console.error("Location/Weather error", err);
+          setGeoError("Unable to fetch weather data");
         }
+      },
+      () => {
+        setGeoError("Location permission denied");
       }
     );
+  };
 
-    navigate("/health-prediction", {
-      state: res.data.prediction
-    });
+  const handlePrediction = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
 
-  } catch (error) {
-    console.error(error);
-    alert("Failed to get health prediction");
-  }
-};
+      const res = await axios.post(
+        "http://localhost:5000/api/health-prediction/predict",
+        profile,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
 
-
+      navigate("/health-prediction", {
+        state: res.data.prediction
+      });
+    } catch (error) {
+      console.error(error);
+      alert("Failed to get health prediction");
+    }
+  };
 
   if (loading) {
     return (
@@ -109,8 +150,6 @@ const [user, setUser] = useState(null); // ✅ FIX
           >
             Create Health Profile
           </button>
-   
-
         </div>
       </div>
     );
@@ -120,62 +159,103 @@ const [user, setUser] = useState(null); // ✅ FIX
     return name?.charAt(0).toUpperCase() || "U";
   };
 
-
   function ScoreCircle({ label, value = 0, color }) {
-  const radius = 36;
-  const stroke = 6;
-  const normalizedRadius = radius - stroke * 2;
-  const circumference = normalizedRadius * 2 * Math.PI;
-  const strokeDashoffset =
-    circumference - (value / 100) * circumference;
+    const radius = 36;
+    const stroke = 6;
+    const normalizedRadius = radius - stroke * 2;
+    const circumference = normalizedRadius * 2 * Math.PI;
+    const strokeDashoffset = circumference - (value / 100) * circumference;
 
-  const colors = {
-    blue: "stroke-blue-600",
-    red: "stroke-red-600",
-    green: "stroke-green-600"
-  };
+    const colors = {
+      blue: "stroke-blue-600",
+      red: "stroke-red-600",
+      green: "stroke-green-600"
+    };
 
-  return (
-    <div className="flex flex-col items-center relative">
-      {/* Circle */}
-      <svg width={radius * 2} height={radius * 2}>
-        <circle
-          stroke="#e5e7eb"
-          fill="transparent"
-          strokeWidth={stroke}
-          r={normalizedRadius}
-          cx={radius}
-          cy={radius}
-        />
-        <circle
-          fill="transparent"
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          r={normalizedRadius}
-          cx={radius}
-          cy={radius}
-          className={colors[color]}
-          strokeDasharray={`${circumference} ${circumference}`}
-          strokeDashoffset={strokeDashoffset}
-          style={{ transition: "stroke-dashoffset 0.6s ease" }}
-        />
-      </svg>
+    return (
+      <div className="flex flex-col items-center relative">
+        <svg width={radius * 2} height={radius * 2}>
+          <circle
+            stroke="#e5e7eb"
+            fill="transparent"
+            strokeWidth={stroke}
+            r={normalizedRadius}
+            cx={radius}
+            cy={radius}
+          />
+          <circle
+            fill="transparent"
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            r={normalizedRadius}
+            cx={radius}
+            cy={radius}
+            className={colors[color]}
+            strokeDasharray={`${circumference} ${circumference}`}
+            strokeDashoffset={strokeDashoffset}
+            style={{ transition: "stroke-dashoffset 0.6s ease" }}
+          />
+        </svg>
 
-      {/* CENTER TEXT */}
-      <div className="absolute inset-0 flex items-center justify-center mt-10 px-10">
-        <span className="text-xs font-semibold text-gray-800">
-          {value}%
-        </span>
+        <div className="absolute inset-0 flex items-center justify-center mt-10 px-10">
+          <span className="text-xs font-semibold text-gray-800">
+            {value}%
+          </span>
+        </div>
+
+        <p className="mt-2 text-sm font-medium text-gray-700">
+          {label}
+        </p>
       </div>
+    );
+  }
 
-      {/* LABEL */}
-      <p className="mt-2 text-sm font-medium text-gray-700">
-        {label}
-      </p>
-    </div>
-  );
-}
-
+  function WeatherCard({ weather, city, error }) {
+    if (error) {
+      return (
+        <div className="bg-white rounded-xl border p-4 text-sm text-red-600">
+          📍 {error}
+        </div>
+      );
+    }
+    if (!weather) {
+      return (
+        <div className="bg-white rounded-xl border p-4 text-sm text-gray-500">
+          Detecting your environment…
+        </div>
+      );
+    }
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          🌦 Live Environment – {city}
+        </h3>
+        <div className="space-y-3 text-sm">
+          <div className="flex justify-between">
+            <span>🌡 Temperature</span>
+            <span className="font-medium">
+              {weather.temp}°C ({weather.temperatureLevel})
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span>💧 Humidity</span>
+            <span className="font-medium">
+              {weather.humidity}% ({weather.humidityLevel})
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span>🌬 Wind</span>
+            <span className="font-medium">
+              {weather.wind} m/s ({weather.windLevel})
+            </span>
+          </div>
+        </div>
+        <p className="mt-4 text-xs text-gray-500">
+          Auto-detected using GPS for Ayurvedic analysis
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
@@ -188,12 +268,12 @@ const [user, setUser] = useState(null); // ✅ FIX
             </div>
             <span className="text-xl font-semibold text-gray-800">Health Profile</span>
           </div>
-            <button
-              onClick={() => navigate("/personalized-treatment")}
-              className="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-2"
-            >
-              Back to Dashboard
-            </button>
+          <button
+            onClick={() => navigate("/personalized-treatment")}
+            className="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-2"
+          >
+            Back to Dashboard
+          </button>
         </div>
       </header>
 
@@ -205,33 +285,31 @@ const [user, setUser] = useState(null); // ✅ FIX
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center">
                 <span className="text-white text-2xl font-semibold">
-                  {getInitials(user.name)}
+                  {getInitials(user?.name)}
                 </span>
               </div>
               <div>
                 <h1 className="text-2xl font-semibold text-gray-800 mb-1">
-                 {user.name}
+                  {user?.name}
                 </h1>
-                <p className="text-gray-500 text-sm mb-2"> {user.email}</p>
-              
+                <p className="text-gray-500 text-sm mb-2">{user?.email}</p>
               </div>
             </div>
-              <button
-            onClick={() => navigate("/health-profile/edit")}
-
-            className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
-          >
-         
-            Edit Profile
-          </button>
-          
-      </div>
+            <button
+              onClick={() => navigate("/health-profile/edit")}
+              className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
+            >
+              Edit Profile
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            
+            {/* Weather Card - Added Here */}
+            <WeatherCard weather={weather} city={city} error={geoError} />
+
             {/* Basic Info Card */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-6">
@@ -248,26 +326,27 @@ const [user, setUser] = useState(null); // ✅ FIX
                   Primary
                 </span>
               </div>
+
               {prakriti && (
-  <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-10 py-6 mb-10">
-    <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-      🌿 Current Dosha Scores
-    </h3>
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-10 py-6 mb-10">
+                  <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    🌿 Current Dosha Scores
+                  </h3>
 
-    <div className="flex justify-between mt-18 text-sm">
-      <ScoreCircle label="Vata" value={prakriti.vataScore} color="blue" />
-      <ScoreCircle label="Pitta" value={prakriti.pittaScore} color="red" />
-      <ScoreCircle label="Kapha" value={prakriti.kaphaScore} color="green" />
-    </div>
+                  <div className="flex justify-between mt-18 text-sm">
+                    <ScoreCircle label="Vata" value={prakriti.vataScore} color="blue" />
+                    <ScoreCircle label="Pitta" value={prakriti.pittaScore} color="red" />
+                    <ScoreCircle label="Kapha" value={prakriti.kaphaScore} color="green" />
+                  </div>
 
-    <p className="mt-4 text-sm text-gray-600 text-center">
-      Dominant Dosha:
-      <span className="ml-2 font-semibold text-green-600">
-        {prakriti.dominantDosha}
-      </span>
-    </p>
-  </div>
-)}
+                  <p className="mt-4 text-sm text-gray-600 text-center">
+                    Dominant Dosha:
+                    <span className="ml-2 font-semibold text-green-600">
+                      {prakriti.dominantDosha}
+                    </span>
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -340,14 +419,10 @@ const [user, setUser] = useState(null); // ✅ FIX
                 </div>
               </div>
             </div>
-
           </div>
 
           {/* Right Column - Sidebar */}
           <div className="space-y-6">
-            
-      
-
             {/* Family History Card */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center gap-2 mb-4">
@@ -370,17 +445,15 @@ const [user, setUser] = useState(null); // ✅ FIX
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <h3 className="font-semibold text-gray-800 mb-4">Quick Actions</h3>
               <div className="space-y-2">
-  <ActionButton
-    icon="📊"
-    label="View Health Prediction"
-    onClick={handlePrediction}
-  />
-  <ActionButton icon="💡" label="View Recommendations" />
-  <ActionButton icon="🍽️" label="Log New Meal" />
-</div>
-
+                <ActionButton
+                  icon="📊"
+                  label="View Health Prediction"
+                  onClick={handlePrediction}
+                />
+                <ActionButton icon="💡" label="View Recommendations" />
+                <ActionButton icon="🍽️" label="Log New Meal" />
+              </div>
             </div>
-
           </div>
         </div>
       </main>
@@ -426,21 +499,6 @@ function ProgressBar({ label, value, color = "green" }) {
   );
 }
 
-function SummaryItem({ title, value, priority }) {
-  const priorityColors = {
-    high: "bg-red-50 text-red-700 border-red-200",
-    medium: "bg-yellow-50 text-yellow-700 border-yellow-200",
-    info: "bg-blue-50 text-blue-700 border-blue-200"
-  };
-
-  return (
-    <div className={`p-3 rounded-lg border ${priorityColors[priority]}`}>
-      <p className="text-xs font-medium mb-0.5">{title}</p>
-      <p className="text-sm font-semibold">{value}</p>
-    </div>
-  );
-}
-
 function HistoryBadge({ label, value }) {
   const isYes = value === "Yes";
   return (
@@ -458,8 +516,6 @@ function HistoryBadge({ label, value }) {
     </div>
   );
 }
-
-
 
 function ActionButton({ icon, label, onClick }) {
   return (

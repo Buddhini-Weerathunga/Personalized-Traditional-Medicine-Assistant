@@ -1,9 +1,15 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { getProfile } from "../../../services/api";
+import AyurvedaHeader from "../../../components/health-profile-analysis/AyurvedaHeader";
+
+
 
 export default function CreateHealthProfile() {
   const navigate = useNavigate();
+  const [user, setUser] = useState(null);
+
   const [step, setStep] = useState(1);
 
   /* ================= DEFAULT FORM ================= */
@@ -42,6 +48,15 @@ export default function CreateHealthProfile() {
     family_mental_health: "No"
   });
 
+  useEffect(() => {
+  getProfile()
+    .then(res => setUser(res.data.user))
+    .catch(() => {
+      localStorage.removeItem("accessToken");
+      navigate("/login");
+    });
+}, [navigate]);
+
   /* ================= CHANGE HANDLER ================= */
   const updateField = (e) => {
     const { name, value } = e.target;
@@ -73,7 +88,11 @@ export default function CreateHealthProfile() {
 
 
   return (
+    <div>
+        <AyurvedaHeader user={user} />
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-100 py-10 px-4">
+  
+
       <form
         onSubmit={handleSubmit}
         className="max-w-3xl mx-auto bg-white p-8 rounded-2xl shadow space-y-8"
@@ -226,6 +245,7 @@ export default function CreateHealthProfile() {
         </div>
       </form>
     </div>
+    </div>
   );
 }
 
@@ -286,4 +306,5 @@ const Range = ({ label, ...props }) => (
     <input type="range" min="1" max="5" {...props}
       className="w-full accent-green-600" />
   </div>
+
 );

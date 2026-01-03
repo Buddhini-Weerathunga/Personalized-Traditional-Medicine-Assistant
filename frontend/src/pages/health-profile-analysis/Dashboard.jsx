@@ -59,7 +59,7 @@ export default function AyurvedaDashboard() {
       color:
         "bg-white hover:bg-green-50 border border-green-200 hover:border-green-300",
       iconColor: "text-green-600",
-      path: "/multi-profile"
+      path: "/multi-profiles"
     },
     {
       title: "Digital Diet Coach",
@@ -68,7 +68,7 @@ export default function AyurvedaDashboard() {
       color:
         "bg-white hover:bg-green-50 border border-green-200 hover:border-green-300",
       iconColor: "text-green-600",
-      path: "/diet-coach"
+      path: "/diets-predictions"
     }
   ];
 

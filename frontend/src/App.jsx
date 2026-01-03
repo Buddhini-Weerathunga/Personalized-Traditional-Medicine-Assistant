@@ -18,6 +18,8 @@ import VoiceAssistant from "./pages/health-profile-analysis/VoiceAssistant.jsx";
 import HealthProfileMenu from "./pages/health-profile-analysis/HealthProfile/HealthProfileMenu.jsx";
 import ProtectedRoute from "./components/ProtectedRoute.jsx";
 import HealthPrediction from "./pages/health-profile-analysis/HealthProfile/HealthPrediction.jsx";
+import AyurvedaDietCoach from "./pages/health-profile-analysis/Diets/DietForm";
+import HealthProfiles from "./pages/health-profile-analysis/HealthProfile/multiProfilesMenu.jsx";
 
 // ✅ Dosha Diagnosis pages
 import HomePage from "./dosha-diagnosis/home/HomePage.jsx";
@@ -95,7 +97,8 @@ function App() {
         <Route path="/health-profile/create" element={<CreateHealthProfile />} />
         <Route path="/health-prediction" element={<HealthPrediction />}/>
         <Route path="/dosha-face-test" element={<FacePredictTest />} />
-
+         <Route path="/diets-predictions" element={< AyurvedaDietCoach/>} />
+  <Route path="/multi-profiles" element={< HealthProfiles/>} />
         
       </Routes>
     </main>
