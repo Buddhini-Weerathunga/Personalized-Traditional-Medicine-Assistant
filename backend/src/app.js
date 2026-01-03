@@ -9,6 +9,7 @@ const {notFound,errorHandler,} = require("./dosha-diagnosis/middleware/errorHand
 const authRoutes = require("./dosha-diagnosis/routes/auth.routes");
 const chatRoutes = require("./dosha-diagnosis/routes/chat.routes");
 const prakritiRoutes = require("./dosha-diagnosis/routes/prakriti.routes");
+const yogaRoutes = require('./routes/yoga');
 
 const app = express();
 
@@ -27,6 +28,7 @@ app.get("/api/health", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/chat", chatRoutes);
 app.use("/api/prakriti", prakritiRoutes);
+app.use('/api/yoga', yogaRoutes);
 
 // 404 + error handler
 app.use(notFound);
