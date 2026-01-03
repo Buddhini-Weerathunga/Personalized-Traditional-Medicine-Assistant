@@ -48,6 +48,15 @@ app.use(
   "/api/my-profile",
   require("./src/routes/health-profile-analysis/healthProfile")
 );
+app.use(
+  "/api/health-prediction",
+  require("./src/routes/health-profile-analysis/healthPrediction")
+);
+
+app.use("/api/patient-input", require("./src/routes/health-profile-analysis/patientInput"));
+app.use("/api/prakriti", require("./src/routes/health-profile-analysis/prakritiGet"));
+
+
 
 // ---------- HEALTH CHECK ----------
 app.get("/api/health", (req, res) => {
