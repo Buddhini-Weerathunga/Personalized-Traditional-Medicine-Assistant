@@ -73,9 +73,74 @@ function App() {
           <Route path="/chat" element={<ChatbotPage />} />
           <Route path="/prescription" element={<PrescriptionPage />} />
           <Route path="/about" element={<AboutPage />} />
+          <Route path="/prescription/:id" element={<PrescriptionDetailPage />} /> {/* NEW */}
+          {/* ---------------------------------------------- */}
+        {/* ✅ WRAP ONLY DOSHA DIAGNOSIS ROUTES */}
+        {/* ---------------------------------------------- */}
+
+        <Route
+          path="/prakriti/*"
+          element={
+            <PrakritiResultProvider>
+              <Routes>
+                <Route path="face" element={<CaptureFacePage />} />
+                <Route path="eyes" element={<CaptureEyesPage />} />
+                <Route path="mouth" element={<CaptureMouthPage />} />
+                <Route path="skin" element={<CaptureSkinPage />} />
+                <Route path="profile" element={<CaptureProfilePage />} />
+                <Route path="form" element={<PrakritiAnalysisPage />} />
+                <Route path="results" element={<PrakritiResultPage />} />
+                <Route path="share" element={<ShareResultsPage />} />
+                
+                
+
+                {/* Default route: /prakriti → face */}
+                <Route index element={<CaptureFacePage />} />
+              </Routes>
+            </PrakritiResultProvider>
+          }
+        />
+
+
+          <Route
+            path="/health-profile/view"
+            element={
+              <ProtectedRoute>
+                <ViewHealthProfile />
+              </ProtectedRoute>
+            }
+          />
+
           <Route path="/yoga-consultation" element={<YogaConsultation />} />
-        </Routes>
-      </main>
+
+          {/* ---------------------------------------------- */}
+          {/* Plant Identification Routes */}
+          {/* ---------------------------------------------- */}
+          <Route path="/plant-identification" element={<PlantIdentificationHome />} />
+          <Route path="/plant-scan" element={<PlantScan />} />
+          <Route path="/plant-results" element={<PlantResults />} />
+          <Route path="/plant-description" element={<PlantDescriptionHome />} />
+          <Route path="/plant-description/detail" element={<PlantDescriptionDetail />} />
+          <Route path="/plant-history" element={<PlantHistory />} />
+          <Route path="/risk-alerts" element={<RiskAlerts />} />
+          <Route path="/plant-safety/:plantId" element={<PlantSafety />} />
+
+          {/* Test Page */}
+          <Route path="/dosha-face-test" element={<FacePredictTest />} />
+      
+        {/* Health Profie Analysis Routes*/} 
+        <Route path="/personalized-treatment" element={<AyurvedaDashboard />} />
+        <Route path="/health-profile/voice-assistant" element={<ProtectedRoute><VoiceAssistant /></ProtectedRoute>}/>
+        <Route path="/health-profile/menu" element={<ProtectedRoute><HealthProfileMenu /></ProtectedRoute>}/>
+        <Route path="/health-profile/view" element={<ProtectedRoute><ViewHealthProfile /></ProtectedRoute>}/>
+        <Route path="/health-profile/edit" element={<EditHealthProfile />} />
+        <Route path="/health-profile/create" element={<CreateHealthProfile />} />
+        <Route path="/health-prediction" element={<HealthPrediction />}/>
+        <Route path="/dosha-face-test" element={<FacePredictTest />} />
+      <Route path="/diets-predictions" element={<AyurvedaDietCoach/>} />
+      <Route path="/multi-profiles" element={<HealthProfiles/>} />
+    </Routes>
+  </main>
     </div>
   );
 }
