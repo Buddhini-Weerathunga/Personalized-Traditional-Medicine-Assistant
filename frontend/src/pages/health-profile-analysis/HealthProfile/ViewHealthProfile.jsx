@@ -1,87 +1,130 @@
 import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
+import { Wind, Sun, Droplets, ArrowLeft } from "lucide-react";
+import { User, Activity, Leaf, Utensils, Heart } from 'lucide-react';
 
 export default function ViewHealthProfile() {
   const navigate = useNavigate();
   const [profile, setProfile] = useState(null);
   const [loading, setLoading] = useState(true);
-const [prakriti, setPrakriti] = useState(null);
-const [user, setUser] = useState(null); // ✅ FIX
-
-
+  const [prakriti, setPrakriti] = useState(null);
+  const [user, setUser] = useState(null);
+  const [weather, setWeather] = useState(null);
+  const [city, setCity] = useState(null);
+  const [geoError, setGeoError] = useState(null);
 
   useEffect(() => {
-  const token = localStorage.getItem("accessToken");
-  if (!token) return navigate("/login");
-
-  const headers = {
-    Authorization: `Bearer ${token}`
-  };
-
-  // Fetch health profile
-  axios
-    .get("http://localhost:5000/api/my-profile", { headers })
-    .then(res => {
-      setProfile(res.data.profile);
-      setLoading(false);
-    })
-    .catch(() => {
-      localStorage.removeItem("accessToken");
-      navigate("/login");
-    });
-
-  // ✅ Fetch prakriti report (FIXED)
-  axios
-    .get("http://localhost:5000/api/prakriti/my-report", { headers })
-    .then(res => {
-      setPrakriti(res.data.report); // ✅ FIX HERE
-    })
-    .catch(() => {
-      setPrakriti(null);
-    });
-
-    axios
-  .get("http://localhost:5000/api/user/profile", { headers })
-  .then(res => {
-    setUser(res.data.user);
-  })
-  .catch(() => {
-    localStorage.removeItem("accessToken");
-    navigate("/login");
-  });
-
-
-}, [navigate]);
-
-
-
-  const handlePrediction = async () => {
-  try {
     const token = localStorage.getItem("accessToken");
+    if (!token) return navigate("/login");
 
-    const res = await axios.post(
-      "http://localhost:5000/api/health-prediction/predict",
-      profile,
-      {
-        headers: {
-          Authorization: `Bearer ${token}`,
-          "Content-Type": "application/json"
+    const headers = {
+      Authorization: `Bearer ${token}`
+    };
+
+    // Fetch health profile
+    axios
+      .get("http://localhost:5000/api/my-profile", { headers })
+      .then(res => {
+        setProfile(res.data.profile);
+        setLoading(false);
+      })
+      .catch(() => {
+        localStorage.removeItem("accessToken");
+        navigate("/login");
+      });
+
+    // Fetch prakriti report
+    axios
+      .get("http://localhost:5000/api/prakriti/my-report", { headers })
+      .then(res => {
+        setPrakriti(res.data.report);
+      })
+      .catch(() => {
+        setPrakriti(null);
+      });
+
+    // Fetch user profile
+    axios
+      .get("http://localhost:5000/api/user/profile", { headers })
+      .then(res => {
+        setUser(res.data.user);
+      })
+      .catch(() => {
+        localStorage.removeItem("accessToken");
+        navigate("/login");
+      });
+
+    // Detect location and weather
+    detectLocationAndWeather();
+  }, [navigate]);
+
+  const detectLocationAndWeather = () => {
+    if (!navigator.geolocation) {
+      setGeoError("Geolocation not supported");
+      return;
+    }
+    navigator.geolocation.getCurrentPosition(
+      async (position) => {
+        try {
+          const { latitude, longitude } = position.coords;
+          const apiKey = "1c4d2ecacaee7185aef5d828013692d7";
+          
+          // Reverse Geocoding (Lat/Lon → City)
+          const geoUrl = `https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${apiKey}`;
+          const geoRes = await axios.get(geoUrl);
+          const detectedCity = geoRes.data?.[0]?.name || "Your Location";
+          setCity(detectedCity);
+          
+          // Fetch Weather
+          const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apiKey}&units=metric`;
+          const weatherRes = await axios.get(weatherUrl);
+          const temp = weatherRes.data.main.temp;
+          const humidity = weatherRes.data.main.humidity;
+          const wind = weatherRes.data.wind.speed;
+          
+          setWeather({
+            temp,
+            humidity,
+            wind,
+            temperatureLevel: temp < 20 ? "Cold" : temp < 30 ? "Moderate" : "Hot",
+            humidityLevel: humidity < 40 ? "Low" : humidity < 70 ? "Moderate" : "High",
+            windLevel: wind < 2 ? "Low" : wind < 6 ? "Moderate" : "High"
+          });
+        } catch (err) {
+          console.error("Location/Weather error", err);
+          setGeoError("Unable to fetch weather data");
         }
+      },
+      () => {
+        setGeoError("Location permission denied");
       }
     );
+  };
 
-    navigate("/health-prediction", {
-      state: res.data.prediction
-    });
+  const handlePrediction = async () => {
+    try {
+      const token = localStorage.getItem("accessToken");
 
-  } catch (error) {
-    console.error(error);
-    alert("Failed to get health prediction");
-  }
-};
+      const res = await axios.post(
+        "http://localhost:5000/api/health-prediction/predict",
+        profile,
+        {
+          headers: {
+            Authorization: `Bearer ${token}`,
+            "Content-Type": "application/json"
+          }
+        }
+      );
 
-
+      navigate("/health-prediction", {
+        state: res.data.prediction
+      });
+    } catch (error) {
+      console.error(error);
+      alert("Failed to get health prediction");
+    }
+  };
 
   if (loading) {
     return (
@@ -109,8 +152,6 @@ const [user, setUser] = useState(null); // ✅ FIX
           >
             Create Health Profile
           </button>
-   
-
         </div>
       </div>
     );
@@ -120,82 +161,171 @@ const [user, setUser] = useState(null); // ✅ FIX
     return name?.charAt(0).toUpperCase() || "U";
   };
 
-
   function ScoreCircle({ label, value = 0, color }) {
-  const radius = 36;
-  const stroke = 6;
-  const normalizedRadius = radius - stroke * 2;
-  const circumference = normalizedRadius * 2 * Math.PI;
-  const strokeDashoffset =
-    circumference - (value / 100) * circumference;
+    const radius = 36;
+    const stroke = 6;
+    const normalizedRadius = radius - stroke * 2;
+    const circumference = normalizedRadius * 2 * Math.PI;
+    const strokeDashoffset = circumference - (value / 100) * circumference;
 
-  const colors = {
-    blue: "stroke-blue-600",
-    red: "stroke-red-600",
-    green: "stroke-green-600"
-  };
+    const colors = {
+      blue: "stroke-blue-600",
+      red: "stroke-red-600",
+      green: "stroke-green-600"
+    };
 
-  return (
-    <div className="flex flex-col items-center relative">
-      {/* Circle */}
-      <svg width={radius * 2} height={radius * 2}>
-        <circle
-          stroke="#e5e7eb"
-          fill="transparent"
-          strokeWidth={stroke}
-          r={normalizedRadius}
-          cx={radius}
-          cy={radius}
-        />
-        <circle
-          fill="transparent"
-          strokeWidth={stroke}
-          strokeLinecap="round"
-          r={normalizedRadius}
-          cx={radius}
-          cy={radius}
-          className={colors[color]}
-          strokeDasharray={`${circumference} ${circumference}`}
-          strokeDashoffset={strokeDashoffset}
-          style={{ transition: "stroke-dashoffset 0.6s ease" }}
-        />
-      </svg>
+    return (
+      <div className="flex flex-col items-center relative">
+        <svg width={radius * 2} height={radius * 2}>
+          <circle
+            stroke="#e5e7eb"
+            fill="transparent"
+            strokeWidth={stroke}
+            r={normalizedRadius}
+            cx={radius}
+            cy={radius}
+          />
+          <circle
+            fill="transparent"
+            strokeWidth={stroke}
+            strokeLinecap="round"
+            r={normalizedRadius}
+            cx={radius}
+            cy={radius}
+            className={colors[color]}
+            strokeDasharray={`${circumference} ${circumference}`}
+            strokeDashoffset={strokeDashoffset}
+            style={{ transition: "stroke-dashoffset 0.6s ease" }}
+          />
+        </svg>
 
-      {/* CENTER TEXT */}
-      <div className="absolute inset-0 flex items-center justify-center mt-10 px-10">
-        <span className="text-xs font-semibold text-gray-800">
-          {value}%
-        </span>
+        <div className="absolute inset-0 flex items-center justify-center mt-10 px-10">
+          <span className="text-xs font-semibold text-gray-800">
+            {value}%
+          </span>
+        </div>
+
+        <p className="mt-2 text-sm font-medium text-gray-700">
+          {label}
+        </p>
       </div>
+    );
+  }
 
-      {/* LABEL */}
-      <p className="mt-2 text-sm font-medium text-gray-700">
-        {label}
-      </p>
-    </div>
-  );
-}
-
+  function WeatherCard({ weather, city, error }) {
+    if (error) {
+      return (
+        <div className="bg-white rounded-xl border p-4 text-sm text-red-600">
+          📍 {error}
+        </div>
+      );
+    }
+    if (!weather) {
+      return (
+        <div className="bg-white rounded-xl border p-4 text-sm text-gray-500">
+          Detecting your environment…
+        </div>
+      );
+    }
+    return (
+      <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
+        <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+          🌦 Live Environment – {city}
+        </h3>
+        <div className="space-y-3 text-sm">
+          <div className="flex justify-between">
+            <span>🌡 Temperature</span>
+            <span className="font-medium">
+              {weather.temp}°C ({weather.temperatureLevel})
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span>💧 Humidity</span>
+            <span className="font-medium">
+              {weather.humidity}% ({weather.humidityLevel})
+            </span>
+          </div>
+          <div className="flex justify-between">
+            <span>🌬 Wind</span>
+            <span className="font-medium">
+              {weather.wind} m/s ({weather.windLevel})
+            </span>
+          </div>
+        </div>
+        <p className="mt-4 text-xs text-gray-500">
+          Auto-detected using GPS for Ayurvedic analysis
+        </p>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-50">
-      {/* Header */}
-      <header className="bg-white border-b border-gray-200">
-        <div className="max-w-5xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="w-10 h-10 bg-green-600 rounded-full flex items-center justify-center">
-              <span className="text-white font-semibold">🌿</span>
-            </div>
-            <span className="text-xl font-semibold text-gray-800">Health Profile</span>
-          </div>
-            <button
-              onClick={() => navigate("/personalized-treatment")}
-              className="text-sm text-gray-600 hover:text-gray-800 flex items-center gap-2"
-            >
-              Back to Dashboard
-            </button>
+      {/* Header with Back Button */}
+      <div className="bg-white border-b border-gray-200">
+        <div className="max-w-5xl mx-auto px-6 py-4">
+          <button
+            onClick={() => navigate("/dashboard")}
+            className="flex items-center gap-2 text-gray-600 hover:text-gray-900 transition-colors"
+          >
+            <ArrowLeft className="w-5 h-5" />
+            <span className="font-medium">Back to Dashboard</span>
+          </button>
         </div>
-      </header>
+      </div>
+{/* Ayurveda Info Banner */}
+      <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white">
+        <div className="max-w-5xl mx-auto px-6 py-8">
+          <div className="flex items-center justify-between">
+            <div className="flex-1">
+              <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
+                🌿 Ayurveda Health Profile
+              </h2>
+              <p className="text-green-50 text-sm max-w-2xl mb-4">
+                This profile summarizes your health details, Dosha tendencies, lifestyle habits, and environmental factors to support personalized Ayurvedic care.
+              </p>
+              
+              {/* Action Buttons */}
+             <div className="flex gap-3 mt-4">
+                <button 
+                  onClick={() => window.location.href = '/health-prediction'}
+                  className="bg-white text-green-700 px-6 py-2.5 rounded-lg font-semibold text-sm hover:bg-green-50 transition-colors shadow-md flex items-center gap-2"
+                >
+                  <Wind className="w-4 h-4" />
+                  Dosha Predictions
+                </button>
+                <button 
+                  onClick={() => window.location.href = '/diets-predictions'}
+                  className="bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-semibold text-sm hover:bg-emerald-800 transition-colors shadow-md flex items-center gap-2"
+                >
+                  <Droplets className="w-4 h-4" />
+                  Diet Predictions
+                </button>
+              </div>
+            </div>
+            
+            <div className="hidden lg:flex gap-6 text-sm">
+              <div className="flex flex-col items-center bg-white/10 px-4 py-3 rounded-lg text-center">
+                <Wind className="w-5 h-5 mb-1" />
+                <span className="font-semibold">Vata</span>
+                <span className="text-xs text-green-100">Movement</span>
+              </div>
+
+              <div className="flex flex-col items-center bg-white/10 px-4 py-3 rounded-lg text-center">
+                <Sun className="w-5 h-5 mb-1" />
+                <span className="font-semibold">Pitta</span>
+                <span className="text-xs text-green-100">Digestion</span>
+              </div>
+
+              <div className="flex flex-col items-center bg-white/10 px-4 py-3 rounded-lg text-center">
+                <Droplets className="w-5 h-5 mb-1" />
+                <span className="font-semibold">Kapha</span>
+                <span className="text-xs text-green-100">Stability</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
 
       {/* Main Content */}
       <main className="max-w-5xl mx-auto px-6 py-8">
@@ -205,33 +335,31 @@ const [user, setUser] = useState(null); // ✅ FIX
             <div className="flex items-center gap-4">
               <div className="w-16 h-16 bg-green-600 rounded-full flex items-center justify-center">
                 <span className="text-white text-2xl font-semibold">
-                  {getInitials(user.name)}
+                  {getInitials(user?.name)}
                 </span>
               </div>
               <div>
                 <h1 className="text-2xl font-semibold text-gray-800 mb-1">
-                 {user.name}
+                  {user?.name}
                 </h1>
-                <p className="text-gray-500 text-sm mb-2"> {user.email}</p>
-              
+                <p className="text-gray-500 text-sm mb-2">{user?.email}</p>
               </div>
             </div>
-              <button
-            onClick={() => navigate("/health-profile/edit")}
-
-            className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
-          >
-         
-            Edit Profile
-          </button>
-          
-      </div>
+            <button
+              onClick={() => navigate("/health-profile/edit")}
+              className="px-4 py-2 bg-green-600 text-white text-sm rounded-lg font-medium hover:bg-green-700 transition-colors flex items-center gap-2"
+            >
+              Edit Profile
+            </button>
+          </div>
         </div>
 
         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
           {/* Left Column - Main Content */}
           <div className="lg:col-span-2 space-y-6">
-            
+            {/* Weather Card */}
+            <WeatherCard weather={weather} city={city} error={geoError} />
+
             {/* Basic Info Card */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center justify-between mb-6">
@@ -248,26 +376,27 @@ const [user, setUser] = useState(null); // ✅ FIX
                   Primary
                 </span>
               </div>
+
               {prakriti && (
-  <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-10 py-6 mb-10">
-    <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
-      🌿 Current Dosha Scores
-    </h3>
+                <div className="bg-white rounded-xl shadow-sm border border-gray-200 px-10 py-6 mb-10">
+                  <h3 className="font-semibold text-gray-800 mb-4 flex items-center gap-2">
+                    🌿 Current Dosha Scores
+                  </h3>
 
-    <div className="flex justify-between mt-18 text-sm">
-      <ScoreCircle label="Vata" value={prakriti.vataScore} color="blue" />
-      <ScoreCircle label="Pitta" value={prakriti.pittaScore} color="red" />
-      <ScoreCircle label="Kapha" value={prakriti.kaphaScore} color="green" />
-    </div>
+                  <div className="flex justify-between mt-18 text-sm">
+                    <ScoreCircle label="Vata" value={prakriti.vataScore} color="blue" />
+                    <ScoreCircle label="Pitta" value={prakriti.pittaScore} color="red" />
+                    <ScoreCircle label="Kapha" value={prakriti.kaphaScore} color="green" />
+                  </div>
 
-    <p className="mt-4 text-sm text-gray-600 text-center">
-      Dominant Dosha:
-      <span className="ml-2 font-semibold text-green-600">
-        {prakriti.dominantDosha}
-      </span>
-    </p>
-  </div>
-)}
+                  <p className="mt-4 text-sm text-gray-600 text-center">
+                    Dominant Dosha:
+                    <span className="ml-2 font-semibold text-green-600">
+                      {prakriti.dominantDosha}
+                    </span>
+                  </p>
+                </div>
+              )}
 
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
@@ -297,14 +426,23 @@ const [user, setUser] = useState(null); // ✅ FIX
                 
                 <div className="pt-4 border-t border-gray-100">
                   <h3 className="text-sm font-medium text-gray-700 mb-3">Food Intake Frequency (1-5 scale)</h3>
+                   <p className="text-sm text-gray-700 mb-6">
+                        Rate how often you consume each food type:<br />
+                        <span className="inline-flex gap-3 mt-2 flex-wrap">
+                          <span><b>1</b> = Very Low</span>
+                          <span><b>2</b> = Low</span>
+                          <span><b>3</b> = Moderate</span>
+                          <span><b>4</b> = High</span>
+                          <span><b>5</b> = Very High</span>
+                        </span>
+                      </p>
                   <div className="space-y-3">
                     <ProgressBar label="🌶️ Spicy Food" value={profile.spicy_food_frequency} />
                     <ProgressBar label="🍳 Oily Food" value={profile.oily_food_frequency} />
                     <ProgressBar label="🍰 Sweet Food" value={profile.sweet_food_frequency} />
                     <ProgressBar label="☕ Caffeine" value={profile.caffeine_intake} />
                     <ProgressBar label="🍔 Processed Food" value={profile.processed_food_intake} />
-                    <ProgressBar label="🍎 Fruits" value={profile.fruits_intake} />
-                    <ProgressBar label="🥬 Vegetables" value={profile.vegetables_intake} />
+                    
                   </div>
                 </div>
               </div>
@@ -319,12 +457,21 @@ const [user, setUser] = useState(null); // ✅ FIX
                 <div>
                   <h2 className="font-semibold text-gray-800">Lifestyle & Mental Health</h2>
                   <p className="text-xs text-gray-500">Daily habits and wellbeing</p>
+                   <p className="text-sm text-gray-700">
+                        Rate how often you consume each food type:<br />
+                        <span className="inline-flex gap-3 mt-2 flex-wrap">
+                          <span><b>1</b> = Very Low</span>
+                          <span><b>2</b> = Low</span>
+                          <span><b>3</b> = Moderate</span>
+                          <span><b>4</b> = High</span>
+                          <span><b>5</b> = Very High</span>
+                        </span>
+                      </p>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <InfoItem label="Living Environment" value={profile.living_environment} />
                   <InfoItem label="Urine Color" value={profile.urine_color} />
                 </div>
 
@@ -332,22 +479,18 @@ const [user, setUser] = useState(null); // ✅ FIX
                   <h3 className="text-sm font-medium text-gray-700 mb-3">Health Indicators</h3>
                   <div className="space-y-3">
                     <ProgressBar label="😰 Stress Level" value={profile.stress_level} color="red" />
-                    <ProgressBar label="🎯 Focus Level" value={profile.focus_level} color="blue" />
-                    <ProgressBar label="😴 Sleep Issues" value={profile.sleep_issues} color="indigo" />
-                    <ProgressBar label="🤕 Headaches" value={profile.headaches} color="red" />
-                    <ProgressBar label="🦴 Joint Pain" value={profile.joint_pain} color="orange" />
+                  
+                    <ProgressBar label="😴 Sleep Issues" value={profile.sleep_quality} color="indigo" />
+                    <ProgressBar label="🤕 Headaches" value={profile.headache_severity} color="red" />
+                    <ProgressBar label="🦴 Joint Pain" value={profile.joint_pain_severity} color="orange" />
                   </div>
                 </div>
               </div>
             </div>
-
           </div>
 
           {/* Right Column - Sidebar */}
           <div className="space-y-6">
-            
-      
-
             {/* Family History Card */}
             <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
               <div className="flex items-center gap-2 mb-4">
@@ -366,21 +509,95 @@ const [user, setUser] = useState(null); // ✅ FIX
               </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="font-semibold text-gray-800 mb-4">Quick Actions</h3>
-              <div className="space-y-2">
-  <ActionButton
-    icon="📊"
-    label="View Health Prediction"
-    onClick={handlePrediction}
-  />
-  <ActionButton icon="💡" label="View Recommendations" />
-  <ActionButton icon="🍽️" label="Log New Meal" />
-</div>
+         {/* Services Sidebar Banner */}
+            <div className="bg-gradient-to-br from-amber-50 via-green-50 to-emerald-50 rounded-xl shadow-lg border-2 border-green-200 overflow-hidden">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-4">
+                <h3 className="font-bold text-lg flex items-center gap-2">
+                  
+                  Our Ayurvedic Services
+                </h3>
+                <p className="text-green-50 text-xs mt-1">Holistic wellness solutions</p>
+              </div>
 
+              {/* Services List */}
+             {/* Services List */}
+              <div className="p-4 space-y-3">
+                {/* Yoga Consultation */}
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-green-100 hover:shadow-md hover:border-green-300 transition-all cursor-pointer group">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-gradient-to-br from-purple-100 to-purple-200 p-2.5 rounded-lg group-hover:scale-110 transition-transform">
+                      <User className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-800 mb-1">Yoga Consultation</h4>
+                      <p className="text-xs text-gray-600">Personalized yoga practices for your dosha type</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dosha Detection */}
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-green-100 hover:shadow-md hover:border-green-300 transition-all cursor-pointer group">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-gradient-to-br from-blue-100 to-blue-200 p-2.5 rounded-lg group-hover:scale-110 transition-transform">
+                      <Activity className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-800 mb-1">Dosha Detection</h4>
+                      <p className="text-xs text-gray-600">AI-powered constitutional analysis & balance assessment</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Medicinal Plants */}
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-green-100 hover:shadow-md hover:border-green-300 transition-all cursor-pointer group">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-gradient-to-br from-green-100 to-green-200 p-2.5 rounded-lg group-hover:scale-110 transition-transform">
+                      <Leaf className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-800 mb-1">Medicinal Plants</h4>
+                      <p className="text-xs text-gray-600">Herbal remedies & traditional plant medicine guide</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ayurvedic Diet */}
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-green-100 hover:shadow-md hover:border-green-300 transition-all cursor-pointer group">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-gradient-to-br from-orange-100 to-orange-200 p-2.5 rounded-lg group-hover:scale-110 transition-transform">
+                      <Utensils className="w-6 h-6 text-orange-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-800 mb-1">Ayurvedic Diet</h4>
+                      <p className="text-xs text-gray-600">Customized meal plans based on your constitution</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Lifestyle Counseling */}
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-green-100 hover:shadow-md hover:border-green-300 transition-all cursor-pointer group">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-gradient-to-br from-pink-100 to-pink-200 p-2.5 rounded-lg group-hover:scale-110 transition-transform">
+                      <Heart className="w-6 h-6 text-pink-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-800 mb-1">Lifestyle Counseling</h4>
+                      <p className="text-xs text-gray-600">Daily routines & practices for optimal health</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Footer CTA */}
+              <div className="px-4 pb-4">
+<button 
+  onClick={() => navigate('/dashboard')}
+  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 rounded-lg font-semibold text-sm hover:from-green-700 hover:to-emerald-700 transition-all shadow-md hover:shadow-lg"
+>
+  Explore All Services →
+</button>
+              </div>
             </div>
-
           </div>
         </div>
       </main>
@@ -426,21 +643,6 @@ function ProgressBar({ label, value, color = "green" }) {
   );
 }
 
-function SummaryItem({ title, value, priority }) {
-  const priorityColors = {
-    high: "bg-red-50 text-red-700 border-red-200",
-    medium: "bg-yellow-50 text-yellow-700 border-yellow-200",
-    info: "bg-blue-50 text-blue-700 border-blue-200"
-  };
-
-  return (
-    <div className={`p-3 rounded-lg border ${priorityColors[priority]}`}>
-      <p className="text-xs font-medium mb-0.5">{title}</p>
-      <p className="text-sm font-semibold">{value}</p>
-    </div>
-  );
-}
-
 function HistoryBadge({ label, value }) {
   const isYes = value === "Yes";
   return (
@@ -458,8 +660,6 @@ function HistoryBadge({ label, value }) {
     </div>
   );
 }
-
-
 
 function ActionButton({ icon, label, onClick }) {
   return (
