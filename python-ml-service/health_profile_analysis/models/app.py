@@ -275,8 +275,8 @@ def predict_health(patient: Dict[str, Any]) -> Dict[str, Any]:
     )
     
     return {
-        "predicted_dosha": predicted_dosha,
-        "dosha_distribution": dosha_distribution,
+        
+       
         "dosha_risk": dosha_risk,
         "health_risk": {
             k: {
@@ -284,8 +284,8 @@ def predict_health(patient: Dict[str, Any]) -> Dict[str, Any]:
                 "probability": health_risk_scores[k]
             } for k in HEALTH_TARGETS
         },
-        "primary_future_condition": primary_condition,
-        "risk_level": risk_level,
+       
+        
         "recommendations": recommendations
     }
 
