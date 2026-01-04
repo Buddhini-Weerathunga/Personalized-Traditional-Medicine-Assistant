@@ -5,6 +5,7 @@ const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
 const cookieParser = require("cookie-parser");
+
 const connectDB = require("./src/config/db");
 const voiceRoutes = require("./src/routes/health-profile-analysis/voice");
 
