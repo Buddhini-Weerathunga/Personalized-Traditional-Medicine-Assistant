@@ -10,8 +10,11 @@ import Home from "./pages/home.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
 
 /* Plant Identification Pages */
+import PlantIdentificationHome from "./pages/plant-identification/PlantIdentificationHome.jsx";
 import PlantScan from "./pages/plant-identification/PlantScan.jsx";
 import PlantResults from "./pages/plant-identification/PlantResults.jsx";
+import PlantDescriptionHome from "./pages/plant-identification/PlantDescriptionHome.jsx";
+import PlantDescriptionDetail from "./pages/plant-identification/PlantDescriptionDetail.jsx";
 import PlantHistory from "./pages/plant-identification/PlantHistory.jsx";
 import RiskAlerts from "./pages/plant-identification/RiskAlerts.jsx";
 import PlantSafety from "./pages/plant-identification/PlantSafety.jsx";
@@ -120,8 +123,11 @@ function App() {
           {/* ---------------------------------------------- */}
           {/* Plant Identification Routes */}
           {/* ---------------------------------------------- */}
+          <Route path="/plant-identification" element={<PlantIdentificationHome />} />
           <Route path="/plant-scan" element={<PlantScan />} />
           <Route path="/plant-results" element={<PlantResults />} />
+          <Route path="/plant-description" element={<PlantDescriptionHome />} />
+          <Route path="/plant-description/detail" element={<PlantDescriptionDetail />} />
           <Route path="/plant-history" element={<PlantHistory />} />
           <Route path="/risk-alerts" element={<RiskAlerts />} />
           <Route path="/plant-safety/:plantId" element={<PlantSafety />} />
