@@ -1,44 +1,43 @@
 from pathlib import Path
-from fastapi import FastAPI, UploadFile, File
+from fastapi import FastAPI, UploadFile, File, HTTPException
 from fastapi.middleware.cors import CORSMiddleware
 
+# ===================== IMPORT SCHEMAS =====================
 from utils.schemas import QuizFeatures, DoshaPredictionResponse
+
+# ===================== IMPORT ML LOGIC =====================
 from dosha_diagnosis.inference.predict_from_quiz import predict_dosha_from_quiz
 from dosha_diagnosis.inference.predict_from_face import predict_dosha_from_face_image
 
-# IMPORT Health Profile Analysis ML APP
 from health_profile_analysis.models.app import predict_health
+from diets_predictions.predictor import predict_diet
 
+# ===================== CREATE FASTAPI APP (ONLY ONCE) =====================
 app = FastAPI(
-    title="Dosha Diagnosis ML Service",
-    version="1.0.0",
+    title="Ayurveda ML Service",
+    version="1.0.0"
 )
 
+# ===================== ENABLE CORS =====================
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # change in production
+    allow_origins=["http://localhost:3000"],  # React frontend
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
-from fastapi import FastAPI, HTTPException
 
-# IMPORT YOUR ML LOGIC
-from health_profile_analysis.models.app import predict_health
-from diets_predictions.predictor import predict_diet
+# ===================== HEALTH CHECK =====================
+@app.get("/health")
+def health_check():
+    return {"status": "ok"}
 
-# ✅ CREATE APP FIRST
-app = FastAPI(
-    title="Ayurveda Diet Prediction API",
-    version="1.0.0"
-)
-
-# ✅ HEALTH PROFILE PREDICTION
+# ===================== HEALTH PROFILE =====================
 @app.post("/predict")
 def predict_health_profile(data: dict):
     return predict_health(data)
 
-# ✅ DIET PREDICTION
+# ===================== DIET PREDICTION =====================
 @app.post("/api/diet/predict")
 def predict_diet_api(data: dict):
     try:
@@ -50,29 +49,23 @@ def predict_diet_api(data: dict):
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
-
-@app.get("/health")
-def health_check():
-    return {"status": "ok"}
-
-
+# ===================== QUIZ DOSHA =====================
 @app.post("/predict/quiz", response_model=DoshaPredictionResponse)
 def predict_quiz(payload: QuizFeatures):
     label = predict_dosha_from_quiz(payload.features)
     return DoshaPredictionResponse(dosha_label=label)
 
-
+# ===================== FACE DOSHA =====================
 @app.post("/predict/face", response_model=DoshaPredictionResponse)
 async def predict_face(file: UploadFile = File(...)):
-    # Save temp file
     temp_path = Path("temp_face_image.jpg")
+
     with temp_path.open("wb") as f:
         f.write(await file.read())
 
     probs = predict_dosha_from_face_image(temp_path)
     best_label = max(probs.items(), key=lambda x: x[1])[0]
 
-    # clean up
     try:
         temp_path.unlink()
     except Exception:
@@ -82,5 +75,3 @@ async def predict_face(file: UploadFile = File(...)):
         dosha_label=best_label,
         probabilities=probs,
     )
-
-
