@@ -8,6 +8,18 @@ import Login from "./pages/login.jsx";
 import Register from "./pages/register.jsx";
 import Home from "./pages/home.jsx";
 import Dashboard from "./pages/Dashboard.jsx";
+
+/* Plant Identification Pages */
+import PlantIdentificationHome from "./pages/plant-identification/PlantIdentificationHome.jsx";
+import PlantScan from "./pages/plant-identification/PlantScan.jsx";
+import PlantResults from "./pages/plant-identification/PlantResults.jsx";
+import PlantDescriptionHome from "./pages/plant-identification/PlantDescriptionHome.jsx";
+import PlantDescriptionDetail from "./pages/plant-identification/PlantDescriptionDetail.jsx";
+import PlantHistory from "./pages/plant-identification/PlantHistory.jsx";
+import RiskAlerts from "./pages/plant-identification/RiskAlerts.jsx";
+import PlantSafety from "./pages/plant-identification/PlantSafety.jsx";
+
+/* Health Profile Analysis Pages */
 import AyurvedaDashboard from "./pages/health-profile-analysis/Dashboard.jsx";
 import HealthProfileCreation from "./pages/health-profile-analysis/HealthProfile/Menu.jsx";
 import AyurvedaMultiStepForm from "./pages/health-profile-analysis/HealthProfile/create.jsx";
@@ -44,7 +56,7 @@ function App() {
 
       {/* <Navbar />   ⛔ NAVBAR COMMENTED OUT */}
 
-      <main >
+      <main>
         <Routes>
           {/* Auth pages */}
           <Route path="/" element={<Home />} />
@@ -88,6 +100,30 @@ function App() {
         />
 
 
+          <Route
+            path="/health-profile/view"
+            element={
+              <ProtectedRoute>
+                <ViewHealthProfile />
+              </ProtectedRoute>
+            }
+          />
+
+          {/* ---------------------------------------------- */}
+          {/* Plant Identification Routes */}
+          {/* ---------------------------------------------- */}
+          <Route path="/plant-identification" element={<PlantIdentificationHome />} />
+          <Route path="/plant-scan" element={<PlantScan />} />
+          <Route path="/plant-results" element={<PlantResults />} />
+          <Route path="/plant-description" element={<PlantDescriptionHome />} />
+          <Route path="/plant-description/detail" element={<PlantDescriptionDetail />} />
+          <Route path="/plant-history" element={<PlantHistory />} />
+          <Route path="/risk-alerts" element={<RiskAlerts />} />
+          <Route path="/plant-safety/:plantId" element={<PlantSafety />} />
+
+          {/* Test Page */}
+          <Route path="/dosha-face-test" element={<FacePredictTest />} />
+      
         {/* Health Profie Analysis Routes*/} 
         <Route path="/personalized-treatment" element={<AyurvedaDashboard />} />
         <Route path="/health-profile/voice-assistant" element={<ProtectedRoute><VoiceAssistant /></ProtectedRoute>}/>
@@ -97,11 +133,10 @@ function App() {
         <Route path="/health-profile/create" element={<CreateHealthProfile />} />
         <Route path="/health-prediction" element={<HealthPrediction />}/>
         <Route path="/dosha-face-test" element={<FacePredictTest />} />
-         <Route path="/diets-predictions" element={< AyurvedaDietCoach/>} />
-  <Route path="/multi-profiles" element={< HealthProfiles/>} />
-        
-      </Routes>
-    </main>
+      <Route path="/diets-predictions" element={<AyurvedaDietCoach/>} />
+      <Route path="/multi-profiles" element={<HealthProfiles/>} />
+    </Routes>
+  </main>
     </div>
   );
 }
