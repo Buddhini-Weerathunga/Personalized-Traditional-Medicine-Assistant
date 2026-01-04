@@ -1,9 +1,31 @@
-import React, { useState } from "react";
-import { Link } from "react-router-dom";
 
+import React, { useState, useEffect } from "react";
+import { Link } from "react-router-dom";
+import {
+  FaFacebookF,
+  FaInstagram,
+  FaTwitter,
+  FaWhatsapp
+} from "react-icons/fa";
 
 export default function Home() {
   const [isMenuOpen, setIsMenuOpen] = useState(false);
+  const [current, setCurrent] = useState(0);
+
+  // ✅ Images from public/images
+  const images = [
+    "/images/ayurveda1.jpg",
+    "/images/ayurveda2.jpg",
+    "/images/ayurveda3.jpg",
+  ];
+
+  useEffect(() => {
+    const interval = setInterval(() => {
+      setCurrent((prev) => (prev + 1) % images.length);
+    }, 3000);
+
+    return () => clearInterval(interval);
+  }, []);
 
   const services = [
     {
@@ -39,14 +61,12 @@ export default function Home() {
         <nav className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
           <div className="flex justify-between items-center h-16">
             {/* Logo */}
-            <div className="flex items-center gap-2">
-              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-600 rounded-full flex items-center justify-center shadow-lg">
-                <span className="text-xl">🕉️</span>
-              </div>
-              <span className="text-2xl font-bold bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-                AyuCeylon
-              </span>
-            </div>
+           <div className="flex items-center gap-2">
+            <span className="text-3xl font-bold tracking-tight">
+              <span className="text-green-600">Ayu</span>
+              <span className="text-gray-800">Ceylon</span>
+            </span>
+          </div>
 
             {/* Desktop Navigation */}
             <div className="hidden md:flex items-center gap-8">
@@ -65,24 +85,21 @@ export default function Home() {
             </div>
 
             {/* Auth Buttons */}
-           <div className="hidden md:flex items-center gap-4">
-  
-  <Link
-    to="/login"
-    className="px-4 py-2 text-green-600 hover:text-green-700 font-semibold transition-colors"
-  >
-    Login
-  </Link>
+            <div className="hidden md:flex items-center gap-4">
+              <Link
+                to="/login"
+                className="px-4 py-2 text-green-600 hover:text-green-700 font-semibold transition-colors"
+              >
+                Login
+              </Link>
 
-  <Link
-    to="/register"
-    className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all"
-  >
-    Sign Up
-  </Link>
-
-</div>
-
+              <Link
+                to="/register"
+                className="px-6 py-2 bg-gradient-to-r from-green-500 to-emerald-500 hover:from-green-600 hover:to-emerald-600 text-white font-semibold rounded-full shadow-lg hover:shadow-xl transition-all"
+              >
+                Sign Up
+              </Link>
+            </div>
 
             {/* Mobile Menu Button */}
             <button 
@@ -176,22 +193,32 @@ export default function Home() {
             {/* Image/Illustration */}
             <div className="relative">
               <div className="relative bg-gradient-to-br from-green-100 to-emerald-100 rounded-3xl p-8 shadow-2xl border-2 border-white">
-                <div className="text-center space-y-6">
-                  <div className="text-8xl">🧘‍♀️</div>
-                  <div className="text-6xl">🌿</div>
-                  <div className="flex justify-center gap-4">
-                    <div className="text-4xl">💊</div>
-                    <div className="text-4xl">🔍</div>
+                <div className="relative w-full h-72 md:h-96 overflow-hidden rounded-3xl">
+                  {images.map((img, index) => (
+                    <img
+                      key={index}
+                      src={img}
+                      alt={`slide-${index}`}
+                      className={`absolute inset-0 w-full h-full object-cover transition-opacity duration-700 ${
+                        index === current ? "opacity-100" : "opacity-0"
+                      }`}
+                    />
+                  ))}
+
+                  {/* Dots */}
+                  <div className="absolute bottom-4 left-1/2 -translate-x-1/2 flex gap-2">
+                    {images.map((_, index) => (
+                      <span
+                        key={index}
+                        onClick={() => setCurrent(index)}
+                        className={`h-3 w-3 rounded-full cursor-pointer ${
+                          index === current ? "bg-green-600" : "bg-green-300"
+                        }`}
+                      />
+                    ))}
                   </div>
                 </div>
-                
-                {/* Floating Elements */}
-                <div className="absolute -top-4 -right-4 w-24 h-24 bg-green-400 rounded-full flex items-center justify-center shadow-lg animate-bounce">
-                  <span className="text-3xl">✨</span>
-                </div>
-                <div className="absolute -bottom-4 -left-4 w-20 h-20 bg-emerald-400 rounded-full flex items-center justify-center shadow-lg">
-                  <span className="text-2xl">🍃</span>
-                </div>
+
               </div>
             </div>
           </div>
@@ -231,17 +258,10 @@ export default function Home() {
                   {service.description}
                 </p>
 
-                {service.title === "Medicinal Plant ID" ? (
-                  <Link to="/plant-scan" className="mt-4 text-green-600 hover:text-green-700 font-semibold flex items-center gap-2 group-hover:gap-3 transition-all">
-                    Try Now 
-                    <span>→</span>
-                  </Link>
-                ) : (
-                  <button className="mt-4 text-green-600 hover:text-green-700 font-semibold flex items-center gap-2 group-hover:gap-3 transition-all">
-                    Learn More 
-                    <span>→</span>
-                  </button>
-                )}
+                <button className="mt-4 text-green-600 hover:text-green-700 font-semibold flex items-center gap-2 group-hover:gap-3 transition-all">
+                  Learn More 
+                  <span>→</span>
+                </button>
               </div>
             ))}
           </div>
@@ -304,55 +324,103 @@ export default function Home() {
       </section>
 
       {/* Footer */}
-      <footer className="bg-gray-900 text-white py-12 px-4">
-        <div className="max-w-7xl mx-auto grid md:grid-cols-4 gap-8">
-          <div>
-            <div className="flex items-center gap-2 mb-4">
-              <div className="w-10 h-10 bg-gradient-to-br from-green-500 to-emerald-500 rounded-full flex items-center justify-center">
-                <span className="text-xl">🕉️</span>
-              </div>
-              <span className="text-xl font-bold">AyuCeylon</span>
-            </div>
-            <p className="text-gray-400 text-sm">
-              Ancient Ayurvedic wisdom meets modern AI technology for holistic wellness.
-            </p>
-          </div>
+   <footer className="bg-gray-900 text-white py-14 px-4">
+  <div className="max-w-7xl mx-auto grid gap-10 md:grid-cols-4">
 
-          <div>
-            <h4 className="font-bold mb-4">Services</h4>
-            <ul className="space-y-2 text-sm text-gray-400">
-              <li><a href="#" className="hover:text-green-400">Yoga Consultation</a></li>
-              <li><a href="#" className="hover:text-green-400">Disease Detection</a></li>
-              <li><a href="#" className="hover:text-green-400">Treatment Plans</a></li>
-              <li><a href="#" className="hover:text-green-400">Plant Identification</a></li>
-            </ul>
-          </div>
+    {/* Brand */}
+    <div>
+      <div className="flex items-center gap-3 mb-4">
+        
+        <span className="text-2xl font-bold tracking-wide">AyuCeylon</span>
+      </div>
+      <p className="text-gray-400 text-sm leading-relaxed">
+        AyuCeylon combines ancient Ayurvedic wisdom with modern AI technology to deliver
+        personalized, holistic healthcare experiences for a balanced life.
+      </p>
+    </div>
 
-          <div>
-            <h4 className="font-bold mb-4">Company</h4>
-            <ul className="space-y-2 text-sm text-gray-400">
-              <li><a href="#" className="hover:text-green-400">About Us</a></li>
-              <li><a href="#" className="hover:text-green-400">Contact</a></li>
-              <li><a href="#" className="hover:text-green-400">Blog</a></li>
-              <li><a href="#" className="hover:text-green-400">Careers</a></li>
-            </ul>
-          </div>
+    {/* Services */}
+    <div>
+      <h4 className="font-semibold text-lg mb-4">Services</h4>
+      <ul className="space-y-2 text-sm text-gray-400">
+        <li><a href="#" className="hover:text-green-400 transition">Yoga & Wellness Consultation</a></li>
+        <li><a href="#" className="hover:text-green-400 transition">AI Health Analysis</a></li>
+        <li><a href="#" className="hover:text-green-400 transition">Personalized Treatment Plans</a></li>
+        <li><a href="#" className="hover:text-green-400 transition">Medicinal Plant Identification</a></li>
+      </ul>
+    </div>
 
-          <div>
-            <h4 className="font-bold mb-4">Connect</h4>
-            <div className="flex gap-4 text-2xl">
-              <a href="#" className="hover:text-green-400">📘</a>
-              <a href="#" className="hover:text-green-400">📷</a>
-              <a href="#" className="hover:text-green-400">🐦</a>
-              <a href="#" className="hover:text-green-400">💼</a>
-            </div>
-          </div>
-        </div>
+    {/* Company */}
+    <div>
+      <h4 className="font-semibold text-lg mb-4">Company</h4>
+      <ul className="space-y-2 text-sm text-gray-400">
+        <li><a href="#" className="hover:text-green-400 transition">About AyuCeylon</a></li>
+        <li><a href="#" className="hover:text-green-400 transition">Contact Support</a></li>
+        <li><a href="#" className="hover:text-green-400 transition">Health Blog</a></li>
+        <li><a href="#" className="hover:text-green-400 transition">Careers</a></li>
+      </ul>
+    </div>
 
-        <div className="max-w-7xl mx-auto mt-8 pt-8 border-t border-gray-800 text-center text-sm text-gray-400">
-          <p>© 2025 AyuCeylon. All rights reserved. Made with 💚 for wellness.</p>
-        </div>
-      </footer>
+    
+    {/* Social */}
+<div>
+  <h4 className="font-semibold text-lg mb-4">Connect With Us</h4>
+
+  <div className="flex gap-4 text-xl">
+    <a
+      href="https://facebook.com"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Facebook"
+      className="p-3 rounded-full bg-gray-800 hover:bg-green-500 transition text-white"
+    >
+      <FaFacebookF />
+    </a>
+
+    <a
+      href="https://instagram.com"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Instagram"
+      className="p-3 rounded-full bg-gray-800 hover:bg-green-500 transition text-white"
+    >
+      <FaInstagram />
+    </a>
+
+    <a
+      href="https://twitter.com"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="Twitter"
+      className="p-3 rounded-full bg-gray-800 hover:bg-green-500 transition text-white"
+    >
+      <FaTwitter />
+    </a>
+
+    <a
+      href="https://wa.me/94770000000"
+      target="_blank"
+      rel="noopener noreferrer"
+      aria-label="WhatsApp"
+      className="p-3 rounded-full bg-gray-800 hover:bg-green-500 transition text-white"
+    >
+      <FaWhatsapp />
+    </a>
+  </div>
+</div>
+
+
+  </div>
+
+  {/* Bottom Bar */}
+  <div className="max-w-7xl mx-auto mt-10 pt-6 border-t border-gray-800 text-center text-sm text-gray-400">
+    <p>
+      © {new Date().getFullYear()} AyuCeylon. All rights reserved.  
+      <span className="block sm:inline"> Crafted with 💚 for holistic wellness.</span>
+    </p>
+  </div>
+</footer>
+
     </div>
   );
 }
