@@ -1,4 +1,4 @@
-// backend/src/dosha-diagnosis/models/PrakritiReport.js
+// backend/src/models/PrakritiReport.js
 const mongoose = require("mongoose");
 
 const prakritiReportSchema = new mongoose.Schema(
@@ -6,19 +6,22 @@ const prakritiReportSchema = new mongoose.Schema(
     user: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
-      required: true,
+      required: false,
     },
-    vataScore: { type: Number, required: true },
-    pittaScore: { type: Number, required: true },
-    kaphaScore: { type: Number, required: true },
     dominantDosha: {
       type: String,
-      required: true,
-      enum: ["Vata", "Pitta", "Kapha", "Not enough data"],
-      default: "Not enough data",
+      enum: ["Vata", "Pitta", "Kapha", "Mixed", "Unknown"],
+      default: "Unknown",
     },
-    recommendations: { type: Object, default: {} },
-    capturedRegions: { type: Object, default: {} },
+    ruleBasedResult: {
+      type: Object, // raw JSON from python-ml-service rule-based logic
+    },
+    modelBasedResult: {
+      type: Object, // raw JSON from ML model
+    },
+    meta: {
+      type: Object, // age, gender, notes, etc.
+    },
   },
   { timestamps: true }
 );

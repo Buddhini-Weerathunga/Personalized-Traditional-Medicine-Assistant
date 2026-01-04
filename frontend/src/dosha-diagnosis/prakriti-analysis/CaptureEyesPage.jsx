@@ -2,11 +2,9 @@
 import React, { useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import Webcam from "react-webcam";
+import axios from "axios";
 
 import Navbar from "../../components/layout/Navbar.jsx";
-import { predictDoshaFromFace } from "../../services/doshaMlService";
-import { dataUrlToFile } from "../../utils/imageUtils";
-import { usePrakritiResults } from "./PrakritiResultContext";
 
 const VIDEO_CONSTRAINTS = {
   width: 640,
@@ -14,14 +12,14 @@ const VIDEO_CONSTRAINTS = {
   facingMode: "user",
 };
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || "http://localhost:5000";
+
 export default function CaptureEyesPage() {
   const webcamRef = useRef(null);
   const [capturedImage, setCapturedImage] = useState(null);
   const [loading, setLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState("");
-
-  const { setRegionResult } = usePrakritiResults();
 
   const handleCapture = () => {
     if (!webcamRef.current) return;
@@ -31,7 +29,6 @@ export default function CaptureEyesPage() {
       return;
     }
     setCapturedImage(imageSrc);
-    setAnalysisResult(null);
     setError("");
   };
 
@@ -50,17 +47,23 @@ export default function CaptureEyesPage() {
       setLoading(true);
       setError("");
 
-      // 👉 Convert webcam dataURL to File and send to ML service
-      const file = await dataUrlToFile(capturedImage, "eyes.jpg");
-      const res = await predictDoshaFromFace(file);
+      const base64 = capturedImage.split(",")[1];
 
-      // 👉 Save into global store under "eyes"
-      setRegionResult("eyes", res);
+      const res = await axios.post(`${API_BASE}/api/prakriti/analyze`, {
+        imageBase64: base64,
+        meta: {
+          step: "eyes",
+          notes: "Eyes region capture from React webcam",
+        },
+      });
 
-      setAnalysisResult(res);
+      setAnalysisResult(res.data);
     } catch (err) {
-      console.error("Eyes analyze error:", err);
-      setError("Failed to analyze eyes. Please check ML service.");
+      console.error("Eyes analyze error:", err?.response?.data || err.message);
+      setError(
+        err?.response?.data?.message ||
+          "Failed to analyze eyes. Please check backend / Python service."
+      );
     } finally {
       setLoading(false);
     }
@@ -208,13 +211,15 @@ export default function CaptureEyesPage() {
                   <p className="text-xs text-gray-700">
                     Dominant Dosha (eyes):{" "}
                     <span className="font-semibold text-emerald-700">
-                      {analysisResult.dosha_label ?? "Unknown"}
+                      {analysisResult.report?.dominantDosha ??
+                        analysisResult.dominant_dosha ??
+                        "Unknown"}
                     </span>
                   </p>
 
-                  {analysisResult.probabilities && (
+                  {analysisResult.mlResult && (
                     <pre className="text-[11px] bg-emerald-50 rounded-xl p-3 text-gray-800 whitespace-pre-wrap border border-emerald-100">
-                      {JSON.stringify(analysisResult.probabilities, null, 2)}
+                      {JSON.stringify(analysisResult.mlResult, null, 2)}
                     </pre>
                   )}
                 </div>

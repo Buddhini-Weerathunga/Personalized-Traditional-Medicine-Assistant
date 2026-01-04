@@ -9,10 +9,3 @@ export const registerUser = (data) => API.post("/auth/register", data);
 
 // PROFILE (Protected)
 export const getProfile = () => API.get("/user/profile");
-
-
-
-// ✅ HEALTH PREDICTION (FIXED PATH)
-// ML prediction for logged-in user
-export const getMyHealthPrediction = () =>
-  API.get("/health-prediction/predict/me");

@@ -1,27 +1,41 @@
-// backend/src/dosha-diagnosis/routes/prakriti.routes.js
+// backend/src/routes/prakriti.routes.js
 const express = require("express");
+const axios = require("axios");
+const { analyze } = require("../controllers/prakriti.controller");
+const { protect } = require("../middleware/authMiddleware");
+
 const router = express.Router();
 
-const { analyzePrakriti } = require("../services/pythonService");
+// Image-based analysis (your existing route)
+router.post("/analyze", analyze);
 
-/**
- * POST /api/prakriti/analyze
- * Body: { image_base64: "<BASE64_STRING>" }
- */
-router.post("/analyze", async (req, res, next) => {
+// ----------------------------------------------
+// NEW — Feature-based analysis (no image)
+// POST /api/prakriti/analyze-features
+// ----------------------------------------------
+router.post("/analyze-features", async (req, res) => {
   try {
-    const { image_base64 } = req.body;
+    const pythonResponse = await axios.post(
+      "http://127.0.0.1:8001/analyze-features",
+      req.body
+    );
 
-    if (!image_base64) {
-      res.status(400);
-      throw new Error("image_base64 field is required");
+    return res.json(pythonResponse.data);
+  } catch (err) {
+    console.error("Error calling python ML service:", err.message);
+
+    if (err.response) {
+      console.error("Python error data:", err.response.data);
+      return res.status(500).json({
+        message: "Python ML service error",
+        detail: err.response.data,
+      });
     }
 
-    const result = await analyzePrakriti(image_base64);
-    return res.json(result);
-  } catch (err) {
-    console.error("Error in /api/prakriti/analyze:", err);
-    return next(err);
+    return res.status(500).json({
+      message: "Could not reach python ML service",
+      detail: err.message,
+    });
   }
 });
 
