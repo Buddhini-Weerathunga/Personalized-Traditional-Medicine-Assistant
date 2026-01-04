@@ -1,31 +1,46 @@
 import React, { useEffect, useState } from "react";
+import { useNavigate } from "react-router-dom";
 import { Leaf, Heart, Brain, Sun, Wind, Droplets } from "lucide-react";
+import { getProfile } from "../../../services/api";
+import AyurvedaHeader from "../../../components/health-profile-analysis/AyurvedaHeader";
 
 export default function EditHealthProfile() {
-  const [user, setUser] = useState({ name: "Perera", email: "p@gmail.com" });
+  const navigate = useNavigate();
+  const [user, setUser] = useState(null);
   const [loading, setLoading] = useState(true);
   const [step, setStep] = useState(1);
-
   const [form, setForm] = useState({});
 
   /* ================= FETCH EXISTING PROFILE ================= */
   useEffect(() => {
-    const token = localStorage.getItem("accessToken");
-    if (!token) {
-      window.location.href = "/login";
-      return;
-    }
+    const fetchData = async () => {
+      try {
+        // Fetch user profile
+        const userRes = await getProfile();
+        setUser(userRes.data.user);
 
-    fetch("http://localhost:5000/api/my-profile", {
-      headers: { Authorization: `Bearer ${token}` }
-    })
-      .then(res => res.json())
-      .then(data => {
-        setForm(data.profile || {});
+        // Fetch health profile
+        const token = localStorage.getItem("accessToken");
+        if (!token) {
+          navigate("/login");
+          return;
+        }
+
+        const profileRes = await fetch("http://localhost:5000/api/my-profile", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+        
+        const profileData = await profileRes.json();
+        setForm(profileData.profile || {});
         setLoading(false);
-      })
-      .catch(() => window.location.href = "/login");
-  }, []);
+      } catch (error) {
+        localStorage.removeItem("accessToken");
+        navigate("/login");
+      }
+    };
+
+    fetchData();
+  }, [navigate]);
 
   /* ================= HANDLE CHANGE ================= */
   const updateField = (e) => {
@@ -49,7 +64,7 @@ export default function EditHealthProfile() {
 
       if (response.ok) {
         alert("Health profile updated successfully ✅");
-        window.location.href = "/health-profile/view";
+        navigate("/health-profile/view");
       } else {
         alert("Update failed ❌");
       }
@@ -77,29 +92,7 @@ export default function EditHealthProfile() {
 
   return (
     <div>
-      {/* Header */}
-      <div className="bg-white shadow-sm border-b border-green-100">
-        <div className="max-w-7xl mx-auto px-6 py-4 flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className="bg-green-600 p-2 rounded-lg">
-              <Heart className="w-6 h-6 text-white fill-white" />
-            </div>
-            <div>
-              <h1 className="text-xl font-bold text-gray-800">Ayu Ceylon</h1>
-              <p className="text-xs text-green-600">Holistic Wellness Platform</p>
-            </div>
-          </div>
-          <div className="flex items-center gap-4">
-            <div className="text-right">
-              <p className="text-sm font-medium text-gray-800">{user.name}</p>
-              <p className="text-xs text-gray-500">{user.email}</p>
-            </div>
-            <button className="px-4 py-2 bg-red-500 text-white text-sm rounded-lg hover:bg-red-600 transition">
-              Logout
-            </button>
-          </div>
-        </div>
-      </div>
+      <AyurvedaHeader user={user} />
 
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-green-100 py-10 px-4">
         <div className="max-w-6xl mx-auto">
@@ -186,7 +179,7 @@ export default function EditHealthProfile() {
                       {stepInfo[step - 1]?.title}
                     </h1>
                     <span className="text-sm text-gray-500 font-medium">
-                      Step {step} of 6
+                      Step {step} of 5
                     </span>
                   </div>
                   <p className="text-gray-600 text-sm">{stepInfo[step - 1]?.description}</p>
@@ -275,9 +268,7 @@ export default function EditHealthProfile() {
                   </>
                 )}
 
-             
-
-                {/* ================= STEP 6 ================= */}
+                {/* ================= STEP 5 ================= */}
                 {step === 5 && (
                   <Section title="Family History">
                     <Grid>
@@ -370,7 +361,6 @@ const stepInfo = [
     description: "Reflect on your current stress, sleep, and pain levels",
     tip: "Poor sleep and high stress often indicate Vata imbalance in Ayurveda"
   },
- 
   {
     title: "Family History",
     description: "Review your family medical history information",

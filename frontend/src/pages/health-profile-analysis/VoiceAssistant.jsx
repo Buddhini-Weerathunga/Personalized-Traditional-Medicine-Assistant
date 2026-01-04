@@ -2,6 +2,8 @@ import React, { useState, useEffect, useRef } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Mic, Volume2, StopCircle } from "lucide-react";
+import { User, Bot } from "lucide-react";
+
 
 const SpeechRecognition =
   window.SpeechRecognition || window.webkitSpeechRecognition;
@@ -17,7 +19,7 @@ const questions = [
   "How would you describe your stress level?",
   "How would you rate your sleep quality?",
   "Do you experience headaches or joint pain, and how strong are they?",
-  "How would you describe your environment: mostly hot, cool, or moderate?",
+ 
   "Does your family have diabetes, cholesterol, thyroid or heart disease?",
   "Please tell me your age and gender"
 ];
@@ -38,7 +40,7 @@ Diet type: vegetarian | eggetarian | non-vegetarian`,
   "Stress: very low | low | moderate | high | very high",
   "Sleep quality: very poor | poor | average | good | very good",
   "Headache & joint pain: very low | low | moderate | high | very high",
-  "hot | cool | moderate",
+ 
   "diabetes | cholesterol | thyroid | heart disease",
   "age number | male | female | other"
 ];
@@ -231,6 +233,28 @@ export default function VoiceAssistant() {
     setIsSpeaking(false);
   };
 
+  const scaleMap = {
+  1: "Very Low",
+  2: "Low",
+  3: "Moderate",
+  4: "High",
+  5: "Very High"
+};
+const formatValue = (key, value) => {
+  // If value is number 1–5 → convert
+  if (typeof value === "number" && scaleMap[value]) {
+    return scaleMap[value];
+  }
+
+  // If value is string number ("1","2"...)
+  if (!isNaN(value) && scaleMap[value]) {
+    return scaleMap[value];
+  }
+
+  return value;
+};
+
+
   return (
     <div className="min-h-screen  bg-gradient-to-br from-green-50 via-white to-green-100 p-4 md:p-8">
       <div className="max-w-7xl mx-auto">
@@ -305,7 +329,12 @@ export default function VoiceAssistant() {
                       >
                         <div className="flex items-start gap-2">
                           <span className="text-xl">
-                            {msg.type === "user" ? "👤" : "🤖"}
+                            {msg.type === "user" ? (
+  <User className="w-6 h-6 text-white" />
+) : (
+  <Bot className="w-6 h-6 text-green-600" />
+)}
+
                           </span>
                           <p className="text-sm md:text-base leading-relaxed">{msg.text}</p>
                         </div>
@@ -409,15 +438,28 @@ export default function VoiceAssistant() {
           </div>
 
           {/* RIGHT - Health Profile */}
-          <div className="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[600px]">
-            <div className="bg-gradient-to-br from-green-400  to-green-200 p-6">
-              <h3 className="text-2xl font-bold text-white flex items-center gap-2">
-                 Health Profile
-              </h3>
-              <p className="text-white mt-2 text-sm">
-                Extracted data from your responses
-              </p>
-            </div>
+          <div className="bg-white rounded-2xl shadow-2xl overflow-hidden flex flex-col h-[700px]">
+        <div className="bg-gradient-to-br from-green-400 to-green-200 p-6">
+  <div className="flex items-center justify-between">
+    <div>
+      <h3 className="text-2xl font-bold text-white">
+        Health Profile
+      </h3>
+      <p className="text-white mt-1 text-sm">
+        Extracted data from your responses
+      </p>
+    </div>
+
+    <button 
+      onClick={() => window.location.href = "/health-profile/view"}
+      className="px-5 py-2 bg-green-500 text-white rounded-lg font-medium 
+                 hover:bg-green-800 transition shadow-sm whitespace-nowrap"
+    >
+      View Profile
+    </button>
+  </div>
+</div>
+
 
             <div className="flex-1 overflow-y-auto p-6">
               {Object.keys(healthProfile).length > 0 ? (
@@ -427,9 +469,12 @@ export default function VoiceAssistant() {
                       <p className="text-sm font-semibold text-purple-700 uppercase tracking-wide mb-1">
                         {key.replace(/_/g, " ")}
                       </p>
-                      <p className="text-gray-800 font-medium">
-                        {typeof value === "object" ? JSON.stringify(value, null, 2) : value}
-                      </p>
+                     <p className="text-gray-800 font-medium">
+  {typeof value === "object"
+    ? JSON.stringify(value, null, 2)
+    : formatValue(key, value)}
+</p>
+
                     </div>
                   ))}
                 </div>

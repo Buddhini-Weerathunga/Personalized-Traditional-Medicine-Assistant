@@ -2,6 +2,7 @@ import React, { useEffect, useState } from "react";
 import axios from "axios";
 import { useNavigate } from "react-router-dom";
 import { Wind, Sun, Droplets, ArrowLeft } from "lucide-react";
+import { User, Activity, Leaf, Utensils, Heart } from 'lucide-react';
 
 export default function ViewHealthProfile() {
   const navigate = useNavigate();
@@ -272,8 +273,7 @@ export default function ViewHealthProfile() {
           </button>
         </div>
       </div>
-
-      {/* Ayurveda Info Banner */}
+{/* Ayurveda Info Banner */}
       <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white">
         <div className="max-w-5xl mx-auto px-6 py-8">
           <div className="flex items-center justify-between">
@@ -281,32 +281,48 @@ export default function ViewHealthProfile() {
               <h2 className="text-2xl font-bold mb-2 flex items-center gap-2">
                 🌿 Ayurveda Health Profile
               </h2>
-            <p className="text-green-50 text-sm max-w-2xl">
-  This profile summarizes your health details, Dosha tendencies, lifestyle habits, and environmental factors to support personalized Ayurvedic care.
-</p>
-
-
+              <p className="text-green-50 text-sm max-w-2xl mb-4">
+                This profile summarizes your health details, Dosha tendencies, lifestyle habits, and environmental factors to support personalized Ayurvedic care.
+              </p>
+              
+              {/* Action Buttons */}
+             <div className="flex gap-3 mt-4">
+                <button 
+                  onClick={() => window.location.href = '/health-prediction'}
+                  className="bg-white text-green-700 px-6 py-2.5 rounded-lg font-semibold text-sm hover:bg-green-50 transition-colors shadow-md flex items-center gap-2"
+                >
+                  <Wind className="w-4 h-4" />
+                  Dosha Predictions
+                </button>
+                <button 
+                  onClick={() => window.location.href = '/diets-predictions'}
+                  className="bg-emerald-700 text-white px-6 py-2.5 rounded-lg font-semibold text-sm hover:bg-emerald-800 transition-colors shadow-md flex items-center gap-2"
+                >
+                  <Droplets className="w-4 h-4" />
+                  Diet Predictions
+                </button>
+              </div>
             </div>
-           <div className="hidden lg:flex gap-6 text-sm">
-  <div className="flex flex-col items-center bg-white/10 px-4 py-3 rounded-lg text-center">
-    <Wind className="w-5 h-5 mb-1" />
-    <span className="font-semibold">Vata</span>
-    <span className="text-xs text-green-100">Movement</span>
-  </div>
+            
+            <div className="hidden lg:flex gap-6 text-sm">
+              <div className="flex flex-col items-center bg-white/10 px-4 py-3 rounded-lg text-center">
+                <Wind className="w-5 h-5 mb-1" />
+                <span className="font-semibold">Vata</span>
+                <span className="text-xs text-green-100">Movement</span>
+              </div>
 
-  <div className="flex flex-col items-center bg-white/10 px-4 py-3 rounded-lg text-center">
-    <Sun className="w-5 h-5 mb-1" />
-    <span className="font-semibold">Pitta</span>
-    <span className="text-xs text-green-100">Digestion</span>
-  </div>
+              <div className="flex flex-col items-center bg-white/10 px-4 py-3 rounded-lg text-center">
+                <Sun className="w-5 h-5 mb-1" />
+                <span className="font-semibold">Pitta</span>
+                <span className="text-xs text-green-100">Digestion</span>
+              </div>
 
-  <div className="flex flex-col items-center bg-white/10 px-4 py-3 rounded-lg text-center">
-    <Droplets className="w-5 h-5 mb-1" />
-    <span className="font-semibold">Kapha</span>
-    <span className="text-xs text-green-100">Stability</span>
-  </div>
-</div>
-
+              <div className="flex flex-col items-center bg-white/10 px-4 py-3 rounded-lg text-center">
+                <Droplets className="w-5 h-5 mb-1" />
+                <span className="font-semibold">Kapha</span>
+                <span className="text-xs text-green-100">Stability</span>
+              </div>
+            </div>
           </div>
         </div>
       </div>
@@ -410,6 +426,16 @@ export default function ViewHealthProfile() {
                 
                 <div className="pt-4 border-t border-gray-100">
                   <h3 className="text-sm font-medium text-gray-700 mb-3">Food Intake Frequency (1-5 scale)</h3>
+                   <p className="text-sm text-gray-700 mb-6">
+                        Rate how often you consume each food type:<br />
+                        <span className="inline-flex gap-3 mt-2 flex-wrap">
+                          <span><b>1</b> = Very Low</span>
+                          <span><b>2</b> = Low</span>
+                          <span><b>3</b> = Moderate</span>
+                          <span><b>4</b> = High</span>
+                          <span><b>5</b> = Very High</span>
+                        </span>
+                      </p>
                   <div className="space-y-3">
                     <ProgressBar label="🌶️ Spicy Food" value={profile.spicy_food_frequency} />
                     <ProgressBar label="🍳 Oily Food" value={profile.oily_food_frequency} />
@@ -431,12 +457,21 @@ export default function ViewHealthProfile() {
                 <div>
                   <h2 className="font-semibold text-gray-800">Lifestyle & Mental Health</h2>
                   <p className="text-xs text-gray-500">Daily habits and wellbeing</p>
+                   <p className="text-sm text-gray-700">
+                        Rate how often you consume each food type:<br />
+                        <span className="inline-flex gap-3 mt-2 flex-wrap">
+                          <span><b>1</b> = Very Low</span>
+                          <span><b>2</b> = Low</span>
+                          <span><b>3</b> = Moderate</span>
+                          <span><b>4</b> = High</span>
+                          <span><b>5</b> = Very High</span>
+                        </span>
+                      </p>
                 </div>
               </div>
 
               <div className="space-y-4">
                 <div className="grid grid-cols-2 gap-4">
-                  <InfoItem label="Living Environment" value={profile.living_environment} />
                   <InfoItem label="Urine Color" value={profile.urine_color} />
                 </div>
 
@@ -445,9 +480,9 @@ export default function ViewHealthProfile() {
                   <div className="space-y-3">
                     <ProgressBar label="😰 Stress Level" value={profile.stress_level} color="red" />
                   
-                    <ProgressBar label="😴 Sleep Issues" value={profile.sleep_issues} color="indigo" />
-                    <ProgressBar label="🤕 Headaches" value={profile.headaches} color="red" />
-                    <ProgressBar label="🦴 Joint Pain" value={profile.joint_pain} color="orange" />
+                    <ProgressBar label="😴 Sleep Issues" value={profile.sleep_quality} color="indigo" />
+                    <ProgressBar label="🤕 Headaches" value={profile.headache_severity} color="red" />
+                    <ProgressBar label="🦴 Joint Pain" value={profile.joint_pain_severity} color="orange" />
                   </div>
                 </div>
               </div>
@@ -474,17 +509,93 @@ export default function ViewHealthProfile() {
               </div>
             </div>
 
-            {/* Quick Actions */}
-            <div className="bg-white rounded-xl shadow-sm border border-gray-200 p-6">
-              <h3 className="font-semibold text-gray-800 mb-4">Quick Actions</h3>
-              <div className="space-y-2">
-                <ActionButton
-                  icon="📊"
-                  label="View Health Prediction"
-                  onClick={handlePrediction}
-                />
-                <ActionButton icon="💡" label="View Recommendations" />
-                <ActionButton icon="🍽️" label="Log New Meal" />
+         {/* Services Sidebar Banner */}
+            <div className="bg-gradient-to-br from-amber-50 via-green-50 to-emerald-50 rounded-xl shadow-lg border-2 border-green-200 overflow-hidden">
+              {/* Header */}
+              <div className="bg-gradient-to-r from-green-600 to-emerald-600 text-white px-6 py-4">
+                <h3 className="font-bold text-lg flex items-center gap-2">
+                  
+                  Our Ayurvedic Services
+                </h3>
+                <p className="text-green-50 text-xs mt-1">Holistic wellness solutions</p>
+              </div>
+
+              {/* Services List */}
+             {/* Services List */}
+              <div className="p-4 space-y-3">
+                {/* Yoga Consultation */}
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-green-100 hover:shadow-md hover:border-green-300 transition-all cursor-pointer group">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-gradient-to-br from-purple-100 to-purple-200 p-2.5 rounded-lg group-hover:scale-110 transition-transform">
+                      <User className="w-6 h-6 text-purple-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-800 mb-1">Yoga Consultation</h4>
+                      <p className="text-xs text-gray-600">Personalized yoga practices for your dosha type</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Dosha Detection */}
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-green-100 hover:shadow-md hover:border-green-300 transition-all cursor-pointer group">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-gradient-to-br from-blue-100 to-blue-200 p-2.5 rounded-lg group-hover:scale-110 transition-transform">
+                      <Activity className="w-6 h-6 text-blue-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-800 mb-1">Dosha Detection</h4>
+                      <p className="text-xs text-gray-600">AI-powered constitutional analysis & balance assessment</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Medicinal Plants */}
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-green-100 hover:shadow-md hover:border-green-300 transition-all cursor-pointer group">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-gradient-to-br from-green-100 to-green-200 p-2.5 rounded-lg group-hover:scale-110 transition-transform">
+                      <Leaf className="w-6 h-6 text-green-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-800 mb-1">Medicinal Plants</h4>
+                      <p className="text-xs text-gray-600">Herbal remedies & traditional plant medicine guide</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Ayurvedic Diet */}
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-green-100 hover:shadow-md hover:border-green-300 transition-all cursor-pointer group">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-gradient-to-br from-orange-100 to-orange-200 p-2.5 rounded-lg group-hover:scale-110 transition-transform">
+                      <Utensils className="w-6 h-6 text-orange-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-800 mb-1">Ayurvedic Diet</h4>
+                      <p className="text-xs text-gray-600">Customized meal plans based on your constitution</p>
+                    </div>
+                  </div>
+                </div>
+
+                {/* Lifestyle Counseling */}
+                <div className="bg-white rounded-lg p-4 shadow-sm border border-green-100 hover:shadow-md hover:border-green-300 transition-all cursor-pointer group">
+                  <div className="flex items-start gap-3">
+                    <div className="bg-gradient-to-br from-pink-100 to-pink-200 p-2.5 rounded-lg group-hover:scale-110 transition-transform">
+                      <Heart className="w-6 h-6 text-pink-600" />
+                    </div>
+                    <div className="flex-1">
+                      <h4 className="font-semibold text-gray-800 mb-1">Lifestyle Counseling</h4>
+                      <p className="text-xs text-gray-600">Daily routines & practices for optimal health</p>
+                    </div>
+                  </div>
+                </div>
+              </div>
+              {/* Footer CTA */}
+              <div className="px-4 pb-4">
+<button 
+  onClick={() => navigate('/dashboard')}
+  className="w-full bg-gradient-to-r from-green-600 to-emerald-600 text-white py-3 rounded-lg font-semibold text-sm hover:from-green-700 hover:to-emerald-700 transition-all shadow-md hover:shadow-lg"
+>
+  Explore All Services →
+</button>
               </div>
             </div>
           </div>
