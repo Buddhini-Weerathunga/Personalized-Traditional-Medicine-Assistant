@@ -55,10 +55,6 @@ def predict_diet_api(data: dict):
 def health_check():
     return {"status": "ok"}
 
-# ===================== HEALTH PROFILE =====================
-@app.post("/predict")
-def predict_health_profile(data: dict):
-    return predict_health(data)
 
 @app.post("/predict/quiz", response_model=DoshaPredictionResponse)
 def predict_quiz(payload: QuizFeatures):
