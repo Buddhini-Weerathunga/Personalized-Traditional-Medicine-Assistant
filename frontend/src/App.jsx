@@ -41,7 +41,6 @@ import ShareResultsPage from "./dosha-diagnosis/prakriti-analysis/ShareResultsPa
 import PrescriptionPage from "./dosha-diagnosis/prescription/PrescriptionPage.jsx";
 import PrescriptionDetailPage from "./dosha-diagnosis/prescription/PrescriptionDetailPage.jsx";
 import AboutPage from "./dosha-diagnosis/about/AboutPage.jsx";
-import YogaConsultation from './pages/YogaConsultation';
 
 function App() {
   return (
@@ -120,9 +119,6 @@ function App() {
               </ProtectedRoute>
             }
           />
-
-          {/* yoga pages */}
-          <Route path="/yoga-consultation" element={<YogaConsultation />} />
 
           {/* ---------------------------------------------- */}
           {/* Plant Identification Routes */}
