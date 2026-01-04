@@ -15,6 +15,8 @@ const PlantScan = () => {
   const [useCamera, setUseCamera] = useState(false);
   const [healthData, setHealthData] = useState(null);
   const [showHealthForm, setShowHealthForm] = useState(false);
+  const [identificationResult, setIdentificationResult] = useState(null);
+  const [showPlantConfirmation, setShowPlantConfirmation] = useState(false);
   const navigate = useNavigate();
 
   const handleImageSelect = (file) => {
@@ -56,14 +58,10 @@ const PlantScan = () => {
     try {
       // Send both image and health data for analysis
       const result = await identifyPlant(selectedImage, data);
-      // Navigate to results page with the identification data and health info
-      navigate('/plant-results', { 
-        state: { 
-          result, 
-          image: previewUrl,
-          healthData: data 
-        } 
-      });
+      // Store result and show plant name confirmation modal
+      setIdentificationResult(result);
+      setShowPlantConfirmation(true);
+      setLoading(false);
     } catch (err) {
       setError(err.message || 'Failed to identify plant. Please try again.');
       setLoading(false);
@@ -85,17 +83,33 @@ const PlantScan = () => {
 
     try {
       const result = await identifyPlant(selectedImage, null);
-      navigate('/plant-results', { 
-        state: { 
-          result, 
-          image: previewUrl,
-          healthData: null 
-        } 
-      });
+      // Store result and show plant name confirmation modal
+      setIdentificationResult(result);
+      setShowPlantConfirmation(true);
+      setLoading(false);
     } catch (err) {
       setError(err.message || 'Failed to identify plant. Please try again.');
       setLoading(false);
     }
+  };
+
+  // Handle plant confirmation - navigate to description page
+  const handlePlantConfirm = () => {
+    setShowPlantConfirmation(false);
+    navigate('/plant-description/detail', { 
+      state: { 
+        result: identificationResult, 
+        image: previewUrl,
+        healthData: healthData 
+      } 
+    });
+  };
+
+  // Handle plant rejection - allow rescan
+  const handlePlantReject = () => {
+    setShowPlantConfirmation(false);
+    setIdentificationResult(null);
+    // Keep the image but allow user to try again
   };
 
   const handleReset = () => {
@@ -103,11 +117,67 @@ const PlantScan = () => {
     setPreviewUrl(null);
     setError(null);
     setUseCamera(false);
+    setIdentificationResult(null);
+    setShowPlantConfirmation(false);
   };
 
   return (
     <>
       <PlantNavbar />
+
+      {/* Plant Name Confirmation Modal */}
+      {showPlantConfirmation && identificationResult && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-300">
+            <div className="text-center">
+              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-green-100 to-emerald-200 flex items-center justify-center">
+                <span className="text-4xl">🌿</span>
+              </div>
+              
+              <h2 className="text-2xl font-bold text-gray-900 mb-2">Plant Identified!</h2>
+              
+              <div className="bg-green-50 rounded-xl p-4 mb-4 border border-green-200">
+                <p className="text-green-700 text-sm font-medium mb-1">We found:</p>
+                <h3 className="text-2xl font-bold text-green-800">{identificationResult.plantName}</h3>
+                {identificationResult.scientificName && (
+                  <p className="text-green-600 italic">{identificationResult.scientificName}</p>
+                )}
+                <div className="mt-2">
+                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
+                    identificationResult.confidence >= 80 
+                      ? 'bg-green-200 text-green-800' 
+                      : identificationResult.confidence >= 60 
+                      ? 'bg-orange-200 text-orange-800' 
+                      : 'bg-red-200 text-red-800'
+                  }`}>
+                    {identificationResult.confidence}% Confidence
+                  </span>
+                </div>
+              </div>
+
+              <p className="text-gray-600 text-sm mb-6">
+                Is this the correct plant? Click "Yes, Continue" to view detailed information and personalized safety analysis.
+              </p>
+
+              <div className="flex gap-3">
+                <button
+                  onClick={handlePlantReject}
+                  className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all"
+                >
+                  No, Try Again
+                </button>
+                <button
+                  onClick={handlePlantConfirm}
+                  className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg"
+                >
+                  Yes, Continue →
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
+
       <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-white">
       {/* Background Decorations */}
       <div className="pointer-events-none">
