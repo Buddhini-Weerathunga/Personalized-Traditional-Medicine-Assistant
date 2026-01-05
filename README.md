@@ -53,6 +53,136 @@ Uses **augmented reality (AR)** to guide users through traditional therapy proce
 
 ---
 
+## 🛠️ **Technology Stack & Dependencies**
+
+### **Frontend (React + Vite)**
+
+The frontend is developed using **React** with **Vite** for fast development and optimized builds.
+
+**Core Technologies**
+
+* React.js
+* Vite
+* React Router DOM
+* Axios
+* Tailwind CSS
+
+**UI & Visualization**
+
+* Lucide React
+* React Icons
+* Recharts
+* html2pdf.js
+
+**Camera, AR & Pose Detection**
+
+* React Webcam
+* MediaPipe Pose
+* TensorFlow.js
+* TensorFlow Pose Detection
+* TensorFlow WebGL Backend
+
+**Development Tools**
+
+* ESLint
+* PostCSS
+* Autoprefixer
+
+---
+
+### **Backend (Node.js – MERN Stack)**
+
+The backend is implemented using **Node.js and Express** to provide secure RESTful APIs.
+
+**Core Backend Technologies**
+
+* Node.js
+* Express.js
+* MongoDB
+* Mongoose
+
+**Security & Authentication**
+
+* JSON Web Token (JWT)
+* Bcrypt.js
+* Cookie Parser
+* Helmet
+* Express Rate Limit
+
+**File Handling & Utilities**
+
+* Multer (Image Uploads)
+* Morgan (Logging)
+* Dotenv
+* CORS
+* Axios
+
+**AI & External Services**
+
+* OpenAI SDK
+
+**Development Tool**
+
+* Nodemon
+
+---
+
+### **AI / Machine Learning Services (Python)**
+
+Machine learning models and AI services are developed using **Python**, exposed via APIs.
+
+**Frameworks & Core Libraries**
+
+* FastAPI
+* Uvicorn
+* Pydantic
+* Python Multipart
+
+**Data Processing & ML**
+
+* NumPy
+* Pandas
+* Scikit-learn (v1.3.2)
+* Joblib
+* XGBoost
+
+**Computer Vision & Deep Learning**
+
+* OpenCV
+* Pillow
+* MediaPipe
+* PyTorch
+* TorchVision
+* TorchAudio
+
+**Plant Identification (Advanced Vision Models)**
+
+* TIMM
+* Albumentations
+
+---
+
+### **Model Training & Experimentation**
+
+* Google Colab (GPU-enabled model training and evaluation)
+
+---
+
+### **External APIs**
+
+* OpenWeatherMap API (Geocoding & Weather Data)
+
+---
+
+## 📌 **Note**
+
+> Full dependency details are maintained in `package.json`, `package-lock.json`, and `requirements.txt` files for reproducibility.
+
+---
+
+
+
+
 
 
 
