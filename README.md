@@ -180,6 +180,44 @@ Machine learning models and AI services are developed using **Python**, exposed 
 
 ---
 
+## ▶️ **How to Run the Project**
+
+### **1️⃣ Frontend (React)**
+
+Navigate to the frontend directory and run:
+
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+### **2️⃣ Backend (Node.js / Express)**
+
+Navigate to the backend directory and run:
+
+```bash
+cd backend
+npm install
+npm run dev
+```
+
+---
+
+### **3️⃣ AI / Machine Learning Service (Python – FastAPI)**
+
+Navigate to the Python ML service directory and run:
+
+```bash
+pip install -r requirements.txt
+uvicorn app:app --host 0.0.0.0 --port 8000 --reload
+```
+
+
+
+
+
+
 
 
 
