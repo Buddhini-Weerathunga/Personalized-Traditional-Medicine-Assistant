@@ -1,7 +1,7 @@
 
 # 🧠 **AI-Powered Personalized Traditional Medicine Assistant**
 
-## **Project Group:** 25-26J-232
+## **Research Group:** 25-26J-232
 
 ---
 
