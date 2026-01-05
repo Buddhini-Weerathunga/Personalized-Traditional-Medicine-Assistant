@@ -44,9 +44,13 @@ const PlantHistory = () => {
   };
 
   const handleViewDetails = (item) => {
-    navigate('/plant-results', { 
+    navigate('/plant-description/detail', { 
       state: { 
-        result: item, 
+        result: {
+          plantName: item.plantName,
+          scientificName: item.scientificName,
+          confidence: item.confidence,
+        }, 
         image: item.image 
       } 
     });
