@@ -1,23 +1,58 @@
-🧠 AI-Powered Personalized Traditional Medicine Assistant
 
-Project Group: 25-26J-232
+# 🧠 **AI-Powered Personalized Traditional Medicine Assistant**
 
-The AI-Powered Personalized Traditional Medicine Assistant is a smart healthcare system designed to support traditional medicine (Ayurweda) practices using artificial intelligence.
+## **Project Group:** 25-26J-232
 
-🔹 Key Functional Modules
-1️⃣ AI-Powered Dosha Diagnosis & Prescription  :-  Suhana M.Y.F (IT22885432)
+---
 
-Analyzes user health inputs to identify Vata, Pitta, and Kapha imbalances and provides personalized traditional medicine recommendations.
+## **Project Overview**
 
-2️⃣ Medicinal Plant Identification & Safety Alerts  :- Sendanayake S.R (IT22151674)
+The **AI-Powered Personalized Traditional Medicine Assistant** is a smart healthcare system designed to support **Ayurveda practices** using artificial intelligence. The system provides personalized health analysis, diagnosis, and guidance by combining machine learning, environmental data, and traditional medical knowledge.
 
-Identifies medicinal plants using image analysis and provides safety alerts, usage guidance, and risk information to ensure safe application.
+---
 
-3️⃣ AI-Based Health Profile Analysis & Forecasting  :- Weerathunga B I (IT22251428)
+## **Key Functional Modules**
 
-Creates personalized health profiles, analyzes lifestyle and environmental factors, and predicts future health trends , diets for preventive care.
+### **1️⃣ AI-Powered Dosha Diagnosis & Prescription**
 
-4️⃣ AR-Based Therapy Guidance System :- Jayakodi W.B.S (IT22029904)
+**Member:** Suhana M.Y.F (IT22885432)
 
-Uses augmented reality to guide users through traditional therapy procedures, helping them perform treatments correctly and safely.
+Analyzes user health inputs to identify **Vata, Pitta, and Kapha** imbalances and provides personalized traditional medicine recommendations.
+
+---
+
+### **2️⃣ Medicinal Plant Identification & Safety Alerts**
+
+**Member:** Sendanayake S.R (IT22151674)
+
+Identifies medicinal plants using image analysis and provides **safety alerts, usage guidance, and risk information** to ensure safe application.
+
+---
+
+### **3️⃣ AI-Based Health Profile Analysis & Forecasting**
+
+**Member:** Weerathunga B I (IT22251428)
+
+Creates personalized health profiles, analyzes lifestyle and environmental factors, and predicts **future health trends and diet recommendations** for preventive care.
+
+---
+
+### **4️⃣ AR-Based Therapy Guidance System**
+
+**Member:** Jayakodi W.B.S (IT22029904)
+
+Uses **augmented reality (AR)** to guide users through traditional therapy procedures, helping them perform treatments correctly and safely.
+
+---
+
+## **Project Objectives**
+
+* Enhance traditional medicine practices using AI
+* Provide personalized and preventive healthcare solutions
+* Improve safety, accuracy, and accessibility of Ayurveda-based treatments
+
+---
+
+
+
 
