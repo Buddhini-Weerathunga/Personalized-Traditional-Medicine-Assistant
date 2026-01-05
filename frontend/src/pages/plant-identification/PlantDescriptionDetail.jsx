@@ -3,80 +3,369 @@ import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import PlantNavbar from '../../components/plant-identification/PlantNavbar';
 import PlantCard from '../../components/plant-identification/PlantCard';
-import LoadingSpinner from '../../components/plant-identification/LoadingSpinner';
-import { savePlantIdentification, generatePersonalizedAlerts } from '../../services/plant-identification/plantApi';
+import { savePlantIdentification } from '../../services/plant-identification/plantApi';
+
+// Comprehensive plant database for all 8 plants
+const PLANT_DATABASE = {
+  'Amla': {
+    plantId: 'amla-001',
+    plantName: 'Amla',
+    scientificName: 'Phyllanthus emblica',
+    description: 'Amla, also known as Indian Gooseberry, is one of the most important plants in Ayurvedic medicine. It is a small to medium-sized deciduous tree native to India. The fruit is highly nutritious and is one of the richest natural sources of Vitamin C. Amla has been used for thousands of years in traditional medicine for its rejuvenating and healing properties.',
+    medicinalUses: [
+      'Rich source of Vitamin C - boosts immunity and fights infections',
+      'Promotes healthy hair growth and prevents premature graying',
+      'Improves digestion and relieves constipation',
+      'Helps manage diabetes by regulating blood sugar levels',
+      'Anti-aging properties - rejuvenates skin and promotes collagen production',
+      'Supports heart health and reduces cholesterol',
+      'Enhances memory and cognitive function',
+      'Detoxifies the body and purifies blood'
+    ],
+    ayurvedicProperties: {
+      rasa: 'Sour, Sweet, Pungent, Bitter, Astringent (5 of 6 tastes)',
+      guna: 'Light (Laghu), Dry (Ruksha)',
+      virya: 'Cooling (Sheeta)',
+      vipaka: 'Sweet (Madhura)'
+    },
+    doshaEffect: 'Balances all three doshas (Vata, Pitta, Kapha) - Tridoshahara',
+    partsUsed: ['Fruit', 'Seed', 'Leaves', 'Bark', 'Root'],
+    preparationMethods: [
+      'Fresh fruit juice',
+      'Dried powder (Churna)',
+      'Amla pickle (Achar)',
+      'Amla candy (Murabba)',
+      'Hair oil infusion',
+      'Chyawanprash ingredient'
+    ],
+    warnings: [
+      'May lower blood sugar - diabetics should monitor levels',
+      'Can increase bleeding risk if taken with blood thinners',
+      'May cause acidity in some people when consumed on empty stomach',
+      'Pregnant women should consult doctor before use'
+    ],
+    commonNames: ['Indian Gooseberry', 'Amalaki', 'Dhatri', 'Nelli', 'Amla']
+  },
+  'Betel': {
+    plantId: 'betel-001',
+    plantName: 'Betel',
+    scientificName: 'Piper betle',
+    description: 'Betel is a vine belonging to the Piperaceae family, native to South and Southeast Asia. The heart-shaped leaves have been used for thousands of years in traditional medicine and cultural practices. Betel leaves are known for their strong aromatic flavor and numerous medicinal properties. They are commonly chewed with areca nut in many Asian cultures.',
+    medicinalUses: [
+      'Natural antiseptic - heals wounds and prevents infections',
+      'Relieves cough and respiratory problems',
+      'Improves oral health and freshens breath',
+      'Aids digestion and relieves gastric problems',
+      'Reduces inflammation and pain',
+      'Helps control diabetes',
+      'Treats headaches when applied as paste',
+      'Supports wound healing and skin health'
+    ],
+    ayurvedicProperties: {
+      rasa: 'Pungent (Katu), Bitter (Tikta)',
+      guna: 'Light (Laghu), Sharp (Tikshna)',
+      virya: 'Heating (Ushna)',
+      vipaka: 'Pungent (Katu)'
+    },
+    doshaEffect: 'Balances Kapha and Vata, may increase Pitta in excess',
+    partsUsed: ['Leaves', 'Stem', 'Root'],
+    preparationMethods: [
+      'Fresh leaf chewing',
+      'Leaf juice extract',
+      'Poultice for wounds',
+      'Oil infusion',
+      'Decoction for gargling'
+    ],
+    warnings: [
+      'Excessive chewing may cause oral cancer risk',
+      'May interact with certain medications',
+      'Not recommended during pregnancy',
+      'Can cause mouth irritation in sensitive individuals',
+      'Avoid combining with tobacco products'
+    ],
+    commonNames: ['Paan', 'Vetrilai', 'Nagavalli', 'Tambula', 'Betel Leaf']
+  },
+  'Ginger': {
+    plantId: 'ginger-001',
+    plantName: 'Ginger',
+    scientificName: 'Zingiber officinale',
+    description: 'Ginger is a flowering plant whose rhizome (underground stem) is widely used as a spice and medicine. Native to Southeast Asia, it has been used for over 5,000 years in Ayurvedic and Chinese medicine. Ginger contains bioactive compounds like gingerol that provide powerful anti-inflammatory and antioxidant effects. It is considered a universal medicine in Ayurveda.',
+    medicinalUses: [
+      'Relieves nausea and motion sickness',
+      'Reduces muscle pain and soreness',
+      'Anti-inflammatory - helps with arthritis and joint pain',
+      'Aids digestion and reduces bloating',
+      'Lowers blood sugar levels',
+      'Reduces menstrual pain',
+      'Fights infections - antibacterial and antiviral',
+      'Improves brain function and memory',
+      'Helps reduce cholesterol levels'
+    ],
+    ayurvedicProperties: {
+      rasa: 'Pungent (Katu)',
+      guna: 'Light (Laghu), Oily (Snigdha)',
+      virya: 'Heating (Ushna)',
+      vipaka: 'Sweet (Madhura)'
+    },
+    doshaEffect: 'Balances Vata and Kapha, may increase Pitta in excess',
+    partsUsed: ['Rhizome (Root)', 'Fresh ginger', 'Dried ginger (Sonth)'],
+    preparationMethods: [
+      'Fresh ginger tea',
+      'Dried powder in food',
+      'Ginger juice with honey',
+      'Ginger paste for external application',
+      'Pickled ginger',
+      'Ginger oil'
+    ],
+    warnings: [
+      'May increase bleeding risk with blood thinners',
+      'Can cause heartburn in some people',
+      'High doses may lower blood sugar too much',
+      'May interact with heart medications',
+      'Avoid large amounts during pregnancy'
+    ],
+    commonNames: ['Adrak', 'Shunti', 'Sonth', 'Inji', 'Ale']
+  },
+  'Guava': {
+    plantId: 'guava-001',
+    plantName: 'Guava',
+    scientificName: 'Psidium guajava',
+    description: 'Guava is a tropical fruit tree native to Central America and now grown throughout tropical and subtropical regions. Both the fruit and leaves have significant medicinal value in traditional medicine. Guava leaves are particularly valued in Ayurveda for their therapeutic properties. The plant is rich in vitamins, antioxidants, and bioactive compounds.',
+    medicinalUses: [
+      'Controls diabetes - leaves lower blood glucose levels',
+      'Treats diarrhea and dysentery',
+      'Rich in Vitamin C - boosts immunity',
+      'Promotes weight loss',
+      'Improves heart health and lowers cholesterol',
+      'Helps with menstrual cramps',
+      'Anticancer properties',
+      'Improves skin health and reduces acne',
+      'Supports digestive health'
+    ],
+    ayurvedicProperties: {
+      rasa: 'Sweet (Madhura), Astringent (Kashaya)',
+      guna: 'Light (Laghu), Dry (Ruksha)',
+      virya: 'Cooling (Sheeta)',
+      vipaka: 'Sweet (Madhura)'
+    },
+    doshaEffect: 'Balances Pitta and Kapha, may increase Vata',
+    partsUsed: ['Leaves', 'Fruit', 'Bark', 'Root'],
+    preparationMethods: [
+      'Fresh fruit consumption',
+      'Leaf tea/decoction',
+      'Leaf paste for wounds',
+      'Bark decoction for diarrhea',
+      'Juice'
+    ],
+    warnings: [
+      'May lower blood sugar - diabetics should monitor',
+      'Excess consumption may cause constipation',
+      'Unripe fruit may cause digestive issues',
+      'May interact with diabetes medications'
+    ],
+    commonNames: ['Amrood', 'Peru', 'Jamphal', 'Koiyya', 'Goiaba']
+  },
+  'Neem': {
+    plantId: 'neem-001',
+    plantName: 'Neem',
+    scientificName: 'Azadirachta indica',
+    description: 'Neem is an evergreen tree native to the Indian subcontinent and has been called the "village pharmacy" due to its wide-ranging medicinal properties. Every part of the neem tree has therapeutic value. It has been used in Ayurveda for over 4,000 years. Neem is known for its powerful antibacterial, antifungal, and blood-purifying properties.',
+    medicinalUses: [
+      'Powerful blood purifier and detoxifier',
+      'Treats skin diseases - acne, eczema, psoriasis',
+      'Natural pesticide and insect repellent',
+      'Dental care - prevents gum disease and cavities',
+      'Controls diabetes and blood sugar',
+      'Boosts immunity',
+      'Treats fungal infections',
+      'Helps with malaria and fever',
+      'Promotes hair health and treats dandruff'
+    ],
+    ayurvedicProperties: {
+      rasa: 'Bitter (Tikta), Astringent (Kashaya)',
+      guna: 'Light (Laghu), Dry (Ruksha)',
+      virya: 'Cooling (Sheeta)',
+      vipaka: 'Pungent (Katu)'
+    },
+    doshaEffect: 'Balances Pitta and Kapha, may increase Vata',
+    partsUsed: ['Leaves', 'Bark', 'Seeds', 'Oil', 'Flowers', 'Root'],
+    preparationMethods: [
+      'Leaf juice or paste',
+      'Neem oil for skin and hair',
+      'Neem water bath',
+      'Neem bark decoction',
+      'Neem capsules/tablets',
+      'Neem toothpaste'
+    ],
+    warnings: [
+      'Not safe during pregnancy - may cause miscarriage',
+      'Not recommended for infants and young children',
+      'May lower blood sugar significantly',
+      'Can affect fertility - avoid if trying to conceive',
+      'May interact with diabetes and immunosuppressant drugs'
+    ],
+    commonNames: ['Nimba', 'Margosa', 'Vembu', 'Vepa', 'Indian Lilac']
+  },
+  'Papaya': {
+    plantId: 'papaya-001',
+    plantName: 'Papaya',
+    scientificName: 'Carica papaya',
+    description: 'Papaya is a tropical fruit tree native to Central America and now cultivated worldwide. Both the fruit and leaves have extensive medicinal uses in traditional medicine. Papaya leaves are particularly known for their ability to increase platelet count. The fruit contains papain, a powerful digestive enzyme used in medicine and food industry.',
+    medicinalUses: [
+      'Increases platelet count - used in dengue treatment',
+      'Excellent digestive aid due to papain enzyme',
+      'Rich in Vitamin C and antioxidants',
+      'Supports heart health',
+      'Anti-inflammatory properties',
+      'Promotes wound healing',
+      'Helps with menstrual pain regulation',
+      'Supports skin health and reduces wrinkles',
+      'May have anticancer properties'
+    ],
+    ayurvedicProperties: {
+      rasa: 'Sweet (Madhura), Slightly Pungent',
+      guna: 'Light (Laghu), Soft (Mridu)',
+      virya: 'Heating (Ushna)',
+      vipaka: 'Sweet (Madhura)'
+    },
+    doshaEffect: 'Balances Vata and Kapha, may increase Pitta',
+    partsUsed: ['Fruit', 'Leaves', 'Seeds', 'Latex', 'Root'],
+    preparationMethods: [
+      'Fresh ripe fruit',
+      'Leaf juice/extract for platelets',
+      'Green papaya salad',
+      'Papaya enzyme supplements',
+      'Seed powder',
+      'Leaf tea'
+    ],
+    warnings: [
+      'AVOID during pregnancy - may cause miscarriage',
+      'Unripe papaya contains latex - can cause allergic reactions',
+      'May interact with blood thinning medications',
+      'Seeds may affect male fertility in high doses',
+      'People with latex allergy should avoid'
+    ],
+    commonNames: ['Papita', 'Pappali', 'Boppayi', 'Erandakarkati', 'Pawpaw']
+  },
+  'Tulsi': {
+    plantId: 'tulsi-001',
+    plantName: 'Tulsi',
+    scientificName: 'Ocimum tenuiflorum',
+    description: 'Tulsi, also known as Holy Basil, is one of the most sacred plants in India and is called the "Queen of Herbs" in Ayurveda. It is an aromatic perennial plant native to the Indian subcontinent. Tulsi has been used for thousands of years for its remarkable healing properties. It is considered an adaptogen that helps the body cope with stress and promotes longevity.',
+    medicinalUses: [
+      'Powerful adaptogen - reduces stress and anxiety',
+      'Boosts immunity and fights infections',
+      'Treats respiratory disorders - cough, cold, asthma',
+      'Reduces fever',
+      'Improves digestion',
+      'Purifies blood and improves skin health',
+      'Supports heart health and reduces cholesterol',
+      'Natural anti-inflammatory',
+      'Protects against radiation damage',
+      'Promotes oral health'
+    ],
+    ayurvedicProperties: {
+      rasa: 'Pungent (Katu), Bitter (Tikta)',
+      guna: 'Light (Laghu), Dry (Ruksha)',
+      virya: 'Heating (Ushna)',
+      vipaka: 'Pungent (Katu)'
+    },
+    doshaEffect: 'Balances Vata and Kapha, may increase Pitta in excess',
+    partsUsed: ['Leaves', 'Seeds', 'Root', 'Stem'],
+    preparationMethods: [
+      'Fresh leaf consumption',
+      'Tulsi tea',
+      'Tulsi juice with honey',
+      'Tulsi powder',
+      'Essential oil',
+      'Tulsi drops'
+    ],
+    warnings: [
+      'May lower blood sugar - diabetics should monitor',
+      'Can thin blood - avoid before surgery',
+      'May affect fertility - avoid if trying to conceive',
+      'Not recommended during pregnancy in medicinal doses',
+      'May interact with blood thinning medications'
+    ],
+    commonNames: ['Holy Basil', 'Sacred Basil', 'Tulasi', 'Thulasi', 'Vrinda']
+  },
+  'Turmeric': {
+    plantId: 'turmeric-001',
+    plantName: 'Turmeric',
+    scientificName: 'Curcuma longa',
+    description: 'Turmeric is a flowering plant of the ginger family, native to the Indian subcontinent. The rhizome (underground stem) is used both as a spice and medicine. Turmeric contains curcumin, one of the most studied natural compounds with powerful anti-inflammatory and antioxidant properties. It has been a cornerstone of Ayurvedic medicine for over 4,000 years.',
+    medicinalUses: [
+      'Powerful anti-inflammatory - helps with arthritis',
+      'Strong antioxidant - fights free radicals',
+      'Improves brain function and memory',
+      'Reduces risk of heart disease',
+      'May help prevent cancer',
+      'Helps with depression',
+      'Anti-aging properties',
+      'Wound healing and skin health',
+      'Supports liver function',
+      'Helps manage diabetes'
+    ],
+    ayurvedicProperties: {
+      rasa: 'Bitter (Tikta), Pungent (Katu)',
+      guna: 'Light (Laghu), Dry (Ruksha)',
+      virya: 'Heating (Ushna)',
+      vipaka: 'Pungent (Katu)'
+    },
+    doshaEffect: 'Balances all three doshas, especially Kapha',
+    partsUsed: ['Rhizome (Root)', 'Leaves'],
+    preparationMethods: [
+      'Golden milk (Turmeric with milk)',
+      'Turmeric powder in food',
+      'Turmeric paste for wounds',
+      'Turmeric supplements/capsules',
+      'Fresh turmeric juice',
+      'Turmeric tea'
+    ],
+    warnings: [
+      'May increase bleeding risk with blood thinners',
+      'Can cause stomach upset in high doses',
+      'May lower blood sugar - diabetics should monitor',
+      'Avoid high doses during pregnancy',
+      'May interact with chemotherapy drugs',
+      'Can aggravate gallbladder problems'
+    ],
+    commonNames: ['Haldi', 'Haridra', 'Manjal', 'Pasupu', 'Indian Saffron']
+  }
+};
 
 const PlantDescriptionDetail = () => {
   const location = useLocation();
   const navigate = useNavigate();
   const [saving, setSaving] = useState(false);
   const [saved, setSaved] = useState(false);
-  const [personalizedAlerts, setPersonalizedAlerts] = useState(null);
-  const [loadingAlerts, setLoadingAlerts] = useState(false);
 
-  const { result, image, healthData } = location.state || {};
+  const { result, image } = location.state || {};
 
-  // Mock data for development/testing (when no real data is passed)
-  const mockResult = {
-    plantId: 'mock-123',
-    plantName: 'Gotu Kola',
-    scientificName: 'Centella asiatica',
-    confidence: 92,
-    description: 'Gotu Kola is a small herbaceous annual plant of the family Apiaceae. It is native to the wetlands of Asia and is known for its medicinal properties.',
-    medicinalUses: [
-      'Improves cognitive function and memory',
-      'Promotes wound healing and skin health',
-      'Reduces anxiety and stress',
-      'Supports circulation and venous health',
-      'Anti-inflammatory properties'
-    ],
-    ayurvedicProperties: {
-      rasa: 'Bitter, Sweet',
-      guna: 'Light, Cold',
-      virya: 'Cooling',
-      vipaka: 'Sweet'
-    },
-    warnings: [
-      'May cause drowsiness when combined with sedatives',
-      'Not recommended for pregnant women',
-      'May affect liver function with prolonged use',
-      'Consult doctor if taking blood thinners'
-    ],
-    commonNames: ['Gotu Kola', 'Indian Pennywort', 'Brahmi', 'Mandukaparni'],
-    similarPlants: [
-      {
-        plantId: 'sim-1',
-        plantName: 'Bacopa Monnieri',
-        scientificName: 'Bacopa monnieri',
-        confidence: 85,
-        thumbnail: 'https://via.placeholder.com/150/9c88ff/FFFFFF?text=Bacopa'
-      },
-      {
-        plantId: 'sim-2',
-        plantName: 'Hydrocotyle',
-        scientificName: 'Hydrocotyle umbellata',
-        confidence: 78,
-        thumbnail: 'https://via.placeholder.com/150/90ee90/FFFFFF?text=Hydrocotyle'
-      }
-    ]
+  // Get plant details from database based on identified plant name
+  const getPlantDetails = (plantName) => {
+    if (!plantName) return null;
+    // Try exact match first
+    if (PLANT_DATABASE[plantName]) {
+      return PLANT_DATABASE[plantName];
+    }
+    // Try case-insensitive match
+    const key = Object.keys(PLANT_DATABASE).find(
+      k => k.toLowerCase() === plantName.toLowerCase()
+    );
+    return key ? PLANT_DATABASE[key] : null;
   };
 
-  const mockImage = 'https://via.placeholder.com/600/228b22/FFFFFF?text=Sample+Plant+Image';
+  const plantDetails = getPlantDetails(result?.plantName);
+  
+  // Merge identified result with plant database details
+  const displayResult = plantDetails ? {
+    ...plantDetails,
+    confidence: result?.confidence || 0,
+    scientificName: plantDetails.scientificName || result?.scientificName
+  } : result;
 
-  const mockHealthData = {
-    age: '35',
-    medications: ['Aspirin', 'Metformin'],
-    allergies: ['Pollen'],
-    conditions: ['Diabetes', 'Hypertension'],
-    isPregnant: false,
-    isBreastfeeding: false,
-    otherHealthInfo: 'Family history of heart disease'
-  };
-
-  // Use mock data if no real data is provided (for development/testing)
-  const displayResult = result || mockResult;
-  const displayImage = image || mockImage;
-  const displayHealthData = healthData || mockHealthData;
+  const displayImage = image || `https://via.placeholder.com/600/228b22/FFFFFF?text=${displayResult?.plantName || 'Plant'}`;
 
   // Save to recently viewed plants
   useEffect(() => {
@@ -89,77 +378,11 @@ const PlantDescriptionDetail = () => {
         thumbnail: '🌿',
         viewedAt: new Date().toISOString()
       };
-      // Remove duplicate if exists
       const filtered = recentPlants.filter(p => p.plantId !== plantEntry.plantId);
-      // Add to beginning and keep only last 10
       const updated = [plantEntry, ...filtered].slice(0, 10);
       localStorage.setItem('recentPlants', JSON.stringify(updated));
     }
   }, [displayResult]);
-
-  // Generate personalized alerts when both result and health data are available
-  useEffect(() => {
-    const fetchPersonalizedAlerts = async () => {
-      const currentResult = result || mockResult;
-      const currentHealthData = healthData || mockHealthData;
-      
-      if (currentResult && currentHealthData && currentResult.plantId) {
-        setLoadingAlerts(true);
-        try {
-          const alerts = await generatePersonalizedAlerts(currentResult.plantId, currentHealthData);
-          setPersonalizedAlerts(alerts);
-        } catch (error) {
-          console.error('Error generating personalized alerts:', error);
-          // Set mock alerts for development
-          setPersonalizedAlerts({
-            criticalAlerts: [
-              {
-                title: 'Drug Interaction Detected',
-                description: 'This plant may interact with your current medications (Aspirin, Metformin).',
-                recommendation: 'Consult your healthcare provider before use.',
-                reason: 'Potential bleeding risk when combined with blood thinners'
-              }
-            ],
-            highPriorityWarnings: [
-              {
-                title: 'Dosage Adjustment Required',
-                description: 'Standard dosing may need modification due to your health conditions.',
-                recommendation: 'Start with 50% of the recommended dose and monitor effects.'
-              }
-            ],
-            drugInteractions: [
-              {
-                medication: 'Aspirin',
-                interaction: 'May increase bleeding risk',
-                severity: 'moderate',
-                advice: 'Monitor for unusual bruising or bleeding. Consult doctor if planning long-term use.'
-              },
-              {
-                medication: 'Metformin',
-                interaction: 'May affect blood sugar regulation',
-                severity: 'mild',
-                advice: 'Monitor blood glucose levels more frequently.'
-              }
-            ],
-            dosageAdjustments: {
-              recommendation: 'Based on your age (35) and health conditions, start with lower doses.',
-              specificGuidelines: [
-                'Begin with 250mg daily instead of standard 500mg',
-                'Increase gradually over 2 weeks if well tolerated',
-                'Take with food to minimize side effects',
-                'Monitor blood pressure and blood sugar regularly'
-              ]
-            },
-            safetyStatus: 'caution'
-          });
-        } finally {
-          setLoadingAlerts(false);
-        }
-      }
-    };
-
-    fetchPersonalizedAlerts();
-  }, [result, healthData]);
 
   const handleSaveToHistory = async () => {
     setSaving(true);
@@ -187,6 +410,27 @@ const PlantDescriptionDetail = () => {
     navigate('/plant-scan');
   };
 
+  if (!displayResult) {
+    return (
+      <>
+        <PlantNavbar />
+        <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-white flex items-center justify-center">
+          <div className="text-center p-8">
+            <span className="text-6xl mb-4 block">🌿</span>
+            <h2 className="text-2xl font-bold text-gray-800 mb-4">No Plant Data</h2>
+            <p className="text-gray-600 mb-6">Please scan a plant first to see its details.</p>
+            <button
+              onClick={() => navigate('/plant-scan')}
+              className="px-6 py-3 bg-green-600 text-white rounded-xl hover:bg-green-700 transition-colors"
+            >
+              Go to Plant Scan
+            </button>
+          </div>
+        </div>
+      </>
+    );
+  }
+
   return (
     <>
       <PlantNavbar />
@@ -213,16 +457,6 @@ const PlantDescriptionDetail = () => {
             </p>
           </div>
 
-          {/* Development Mode Notice */}
-          {!result && (
-            <div className="mb-6 bg-amber-50/50 border border-amber-200 rounded-xl p-4">
-              <p className="text-amber-800 flex items-center gap-2 text-sm">
-                <span>ℹ️</span>
-                <span className="font-medium">Development Mode: Showing sample data for demonstration</span>
-              </p>
-            </div>
-          )}
-
           {/* Main Content Grid */}
           <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
             {/* Image Column */}
@@ -232,18 +466,28 @@ const PlantDescriptionDetail = () => {
               </div>
               
               {/* Confidence Score */}
-              <div className="bg-white/80 rounded-xl p-4 shadow-md border border-green-100 text-center">
-                <p className="text-sm text-gray-500 mb-2">Identification Confidence</p>
-                <span className={`inline-block px-4 py-2 rounded-full font-bold text-lg ${
-                  displayResult.confidence >= 80 
-                    ? 'bg-green-100 text-green-800' 
-                    : displayResult.confidence >= 60 
-                    ? 'bg-orange-100 text-orange-800' 
-                    : 'bg-red-100 text-red-800'
-                }`}>
-                  {displayResult.confidence}%
-                </span>
-              </div>
+              {displayResult.confidence > 0 && (
+                <div className="bg-white/80 rounded-xl p-4 shadow-md border border-green-100 text-center mb-4">
+                  <p className="text-sm text-gray-500 mb-2">Identification Confidence</p>
+                  <span className={`inline-block px-4 py-2 rounded-full font-bold text-lg ${
+                    displayResult.confidence >= 80 
+                      ? 'bg-green-100 text-green-800' 
+                      : displayResult.confidence >= 60 
+                      ? 'bg-orange-100 text-orange-800' 
+                      : 'bg-red-100 text-red-800'
+                  }`}>
+                    {displayResult.confidence}%
+                  </span>
+                </div>
+              )}
+
+              {/* Dosha Effect */}
+              {displayResult.doshaEffect && (
+                <div className="bg-purple-50 rounded-xl p-4 shadow-md border border-purple-200">
+                  <p className="text-sm text-purple-600 font-medium mb-1">Dosha Effect</p>
+                  <p className="text-purple-800 font-semibold">{displayResult.doshaEffect}</p>
+                </div>
+              )}
             </div>
 
             {/* Details Column */}
@@ -273,6 +517,39 @@ const PlantDescriptionDetail = () => {
                       </li>
                     ))}
                   </ul>
+                </div>
+              )}
+
+              {/* Parts Used */}
+              {displayResult.partsUsed && displayResult.partsUsed.length > 0 && (
+                <div className="bg-white/80 p-6 rounded-2xl shadow-md border border-green-100">
+                  <h3 className="text-green-800 text-xl font-semibold mb-3 flex items-center gap-2">
+                    <span>🌱</span> Parts Used
+                  </h3>
+                  <div className="flex flex-wrap gap-2">
+                    {displayResult.partsUsed.map((part, index) => (
+                      <span key={index} className="inline-block px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm font-medium">
+                        {part}
+                      </span>
+                    ))}
+                  </div>
+                </div>
+              )}
+
+              {/* Preparation Methods */}
+              {displayResult.preparationMethods && displayResult.preparationMethods.length > 0 && (
+                <div className="bg-white/80 p-6 rounded-2xl shadow-md border border-green-100">
+                  <h3 className="text-green-800 text-xl font-semibold mb-3 flex items-center gap-2">
+                    <span>🍵</span> Preparation Methods
+                  </h3>
+                  <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+                    {displayResult.preparationMethods.map((method, index) => (
+                      <div key={index} className="flex items-center gap-2 p-3 bg-green-50 rounded-lg">
+                        <span className="text-green-500">•</span>
+                        <span className="text-gray-700">{method}</span>
+                      </div>
+                    ))}
+                  </div>
                 </div>
               )}
 
@@ -311,136 +588,13 @@ const PlantDescriptionDetail = () => {
                 </div>
               )}
 
-              {/* Personalized Health Analysis */}
-              {(healthData || displayHealthData) && (
-                <div className="bg-blue-50 p-6 rounded-2xl shadow-md border-2 border-blue-300">
-                  <h3 className="text-blue-900 text-xl font-semibold mb-4 flex items-center gap-2">
-                    <span>🏥</span>
-                    AI-Generated Personalized Safety Analysis
-                  </h3>
-
-                  {loadingAlerts && (
-                    <div className="flex items-center justify-center py-8">
-                      <LoadingSpinner message="Analyzing plant safety based on your health profile..." size="medium" />
-                    </div>
-                  )}
-
-                  {personalizedAlerts && !loadingAlerts && (
-                    <div className="space-y-4">
-                      {/* Critical Alerts */}
-                      {personalizedAlerts.criticalAlerts && personalizedAlerts.criticalAlerts.length > 0 && (
-                        <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4">
-                          <h4 className="font-bold text-red-900 mb-3 flex items-center gap-2 text-lg">
-                            <span className="text-2xl">🚨</span>
-                            CRITICAL ALERTS
-                          </h4>
-                          {personalizedAlerts.criticalAlerts.map((alert, idx) => (
-                            <div key={idx} className="bg-white rounded-lg p-4 mb-3 last:mb-0 border-l-4 border-red-600">
-                              <h5 className="font-semibold text-red-800 mb-2">{alert.title}</h5>
-                              <p className="text-gray-700 mb-2">{alert.description}</p>
-                              <div className="bg-red-100 rounded p-3 mt-2">
-                                <p className="text-sm font-semibold text-red-900">⚠️ Action Required:</p>
-                                <p className="text-sm text-red-800">{alert.recommendation}</p>
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Drug Interactions */}
-                      {personalizedAlerts.drugInteractions && personalizedAlerts.drugInteractions.length > 0 && (
-                        <div className="bg-purple-50 border-2 border-purple-300 rounded-lg p-4">
-                          <h4 className="font-bold text-purple-900 mb-3 flex items-center gap-2">
-                            <span className="text-xl">💊</span>
-                            Medication Interaction Analysis
-                          </h4>
-                          {personalizedAlerts.drugInteractions.map((interaction, idx) => (
-                            <div key={idx} className="bg-white rounded-lg p-4 mb-3 last:mb-0">
-                              <div className="flex items-start justify-between mb-2">
-                                <h5 className="font-semibold text-purple-800">{interaction.medication}</h5>
-                                <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                  interaction.severity === 'severe' ? 'bg-red-200 text-red-900' :
-                                  interaction.severity === 'moderate' ? 'bg-orange-200 text-orange-900' :
-                                  'bg-yellow-200 text-yellow-900'
-                                }`}>
-                                  {interaction.severity.toUpperCase()}
-                                </span>
-                              </div>
-                              <p className="text-gray-700 text-sm mb-2">{interaction.interaction}</p>
-                              <p className="text-purple-700 text-sm font-medium bg-purple-100 rounded p-2">
-                                📋 {interaction.advice}
-                              </p>
-                            </div>
-                          ))}
-                        </div>
-                      )}
-
-                      {/* Dosage Adjustments */}
-                      {personalizedAlerts.dosageAdjustments && (
-                        <div className="bg-blue-50 border border-blue-300 rounded-lg p-4">
-                          <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                            <span>📏</span>
-                            Personalized Dosage Recommendations
-                          </h4>
-                          <div className="bg-white rounded-lg p-4">
-                            <p className="text-gray-700 mb-2">{personalizedAlerts.dosageAdjustments.recommendation}</p>
-                            {personalizedAlerts.dosageAdjustments.specificGuidelines && (
-                              <ul className="space-y-1 mt-3">
-                                {personalizedAlerts.dosageAdjustments.specificGuidelines.map((guideline, idx) => (
-                                  <li key={idx} className="text-sm text-gray-600 pl-4 relative">
-                                    <span className="absolute left-0">•</span>
-                                    {guideline}
-                                  </li>
-                                ))}
-                              </ul>
-                            )}
-                          </div>
-                        </div>
-                      )}
-
-                      {/* Safe Status */}
-                      {personalizedAlerts.safetyStatus === 'safe' && (
-                        <div className="bg-green-50 border-2 border-green-300 rounded-lg p-4">
-                          <div className="flex items-center gap-3">
-                            <span className="text-3xl">✅</span>
-                            <div>
-                              <h4 className="font-bold text-green-900">Generally Safe for Your Profile</h4>
-                              <p className="text-green-700 text-sm mt-1">
-                                Based on your health data, this plant appears to be safe for use.
-                              </p>
-                            </div>
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  )}
-
-                  {/* Health Profile Summary */}
-                  <div className="mt-4 p-4 bg-white rounded-lg">
-                    <h4 className="font-semibold text-gray-800 mb-2">Your Health Profile Used:</h4>
-                    <div className="grid grid-cols-2 gap-2 text-sm text-gray-600">
-                      {displayHealthData.age && <p>Age: {displayHealthData.age}</p>}
-                      {displayHealthData.medications?.length > 0 && (
-                        <p>Medications: {displayHealthData.medications.join(', ')}</p>
-                      )}
-                      {displayHealthData.allergies?.length > 0 && (
-                        <p>Allergies: {displayHealthData.allergies.join(', ')}</p>
-                      )}
-                      {displayHealthData.conditions?.length > 0 && (
-                        <p>Conditions: {displayHealthData.conditions.join(', ')}</p>
-                      )}
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              {/* General Warnings */}
+              {/* Warnings */}
               {displayResult.warnings && displayResult.warnings.length > 0 && (
                 <div className="bg-yellow-50 p-6 rounded-2xl shadow-md border border-yellow-200">
                   <h3 className="text-yellow-900 text-xl font-semibold mb-3 flex items-center gap-2">
-                    <span>⚠️</span> General Warnings & Precautions
+                    <span>⚠️</span> Warnings & Precautions
                   </h3>
-                  <ul className="space-y-2 mb-4">
+                  <ul className="space-y-2">
                     {displayResult.warnings.map((warning, index) => (
                       <li key={index} className="pl-6 relative text-yellow-800 leading-relaxed">
                         <span className="absolute left-0">⚠️</span>
@@ -448,14 +602,6 @@ const PlantDescriptionDetail = () => {
                       </li>
                     ))}
                   </ul>
-                  {displayResult.plantId && (
-                    <button
-                      onClick={() => navigate(`/plant-safety/${displayResult.plantId}`)}
-                      className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
-                    >
-                      🛡️ View Complete Safety Information
-                    </button>
-                  )}
                 </div>
               )}
 
@@ -467,7 +613,7 @@ const PlantDescriptionDetail = () => {
                   </h3>
                   <div className="flex flex-wrap gap-2">
                     {displayResult.commonNames.map((name, index) => (
-                      <span key={index} className="inline-block px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm">
+                      <span key={index} className="inline-block px-4 py-2 bg-blue-100 text-blue-800 rounded-full text-sm">
                         {name}
                       </span>
                     ))}
@@ -476,37 +622,33 @@ const PlantDescriptionDetail = () => {
               )}
 
               {/* Action Buttons */}
-              <div className="flex gap-4">
+              <div className="flex flex-col gap-3">
+                <div className="flex gap-4">
+                  <button 
+                    className="flex-1 px-8 py-3.5 text-base font-medium bg-green-600 text-white rounded-xl hover:bg-green-700 hover:-translate-y-0.5 hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
+                    onClick={handleSaveToHistory}
+                    disabled={saving || saved}
+                  >
+                    {saved ? '✓ Saved!' : saving ? 'Saving...' : '💾 Save to History'}
+                  </button>
+                  <button 
+                    className="flex-1 px-8 py-3.5 text-base font-medium bg-gray-100 text-gray-800 rounded-xl hover:bg-gray-200 transition-colors"
+                    onClick={handleScanAnother}
+                  >
+                    📸 Scan Another Plant
+                  </button>
+                </div>
+                
+                {/* Browse More Plants Button */}
                 <button 
-                  className="flex-1 px-8 py-3.5 text-base font-medium bg-green-600 text-white rounded-xl hover:bg-green-700 hover:-translate-y-0.5 hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-                  onClick={handleSaveToHistory}
-                  disabled={saving || saved}
+                  className="w-full px-8 py-3.5 text-base font-medium bg-purple-100 text-purple-700 rounded-xl hover:bg-purple-200 transition-colors border border-purple-200"
+                  onClick={() => navigate('/plant-description')}
                 >
-                  {saved ? '✓ Saved!' : saving ? 'Saving...' : '💾 Save to History'}
-                </button>
-                <button 
-                  className="flex-1 px-8 py-3.5 text-base font-medium bg-gray-100 text-gray-800 rounded-xl hover:bg-gray-200 transition-colors"
-                  onClick={handleScanAnother}
-                >
-                  📸 Scan Another Plant
+                  🌱 Browse More Medicinal Plants
                 </button>
               </div>
             </div>
           </div>
-
-          {/* Similar Plants */}
-          {displayResult.similarPlants && displayResult.similarPlants.length > 0 && (
-            <div className="mt-12 p-8 bg-white/80 rounded-2xl shadow-md border border-green-100">
-              <h3 className="text-green-800 text-2xl font-semibold mb-6 flex items-center gap-2">
-                <span>🌱</span> Similar Plants You Might Be Interested In
-              </h3>
-              <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                {displayResult.similarPlants.map((plant, index) => (
-                  <PlantCard key={index} plant={plant} />
-                ))}
-              </div>
-            </div>
-          )}
         </div>
       </div>
     </>
