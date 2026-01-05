@@ -4,7 +4,6 @@ import PlantNavbar from '../../components/plant-identification/PlantNavbar';
 import ImageUploader from '../../components/plant-identification/ImageUploader';
 import CameraCapture from '../../components/plant-identification/CameraCapture';
 import LoadingSpinner from '../../components/plant-identification/LoadingSpinner';
-import HealthDataForm from '../../components/plant-identification/HealthDataForm';
 import { identifyPlant } from '../../services/plant-identification/plantApi';
 
 const PlantScan = () => {
@@ -13,77 +12,39 @@ const PlantScan = () => {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [useCamera, setUseCamera] = useState(false);
-  const [healthData, setHealthData] = useState(null);
-  const [showHealthForm, setShowHealthForm] = useState(false);
   const [identificationResult, setIdentificationResult] = useState(null);
   const [showPlantConfirmation, setShowPlantConfirmation] = useState(false);
   const navigate = useNavigate();
 
-  const handleImageSelect = (file) => {
+  const handleImageSelect = async (file) => {
     setSelectedImage(file);
     setPreviewUrl(URL.createObjectURL(file));
     setError(null);
-    // Automatically show health form after image selection
-    setShowHealthForm(true);
+    // Automatically start identification after image selection
+    await startIdentification(file);
   };
 
   const handleCameraCapture = (imageData) => {
     // Convert base64 to blob
     fetch(imageData)
       .then(res => res.blob())
-      .then(blob => {
+      .then(async (blob) => {
         const file = new File([blob], 'camera-capture.jpg', { type: 'image/jpeg' });
         setSelectedImage(file);
         setPreviewUrl(imageData);
         setUseCamera(false);
         setError(null);
-        // Automatically show health form after image capture
-        setShowHealthForm(true);
+        // Automatically start identification after image capture
+        await startIdentification(file);
       });
   };
 
-  const handleHealthDataSubmit = async (data) => {
-    setHealthData(data);
-    setShowHealthForm(false);
-    
-    // Automatically start identification after health data is submitted
-    if (!selectedImage) {
-      setError('Please select or capture an image first');
-      return;
-    }
-
+  const startIdentification = async (imageFile) => {
     setLoading(true);
     setError(null);
 
     try {
-      // Send both image and health data for analysis
-      const result = await identifyPlant(selectedImage, data);
-      // Store result and show plant name confirmation modal
-      setIdentificationResult(result);
-      setShowPlantConfirmation(true);
-      setLoading(false);
-    } catch (err) {
-      setError(err.message || 'Failed to identify plant. Please try again.');
-      setLoading(false);
-    }
-  };
-
-  const handleSkipHealthData = async () => {
-    setHealthData(null);
-    setShowHealthForm(false);
-    
-    // Allow identification without health data, but warn user
-    if (!selectedImage) {
-      setError('Please select or capture an image first');
-      return;
-    }
-
-    setLoading(true);
-    setError(null);
-
-    try {
-      const result = await identifyPlant(selectedImage, null);
-      // Store result and show plant name confirmation modal
+      const result = await identifyPlant(imageFile, null);
       setIdentificationResult(result);
       setShowPlantConfirmation(true);
       setLoading(false);
@@ -99,8 +60,7 @@ const PlantScan = () => {
     navigate('/plant-description/detail', { 
       state: { 
         result: identificationResult, 
-        image: previewUrl,
-        healthData: healthData 
+        image: previewUrl
       } 
     });
   };
@@ -119,6 +79,12 @@ const PlantScan = () => {
     setUseCamera(false);
     setIdentificationResult(null);
     setShowPlantConfirmation(false);
+  };
+
+  const handleRescan = async () => {
+    if (selectedImage) {
+      await startIdentification(selectedImage);
+    }
   };
 
   return (
@@ -200,9 +166,8 @@ const PlantScan = () => {
           </p>
         </div>
 
-        {/* Two Column Layout: Image Upload (Left) + Health Form (Right) */}
-        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-          {/* Left Column: Image Upload */}
+        {/* Single Column Layout: Image Upload */}
+        <div className="max-w-2xl mx-auto">
           <div className="bg-white/80 rounded-2xl p-8 shadow-md border border-green-100 min-h-[400px]">
           {!useCamera ? (
           <div className="flex flex-col items-center gap-6">
@@ -233,55 +198,20 @@ const PlantScan = () => {
                   <img src={previewUrl} alt="Selected plant" className="w-full h-auto max-h-[500px] object-contain" />
                 </div>
 
-                {/* Health Data Summary */}
-                {healthData && (
-                  <div className="mb-6 p-4 bg-emerald-50 border border-emerald-200 rounded-xl">
-                    <div className="flex items-center justify-between mb-2">
-                      <h4 className="text-sm font-semibold text-gray-900 flex items-center gap-2">
-                        <span>🏥</span>
-                        Health Profile Included
-                      </h4>
-                      <button
-                        onClick={() => setShowHealthForm(true)}
-                        className="text-green-600 hover:text-green-700 text-sm font-medium"
-                      >
-                        Edit
-                      </button>
-                    </div>
-                    <div className="text-sm text-gray-600 space-y-1">
-                      {healthData.age && <p>Age: {healthData.age}</p>}
-                      {healthData.medications.length > 0 && (
-                        <p>Medications: {healthData.medications.length} listed</p>
-                      )}
-                      {healthData.allergies.length > 0 && (
-                        <p>Allergies: {healthData.allergies.length} listed</p>
-                      )}
-                      {(healthData.isPregnant || healthData.isBreastfeeding) && (
-                        <p className="font-medium">Special conditions noted ⚠️</p>
-                      )}
-                    </div>
-                  </div>
-                )}
-
-                {/* Waiting for health data message */}
-                {!healthData && !showHealthForm && (
-                  <div className="mb-6 p-4 bg-green-50/50 border border-green-200 rounded-xl text-center">
-                    <p className="text-gray-700 font-medium text-sm">
-                      ⏳ Waiting for health information to complete analysis...
-                    </p>
-                    <p className="text-xs text-gray-600 mt-1">
-                      Fill out the health form to get personalized safety recommendations
-                    </p>
-                  </div>
-                )}
-
                 <div className="flex gap-4 justify-center">
                   <button 
                     className="px-6 py-2.5 text-sm font-medium bg-white border border-gray-200 text-gray-700 rounded-full hover:bg-gray-50 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
                     onClick={handleReset}
-                    disabled={loading || showHealthForm}
+                    disabled={loading}
                   >
                     Choose Another Image
+                  </button>
+                  <button 
+                    className="px-6 py-2.5 text-sm font-medium bg-green-600 text-white rounded-full hover:bg-green-700 transition-all disabled:opacity-60 disabled:cursor-not-allowed shadow-sm"
+                    onClick={handleRescan}
+                    disabled={loading}
+                  >
+                    Rescan Image
                   </button>
                 </div>
               </div>
@@ -305,24 +235,6 @@ const PlantScan = () => {
 
         {loading && <LoadingSpinner message="Analyzing plant image..." />}
         </div>
-
-        {/* Right Column: Health Data Form */}
-          <div>
-            {showHealthForm && previewUrl ? (
-              <HealthDataForm 
-                onSubmit={handleHealthDataSubmit}
-                onSkip={handleSkipHealthData}
-              />
-            ) : (
-              <div className="bg-white/80 rounded-2xl p-8 shadow-md border border-emerald-100 min-h-[400px] flex items-center justify-center">
-                <div className="text-center text-gray-400">
-                  <span className="text-5xl mb-4 block">🏥</span>
-                  <p className="text-base font-medium">Upload an image first</p>
-                  <p className="text-sm mt-2">Health data form will appear here</p>
-                </div>
-              </div>
-            )}
-          </div>
         </div>
 
         {/* Tips Section */}
