@@ -1,5 +1,5 @@
 fastapi
-uvicorn
+uvicorn[standard]
 pydantic
 python-multipart
 
@@ -12,6 +12,11 @@ Pillow
 opencv-python
 torch
 torchvision
+torchaudio
 xgboost
 
 mediapipe
+
+# Additional for plant identification
+timm
+albumentations

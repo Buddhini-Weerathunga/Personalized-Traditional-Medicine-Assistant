@@ -96,49 +96,84 @@ const PlantScan = () => {
         <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4">
           <div className="bg-white rounded-2xl shadow-2xl max-w-md w-full p-6 animate-in fade-in zoom-in duration-300">
             <div className="text-center">
-              <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-green-100 to-emerald-200 flex items-center justify-center">
-                <span className="text-4xl">🌿</span>
-              </div>
-              
-              <h2 className="text-2xl font-bold text-gray-900 mb-2">Plant Identified!</h2>
-              
-              <div className="bg-green-50 rounded-xl p-4 mb-4 border border-green-200">
-                <p className="text-green-700 text-sm font-medium mb-1">We found:</p>
-                <h3 className="text-2xl font-bold text-green-800">{identificationResult.plantName}</h3>
-                {identificationResult.scientificName && (
-                  <p className="text-green-600 italic">{identificationResult.scientificName}</p>
-                )}
-                <div className="mt-2">
-                  <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
-                    identificationResult.confidence >= 80 
-                      ? 'bg-green-200 text-green-800' 
-                      : identificationResult.confidence >= 60 
-                      ? 'bg-orange-200 text-orange-800' 
-                      : 'bg-red-200 text-red-800'
-                  }`}>
-                    {identificationResult.confidence}% Confidence
-                  </span>
-                </div>
-              </div>
+              {/* Check if it's a recognized plant */}
+              {identificationResult.is_plant === false ? (
+                <>
+                  {/* Not Recognized View */}
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-orange-100 to-red-200 flex items-center justify-center">
+                    <span className="text-4xl">❓</span>
+                  </div>
+                  
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Not Recognized</h2>
+                  
+                  <div className="bg-orange-50 rounded-xl p-4 mb-4 border border-orange-200">
+                    <p className="text-gray-600 text-sm">
+                      {identificationResult.message || "Unable to identify this image as a known medicinal plant. Please try with a clearer image of a plant leaf."}
+                    </p>
+                  </div>
 
-              <p className="text-gray-600 text-sm mb-6">
-                Is this the correct plant? Click "Yes, Continue" to view detailed information and personalized safety analysis.
-              </p>
+                  <p className="text-gray-600 text-sm mb-6">
+                    Tips: Make sure the plant is clearly visible, well-lit, and the image is focused on the leaves.
+                  </p>
 
-              <div className="flex gap-3">
-                <button
-                  onClick={handlePlantReject}
-                  className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all"
-                >
-                  No, Try Again
-                </button>
-                <button
-                  onClick={handlePlantConfirm}
-                  className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg"
-                >
-                  Yes, Continue →
-                </button>
-              </div>
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handlePlantReject}
+                      className="flex-1 px-6 py-3 bg-gradient-to-r from-orange-500 to-red-500 text-white font-semibold rounded-xl hover:from-orange-600 hover:to-red-600 transition-all shadow-lg"
+                    >
+                      Try Again
+                    </button>
+                  </div>
+                </>
+              ) : (
+                <>
+                  {/* Recognized Plant View */}
+                  <div className="w-20 h-20 mx-auto mb-4 rounded-full bg-gradient-to-br from-green-100 to-emerald-200 flex items-center justify-center">
+                    <span className="text-4xl">🌿</span>
+                  </div>
+                  
+                  <h2 className="text-2xl font-bold text-gray-900 mb-2">Plant Identified!</h2>
+                  
+                  <div className="bg-green-50 rounded-xl p-4 mb-4 border border-green-200">
+                    <p className="text-green-700 text-sm font-medium mb-1">We found:</p>
+                    <h3 className="text-2xl font-bold text-green-800">{identificationResult.plantName}</h3>
+                    {identificationResult.scientificName && (
+                      <p className="text-green-600 italic">{identificationResult.scientificName}</p>
+                    )}
+                    <div className="mt-2">
+                      <span className={`inline-block px-3 py-1 rounded-full text-sm font-semibold ${
+                        identificationResult.confidence >= 80 
+                          ? 'bg-green-200 text-green-800' 
+                          : identificationResult.confidence >= 60 
+                          ? 'bg-orange-200 text-orange-800' 
+                          : 'bg-red-200 text-red-800'
+                      }`}>
+                        {identificationResult.confidence}% Confidence
+                      </span>
+                    </div>
+                  </div>
+
+                  <p className="text-gray-600 text-sm mb-4">
+                    Is this the correct plant? Click "Yes, View Details" to see more information.
+                  </p>
+
+                  {/* Action Buttons */}
+                  <div className="flex gap-3">
+                    <button
+                      onClick={handlePlantReject}
+                      className="flex-1 px-6 py-3 bg-gray-100 text-gray-700 font-semibold rounded-xl hover:bg-gray-200 transition-all"
+                    >
+                      No, Try Again
+                    </button>
+                    <button
+                      onClick={handlePlantConfirm}
+                      className="flex-1 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-xl hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg"
+                    >
+                      Yes, View Details →
+                    </button>
+                  </div>
+                </>
+              )}
             </div>
           </div>
         </div>
