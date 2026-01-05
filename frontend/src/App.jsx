@@ -50,6 +50,8 @@ import PrescriptionPage from "./dosha-diagnosis/prescription/PrescriptionPage.js
 import PrescriptionDetailPage from "./dosha-diagnosis/prescription/PrescriptionDetailPage.jsx";
 import AboutPage from "./dosha-diagnosis/about/AboutPage.jsx";
 
+import YogaConsultation from './pages/YogaConsultation';
+
 function App() {
   return (
     <div >
@@ -108,6 +110,8 @@ function App() {
               </ProtectedRoute>
             }
           />
+
+          <Route path="/yoga-consultation" element={<YogaConsultation />} />
 
           {/* ---------------------------------------------- */}
           {/* Plant Identification Routes */}
