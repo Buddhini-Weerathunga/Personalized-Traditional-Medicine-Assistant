@@ -2,13 +2,55 @@ import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PlantNavbar from '../../components/plant-identification/PlantNavbar';
 import LoadingSpinner from '../../components/plant-identification/LoadingSpinner';
-import { getRiskAlerts, dismissAlert } from '../../services/plant-identification/plantApi';
+import { getRiskAlerts, dismissAlert, checkPersonalizedRisks } from '../../services/plant-identification/plantApi';
 
 const RiskAlerts = () => {
   const [alerts, setAlerts] = useState([]);
   const [loading, setLoading] = useState(true);
   const [filter, setFilter] = useState('all'); // all, critical, warning, info
+  const [activeTab, setActiveTab] = useState('plant'); // plant, health
+  const [showHealthForm, setShowHealthForm] = useState(false);
+  const [analyzing, setAnalyzing] = useState(false);
   const navigate = useNavigate();
+
+  // Plant Information State
+  const [plantData, setPlantData] = useState({
+    plantName: '',
+    plantPart: ''
+  });
+
+  // Health Data State
+  const [healthData, setHealthData] = useState({
+    age: '',
+    medications: [],
+    allergies: [],
+    conditions: [],
+    isNone: false,
+    isPregnant: false,
+    isBreastfeeding: false,
+    otherHealthInfo: ''
+  });
+
+  const [currentInput, setCurrentInput] = useState({
+    medication: '',
+    allergy: '',
+    condition: ''
+  });
+
+  const [errors, setErrors] = useState({});
+
+  const plantParts = [
+    'Leaves',
+    'Roots',
+    'Bark',
+    'Flowers',
+    'Seeds',
+    'Fruits',
+    'Stem',
+    'Whole Plant',
+    'Oil/Extract',
+    'Other'
+  ];
 
   useEffect(() => {
     fetchAlerts();
@@ -70,6 +112,88 @@ const RiskAlerts = () => {
     return alert.severity === filter;
   });
 
+  // Health form helper functions
+  const validateForm = () => {
+    const newErrors = {};
+    
+    if (!plantData.plantName.trim()) {
+      newErrors.plantName = 'Please enter a plant name';
+    }
+    
+    if (!plantData.plantPart) {
+      newErrors.plantPart = 'Please select a plant part';
+    }
+
+    if (healthData.age && (healthData.age < 1 || healthData.age > 120)) {
+      newErrors.age = 'Please enter a valid age between 1 and 120';
+    }
+
+    setErrors(newErrors);
+    return Object.keys(newErrors).length === 0;
+  };
+
+  const addItem = (field, inputField) => {
+    const value = currentInput[inputField].trim();
+    if (value && !healthData[field].includes(value)) {
+      setHealthData({
+        ...healthData,
+        [field]: [...healthData[field], value]
+      });
+      setCurrentInput({ ...currentInput, [inputField]: '' });
+    }
+  };
+
+  const removeItem = (field, index) => {
+    setHealthData({
+      ...healthData,
+      [field]: healthData[field].filter((_, i) => i !== index)
+    });
+  };
+
+  const handleKeyPress = (e, field, inputField) => {
+    if (e.key === 'Enter') {
+      e.preventDefault();
+      addItem(field, inputField);
+    }
+  };
+
+  const handleAnalyzeRisks = async () => {
+    if (!validateForm()) {
+      return;
+    }
+
+    setAnalyzing(true);
+    try {
+      const result = await checkPersonalizedRisks({
+        ...plantData,
+        healthData
+      });
+      // Add the new personalized alerts to the existing alerts
+      if (result && result.alerts) {
+        setAlerts(prevAlerts => [...result.alerts, ...prevAlerts]);
+      }
+      setShowHealthForm(false);
+      // Reset form
+      setPlantData({ plantName: '', plantPart: '' });
+      setHealthData({
+        age: '',
+        medications: [],
+        allergies: [],
+        conditions: [],
+        isNone: false,
+        isPregnant: false,
+        isBreastfeeding: false,
+        otherHealthInfo: ''
+      });
+      setActiveTab('plant');
+    } catch (error) {
+      console.error('Error analyzing risks:', error);
+      setErrors({ submit: 'Failed to analyze risks. Please try again.' });
+    } finally {
+      setAnalyzing(false);
+    }
+  };
+
   if (loading) {
     return <LoadingSpinner message="Loading risk alerts..." />;
   }
@@ -97,7 +221,349 @@ const RiskAlerts = () => {
           <p className="text-lg md:text-xl text-gray-600 leading-relaxed max-w-2xl mx-auto">
             Important safety information about medicinal plants
           </p>
+
+          {/* Check Personalized Risks Button */}
+          <button
+            onClick={() => setShowHealthForm(true)}
+            className="mt-6 inline-flex items-center gap-2 px-6 py-3 bg-gradient-to-r from-green-500 to-emerald-500 text-white font-semibold rounded-full hover:from-green-600 hover:to-emerald-600 transition-all shadow-lg"
+          >
+            <span>🏥</span>
+            Check Personalized Risks
+          </button>
         </div>
+
+        {/* Health Data Form Modal */}
+        {showHealthForm && (
+          <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-50 flex items-center justify-center p-4 overflow-y-auto">
+            <div className="bg-white rounded-2xl shadow-2xl max-w-2xl w-full my-8 animate-in fade-in zoom-in duration-300">
+              {/* Modal Header */}
+              <div className="flex items-center justify-between p-6 border-b border-gray-200">
+                <h2 className="text-2xl font-bold text-gray-900 flex items-center gap-2">
+                  <span>🔍</span>
+                  Check Personalized Risks
+                </h2>
+                <button
+                  onClick={() => setShowHealthForm(false)}
+                  className="text-gray-400 hover:text-gray-600 text-2xl"
+                >
+                  ✕
+                </button>
+              </div>
+
+              {/* Tabs */}
+              <div className="flex border-b border-gray-200">
+                <button
+                  onClick={() => setActiveTab('plant')}
+                  className={`flex-1 py-4 px-6 font-semibold text-center transition-all ${
+                    activeTab === 'plant'
+                      ? 'text-green-600 border-b-2 border-green-600 bg-green-50'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="flex items-center justify-center gap-2">
+                    <span>🌿</span>
+                    Plant Information
+                  </span>
+                </button>
+                <button
+                  onClick={() => setActiveTab('health')}
+                  className={`flex-1 py-4 px-6 font-semibold text-center transition-all ${
+                    activeTab === 'health'
+                      ? 'text-blue-600 border-b-2 border-blue-600 bg-blue-50'
+                      : 'text-gray-500 hover:text-gray-700 hover:bg-gray-50'
+                  }`}
+                >
+                  <span className="flex items-center justify-center gap-2">
+                    <span>🏥</span>
+                    Health Data
+                  </span>
+                </button>
+              </div>
+
+              {/* Tab Content */}
+              <div className="p-6 max-h-[60vh] overflow-y-auto">
+                {activeTab === 'plant' ? (
+                  /* Plant Information Tab */
+                  <div className="space-y-6">
+                    {/* Plant Name */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Plant Name <span className="text-red-500">*</span>
+                      </label>
+                      <input
+                        type="text"
+                        value={plantData.plantName}
+                        onChange={(e) => setPlantData({ ...plantData, plantName: e.target.value })}
+                        placeholder="Enter the plant name (e.g., Aloe Vera, Turmeric)"
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-green-500 focus:outline-none transition-colors"
+                      />
+                      {errors.plantName && (
+                        <p className="text-red-600 text-sm mt-1">⚠️ {errors.plantName}</p>
+                      )}
+                    </div>
+
+                    {/* Plant Part */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Plant Part <span className="text-red-500">*</span>
+                      </label>
+                      <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                        {plantParts.map((part) => (
+                          <button
+                            key={part}
+                            type="button"
+                            onClick={() => setPlantData({ ...plantData, plantPart: part })}
+                            className={`p-3 rounded-lg border-2 font-medium transition-all ${
+                              plantData.plantPart === part
+                                ? 'border-green-500 bg-green-50 text-green-700'
+                                : 'border-gray-300 hover:border-green-300 text-gray-700'
+                            }`}
+                          >
+                            {part}
+                          </button>
+                        ))}
+                      </div>
+                      {errors.plantPart && (
+                        <p className="text-red-600 text-sm mt-1">⚠️ {errors.plantPart}</p>
+                      )}
+                    </div>
+
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <p className="text-sm text-green-800 flex items-start gap-2">
+                        <span className="text-lg">💡</span>
+                        <span>
+                          Different parts of a plant may have different effects and safety profiles. 
+                          Select the specific part you plan to use for accurate risk assessment.
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                ) : (
+                  /* Health Data Tab */
+                  <div className="space-y-6">
+                    {/* Age */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Age
+                      </label>
+                      <input
+                        type="number"
+                        value={healthData.age}
+                        onChange={(e) => setHealthData({ ...healthData, age: e.target.value })}
+                        placeholder="Enter your age"
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors"
+                        min="1"
+                        max="120"
+                      />
+                      {errors.age && (
+                        <p className="text-red-600 text-sm mt-1">⚠️ {errors.age}</p>
+                      )}
+                    </div>
+
+                    {/* Current Medications */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Current Medications
+                      </label>
+                      <input
+                        type="text"
+                        value={currentInput.medication}
+                        onChange={(e) => setCurrentInput({ ...currentInput, medication: e.target.value })}
+                        onKeyPress={(e) => handleKeyPress(e, 'medications', 'medication')}
+                        placeholder="Enter medication name and press Enter"
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors mb-2"
+                      />
+                      {healthData.medications.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {healthData.medications.map((med, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center gap-2 px-3 py-1 bg-blue-100 text-blue-800 rounded-full text-sm"
+                            >
+                              💊 {med}
+                              <button
+                                type="button"
+                                onClick={() => removeItem('medications', index)}
+                                className="text-blue-600 hover:text-blue-800 font-bold"
+                              >
+                                ✕
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Allergies */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Known Allergies
+                      </label>
+                      <input
+                        type="text"
+                        value={currentInput.allergy}
+                        onChange={(e) => setCurrentInput({ ...currentInput, allergy: e.target.value })}
+                        onKeyPress={(e) => handleKeyPress(e, 'allergies', 'allergy')}
+                        placeholder="Enter allergy and press Enter"
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors mb-2"
+                      />
+                      {healthData.allergies.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {healthData.allergies.map((allergy, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center gap-2 px-3 py-1 bg-red-100 text-red-800 rounded-full text-sm"
+                            >
+                              🤧 {allergy}
+                              <button
+                                type="button"
+                                onClick={() => removeItem('allergies', index)}
+                                className="text-red-600 hover:text-red-800 font-bold"
+                              >
+                                ✕
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Chronic Conditions */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Chronic Health Conditions
+                      </label>
+                      <input
+                        type="text"
+                        value={currentInput.condition}
+                        onChange={(e) => setCurrentInput({ ...currentInput, condition: e.target.value })}
+                        onKeyPress={(e) => handleKeyPress(e, 'conditions', 'condition')}
+                        placeholder="Enter condition and press Enter"
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors mb-2"
+                      />
+                      {healthData.conditions.length > 0 && (
+                        <div className="flex flex-wrap gap-2">
+                          {healthData.conditions.map((condition, index) => (
+                            <span
+                              key={index}
+                              className="inline-flex items-center gap-2 px-3 py-1 bg-orange-100 text-orange-800 rounded-full text-sm"
+                            >
+                              🏥 {condition}
+                              <button
+                                type="button"
+                                onClick={() => removeItem('conditions', index)}
+                                className="text-orange-600 hover:text-orange-800 font-bold"
+                              >
+                                ✕
+                              </button>
+                            </span>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
+                    {/* Special Conditions */}
+                    <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                      <label className="flex items-center gap-3 p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-gray-500 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={healthData.isNone}
+                          onChange={(e) => setHealthData({ ...healthData, isNone: e.target.checked })}
+                          className="w-5 h-5 text-gray-600 rounded focus:ring-gray-500"
+                        />
+                        <span className="font-medium text-gray-700">None</span>
+                      </label>
+
+                      <label className="flex items-center gap-3 p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-pink-500 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={healthData.isPregnant}
+                          onChange={(e) => setHealthData({ ...healthData, isPregnant: e.target.checked })}
+                          className="w-5 h-5 text-pink-600 rounded focus:ring-pink-500"
+                        />
+                        <span className="font-medium text-gray-700">Pregnant</span>
+                      </label>
+
+                      <label className="flex items-center gap-3 p-4 border-2 border-gray-300 rounded-lg cursor-pointer hover:border-purple-500 transition-colors">
+                        <input
+                          type="checkbox"
+                          checked={healthData.isBreastfeeding}
+                          onChange={(e) => setHealthData({ ...healthData, isBreastfeeding: e.target.checked })}
+                          className="w-5 h-5 text-purple-600 rounded focus:ring-purple-500"
+                        />
+                        <span className="font-medium text-gray-700">Breastfeeding</span>
+                      </label>
+                    </div>
+
+                    {/* Additional Information */}
+                    <div>
+                      <label className="block text-sm font-semibold text-gray-700 mb-2">
+                        Additional Health Information (Optional)
+                      </label>
+                      <textarea
+                        value={healthData.otherHealthInfo}
+                        onChange={(e) => setHealthData({ ...healthData, otherHealthInfo: e.target.value })}
+                        placeholder="Any other relevant health information..."
+                        rows="3"
+                        className="w-full px-4 py-3 border-2 border-gray-300 rounded-lg focus:border-blue-500 focus:outline-none transition-colors resize-none"
+                      />
+                    </div>
+
+                    {/* Privacy Notice */}
+                    <div className="bg-green-50 border border-green-200 rounded-lg p-4">
+                      <p className="text-sm text-green-800 flex items-start gap-2">
+                        <span className="text-lg">🔒</span>
+                        <span>
+                          Your health information is used only for personalized safety analysis. 
+                          We never share your data with third parties.
+                        </span>
+                      </p>
+                    </div>
+                  </div>
+                )}
+              </div>
+
+              {/* Modal Footer */}
+              <div className="p-6 border-t border-gray-200 bg-gray-50 rounded-b-2xl">
+                {errors.submit && (
+                  <p className="text-red-600 text-sm mb-4 text-center">⚠️ {errors.submit}</p>
+                )}
+                <div className="flex gap-3">
+                  {activeTab === 'plant' ? (
+                    <button
+                      onClick={() => {
+                        if (plantData.plantName && plantData.plantPart) {
+                          setActiveTab('health');
+                        } else {
+                          validateForm();
+                        }
+                      }}
+                      className="flex-1 px-6 py-3 bg-green-600 text-white rounded-lg hover:bg-green-700 transition-colors font-semibold text-lg"
+                    >
+                      Next: Health Data →
+                    </button>
+                  ) : (
+                    <>
+                      <button
+                        onClick={() => setActiveTab('plant')}
+                        className="px-6 py-3 bg-gray-200 text-gray-700 rounded-lg hover:bg-gray-300 transition-colors font-medium"
+                      >
+                        ← Back
+                      </button>
+                      <button
+                        onClick={handleAnalyzeRisks}
+                        disabled={analyzing}
+                        className="flex-1 px-6 py-3 bg-blue-600 text-white rounded-lg hover:bg-blue-700 transition-colors font-semibold text-lg disabled:opacity-60 disabled:cursor-not-allowed"
+                      >
+                        {analyzing ? 'Analyzing...' : '🔍 Analyze Risks'}
+                      </button>
+                    </>
+                  )}
+                </div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Alert Statistics */}
         <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-8">
