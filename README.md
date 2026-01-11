@@ -9,7 +9,8 @@
 
 The **AI-Powered Personalized Traditional Medicine Assistant** is a smart healthcare system designed to support **Ayurveda practices** using artificial intelligence. The system provides personalized health analysis, diagnosis, and guidance by combining machine learning, environmental data, and traditional medical knowledge.
 
----
+![diargam](https://github.com/user-attachments/assets/3ee8055d-4fb3-4072-ab9a-821751d493c2)
+
 
 ## **Key Functional Modules**
 
