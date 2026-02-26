@@ -1,5 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Leaf, Clock, Droplet, Flame, Wind, Activity, Sun, Sparkles, Heart, TrendingUp } from 'lucide-react';
+import { predictAyurvedaDiet } from "../../../services/api";
 
 export default function AyurvedaDietCoach() {
   const [formData, setFormData] = useState({
@@ -23,6 +24,11 @@ export default function AyurvedaDietCoach() {
     location: '',
     condition: ''
   });
+
+  // ✅ New states (no UI change, used for safe render)
+  const [result, setResult] = useState(null);
+  const [loadingPredict, setLoadingPredict] = useState(false);
+  const [errorPredict, setErrorPredict] = useState("");
 
   useEffect(() => {
     const detectClimate = (temp, humidity) => {
@@ -50,7 +56,7 @@ export default function AyurvedaDietCoach() {
             const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apiKey}&units=metric`;
             const weatherResponse = await fetch(weatherUrl);
             const weatherData = await weatherResponse.json();
-            
+
             const temp = weatherData.main.temp;
             const humidity = weatherData.main.humidity;
             const wind = weatherData.wind.speed;
@@ -106,17 +112,52 @@ export default function AyurvedaDietCoach() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Hardcoded response data
-  const result = {
-    status: "success",
-    prediction: {
-      suitability_rating: 5.97,
-      recommended_alternative_meal: "Warm string hoppers with coconut sambol",
-      dietary_advice: "Include sesame oil in cooking for vata balance | Consume light dinner before 7 PM for better sleep | Consume fresh lime juice for vitamin C and digestion | Include murunga (drumstick) leaves for detoxification | Add more ginger and turmeric to your meals for better digestion | Include tamarind in moderation for digestive fire | Consume warm herbal teas with coriander and cumin seeds | Include pumpkin for eye health and digestion | Add more kokum or goraka for digestive fire | Add cardamom to tea for improved digestion"
+  // ✅ Convert time to meal slot for model (usually trained like breakfast/lunch/dinner)
+  const timeToMealSlot = (timeStr) => {
+    if (!timeStr || !timeStr.includes(":")) return "dinner";
+    const [h, m] = timeStr.split(":").map(Number);
+    const minutes = h * 60 + m;
+
+    if (minutes >= 300 && minutes < 660) return "breakfast"; // 05:00-10:59
+    if (minutes >= 660 && minutes < 960) return "lunch";     // 11:00-15:59
+    if (minutes >= 960 && minutes < 1320) return "dinner";   // 16:00-21:59
+    return "dinner";
+  };
+
+  // ✅ Submit to Python ML API (NO style changes)
+  const handlePredict = async () => {
+    setLoadingPredict(true);
+    setErrorPredict("");
+    setResult(null);
+
+    try {
+      const payload = {
+        ...formData,
+        vata_score_percent: Number(formData.vata_score_percent),
+        pitta_score_percent: Number(formData.pitta_score_percent),
+        kapha_score_percent: Number(formData.kapha_score_percent),
+
+        // model feature expects category (your predictor FEATURES has "meal_time")
+        meal_time: timeToMealSlot(formData.meal_time),
+      };
+
+      const res = await predictAyurvedaDiet(payload);
+      setResult(res.data);
+    } catch (err) {
+      const msg =
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Prediction failed";
+      setErrorPredict(msg);
+    } finally {
+      setLoadingPredict(false);
     }
   };
 
-  const adviceList = result.prediction.dietary_advice.split(' | ');
+  const adviceList = result?.prediction?.dietary_advice
+    ? result.prediction.dietary_advice.split(' | ')
+    : [];
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50">
@@ -140,7 +181,7 @@ export default function AyurvedaDietCoach() {
               <Activity className="w-6 h-6 text-green-600" />
               Your Profile
             </h2>
-            
+
             <div className="space-y-6">
               {/* Dosha Scores */}
               <div className="space-y-4">
@@ -148,7 +189,7 @@ export default function AyurvedaDietCoach() {
                   <Wind className="w-5 h-5 text-blue-500" />
                   Dosha Balance
                 </h3>
-                
+
                 <div className="space-y-4">
                   <div>
                     <div className="flex justify-between mb-2">
@@ -336,6 +377,22 @@ export default function AyurvedaDietCoach() {
                   )}
                 </div>
               </div>
+
+              {/* ✅ Predict Button (minimal addition, no style changes elsewhere) */}
+              <button
+                type="button"
+                onClick={handlePredict}
+                disabled={loadingPredict}
+                className="w-full mt-2 px-5 py-3 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 disabled:opacity-60"
+              >
+                {loadingPredict ? "Analyzing..." : "Get Recommendations"}
+              </button>
+
+              {errorPredict && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                  {errorPredict}
+                </div>
+              )}
             </div>
           </div>
 
@@ -370,14 +427,16 @@ export default function AyurvedaDietCoach() {
                         strokeWidth="14"
                         fill="none"
                         strokeDasharray={377}
-                        strokeDashoffset={377 - (377 * result.prediction.suitability_rating) / 10}
+                        strokeDashoffset={
+                          377 - (377 * (result?.prediction?.suitability_rating ?? 0)) / 10
+                        }
                         strokeLinecap="round"
                         className="transition-all duration-1000"
                       />
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center flex-col">
                       <span className="text-5xl font-bold">
-                        {result.prediction.suitability_rating.toFixed(1)}
+                        {(result?.prediction?.suitability_rating ?? 0).toFixed(1)}
                       </span>
                       <span className="text-sm text-green-100">out of 10</span>
                     </div>
@@ -394,7 +453,7 @@ export default function AyurvedaDietCoach() {
               </h2>
               <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border-l-4 border-green-600">
                 <p className="text-xl text-gray-800 font-medium">
-                  {result.prediction.recommended_alternative_meal}
+                  {result?.prediction?.recommended_alternative_meal || "—"}
                 </p>
                 <p className="text-sm text-gray-600 mt-2">This meal better aligns with your current dosha balance</p>
               </div>
@@ -407,17 +466,23 @@ export default function AyurvedaDietCoach() {
                 Personalized Dietary Recommendations
               </h2>
               <div className="grid gap-3">
-                {adviceList.map((advice, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start gap-4 p-4 bg-gradient-to-r from-green-50 to-white rounded-xl hover:shadow-md transition-all duration-200 border border-green-100"
-                  >
-                    <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md">
-                      {index + 1}
+                {adviceList.length ? (
+                  adviceList.map((advice, index) => (
+                    <div
+                      key={index}
+                      className="flex items-start gap-4 p-4 bg-gradient-to-r from-green-50 to-white rounded-xl hover:shadow-md transition-all duration-200 border border-green-100"
+                    >
+                      <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md">
+                        {index + 1}
+                      </div>
+                      <p className="text-gray-700 flex-1 pt-1">{advice}</p>
                     </div>
-                    <p className="text-gray-700 flex-1 pt-1">{advice}</p>
+                  ))
+                ) : (
+                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-600">
+                    Click <strong>Get Recommendations</strong> to see your personalized advice.
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
@@ -425,7 +490,11 @@ export default function AyurvedaDietCoach() {
             <div className="bg-gradient-to-r from-emerald-100 to-green-100 rounded-2xl p-6 border border-green-200">
               <div className="flex items-center justify-center gap-3 text-green-800">
                 <Sparkles className="w-6 h-6" />
-                <p className="text-lg font-semibold">Analysis Complete - Follow these recommendations for optimal health</p>
+                <p className="text-lg font-semibold">
+                  {result?.status === "success"
+                    ? "Analysis Complete - Follow these recommendations for optimal health"
+                    : "Fill the form and run analysis to get results"}
+                </p>
               </div>
             </div>
           </div>

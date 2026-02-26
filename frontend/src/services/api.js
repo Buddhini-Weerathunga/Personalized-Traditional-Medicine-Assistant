@@ -16,3 +16,9 @@ export const getProfile = () => API.get("/user/profile");
 // ML prediction for logged-in user
 export const getMyHealthPrediction = () =>
   API.get("/health-prediction/predict/me");
+
+
+// ✅ Ayurveda Diet Prediction (Python FastAPI - direct call)
+// Set this baseURL to your Python service base URL in axios file OR use full URL here.
+export const predictAyurvedaDiet = (data) =>
+  API.post("http://127.0.0.1:8000/api/diet/predict", data);
