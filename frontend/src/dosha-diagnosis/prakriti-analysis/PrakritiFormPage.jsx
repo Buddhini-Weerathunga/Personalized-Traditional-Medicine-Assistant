@@ -656,11 +656,19 @@ export default function PrakritiFormPage() {
             </button>
             
             <button
-              onClick={() => navigate("/dashboard")}
+              onClick={() => navigate("/prakriti/face")}
+              className="bg-gray-600 hover:bg-green-700 text-white px-8 py-2 rounded-lg shadow-md"
+            >
+              Prakriti Face Analysis
+            </button>
+
+            <button
+              onClick={() => navigate("/home")}
               className="bg-gray-600 hover:bg-gray-700 text-white px-8 py-2 rounded-lg shadow-md"
             >
               Go to Dashboard
             </button>
+
           </div>
         </div>
       </div>
