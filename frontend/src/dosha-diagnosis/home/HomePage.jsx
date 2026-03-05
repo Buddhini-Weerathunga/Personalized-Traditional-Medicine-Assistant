@@ -80,7 +80,7 @@ export default function HomePage() {
                     </p>
                   </div>
                   <button
-                    onClick={() => navigate("//prakritiform")}
+                    onClick={() => navigate("/prakritiform")}
                     className="mt-2 inline-flex justify-center items-center px-4 py-2 text-sm font-semibold rounded-full bg-gradient-to-r from-green-500 to-emerald-500 text-white hover:from-green-600 hover:to-emerald-600 transition-all"
                   >
                     Start Analysis
