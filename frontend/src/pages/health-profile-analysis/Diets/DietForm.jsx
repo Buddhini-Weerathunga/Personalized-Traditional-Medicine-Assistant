@@ -1,5 +1,66 @@
-import React, { useState, useEffect } from 'react';
-import { Leaf, Clock, Droplet, Flame, Wind, Activity, Sun, Sparkles, Heart, TrendingUp } from 'lucide-react';
+import React, { useState, useEffect, useMemo } from 'react';
+import {
+  Leaf, Clock, Droplet, Flame, Wind, Activity, Sun, Sparkles, Heart, TrendingUp
+} from 'lucide-react';
+import axios from "axios";
+import { predictAyurvedaDiet } from "../../../services/api";
+
+// ✅ Charts (Recharts)
+import {
+  ResponsiveContainer,
+  PieChart, Pie, Cell, Tooltip as ReTooltip, Legend,
+  BarChart, Bar, XAxis, YAxis, CartesianGrid,
+  RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
+} from "recharts";
+
+const getScoreRange = (score) => {
+  if (score >= 9) return {
+    label: "Excellent",
+    meaning: "This meal is highly suitable for your body constitution and current conditions.",
+    color: "from-emerald-500 to-green-600",
+    bg: "bg-emerald-50",
+    border: "border-emerald-300",
+    text: "text-emerald-800",
+    badge: "bg-emerald-500"
+  };
+  if (score >= 7) return {
+    label: "Good",
+    meaning: "This meal is generally suitable and should support your dosha balance.",
+    color: "from-green-400 to-teal-500",
+    bg: "bg-green-50",
+    border: "border-green-300",
+    text: "text-green-800",
+    badge: "bg-green-500"
+  };
+  if (score >= 5) return {
+    label: "Moderate",
+    meaning: "This meal is acceptable occasionally, but it is not the best option for your body type.",
+    color: "from-yellow-400 to-amber-500",
+    bg: "bg-yellow-50",
+    border: "border-yellow-300",
+    text: "text-yellow-800",
+    badge: "bg-yellow-500"
+  };
+  if (score >= 3) return {
+    label: "Poor",
+    meaning: "This meal is not recommended. Eating it frequently may affect digestion and dosha balance.",
+    color: "from-orange-400 to-orange-600",
+    bg: "bg-orange-50",
+    border: "border-orange-300",
+    text: "text-orange-800",
+    badge: "bg-orange-500"
+  };
+  if (score >= 1) return {
+    label: "Very Poor",
+    meaning: "This meal is not suitable for your body type and current condition. It may disturb your dosha balance.",
+    color: "from-red-500 to-red-700",
+    bg: "bg-red-50",
+    border: "border-red-300",
+    text: "text-red-800",
+    badge: "bg-red-500"
+  };
+  return null;
+};
 
 export default function AyurvedaDietCoach() {
   const [formData, setFormData] = useState({
@@ -24,6 +85,50 @@ export default function AyurvedaDietCoach() {
     condition: ''
   });
 
+  // ✅ NEW: loading state for prakriti scores
+  const [loadingPrakriti, setLoadingPrakriti] = useState(true);
+  const [prakritiError, setPrakritiError] = useState("");
+
+  const [result, setResult] = useState(null);
+  const [loadingPredict, setLoadingPredict] = useState(false);
+  const [errorPredict, setErrorPredict] = useState("");
+
+  // ✅ NEW: Fetch logged-in user's prakriti (Vata/Pitta/Kapha) scores on mount
+  useEffect(() => {
+    const fetchPrakriti = async () => {
+      try {
+        const token = localStorage.getItem("accessToken");
+        if (!token) {
+          setPrakritiError("Not logged in");
+          setLoadingPrakriti(false);
+          return;
+        }
+
+        const res = await axios.get("http://localhost:5000/api/prakriti/my-report", {
+          headers: { Authorization: `Bearer ${token}` }
+        });
+
+        const report = res.data?.report;
+        if (report) {
+          setFormData(prev => ({
+            ...prev,
+            vata_score_percent: report.vataScore ?? prev.vata_score_percent,
+            pitta_score_percent: report.pittaScore ?? prev.pitta_score_percent,
+            kapha_score_percent: report.kaphaScore ?? prev.kapha_score_percent,
+          }));
+        } else {
+          setPrakritiError("No prakriti report found. Using default values.");
+        }
+      } catch (err) {
+        setPrakritiError("Could not load your dosha scores. Using default values.");
+      } finally {
+        setLoadingPrakriti(false);
+      }
+    };
+
+    fetchPrakriti();
+  }, []);
+
   useEffect(() => {
     const detectClimate = (temp, humidity) => {
       if (humidity >= 70) return "humid";
@@ -40,17 +145,15 @@ export default function AyurvedaDietCoach() {
           const apiKey = "bd5e378503939ddaee76f12ad7a97608";
 
           try {
-            // Reverse Geocoding (Lat/Lon → City)
             const geoUrl = `https://api.openweathermap.org/geo/1.0/reverse?lat=${latitude}&lon=${longitude}&limit=1&appid=${apiKey}`;
             const geoResponse = await fetch(geoUrl);
             const geoData = await geoResponse.json();
             const detectedCity = geoData?.[0]?.name || "Your Location";
 
-            // Fetch Weather
             const weatherUrl = `https://api.openweathermap.org/data/2.5/weather?lat=${latitude}&lon=${longitude}&appid=${apiKey}&units=metric`;
             const weatherResponse = await fetch(weatherUrl);
             const weatherData = await weatherResponse.json();
-            
+
             const temp = weatherData.main.temp;
             const humidity = weatherData.main.humidity;
             const wind = weatherData.wind.speed;
@@ -106,17 +209,104 @@ export default function AyurvedaDietCoach() {
     setFormData(prev => ({ ...prev, [name]: value }));
   };
 
-  // Hardcoded response data
-  const result = {
-    status: "success",
-    prediction: {
-      suitability_rating: 5.97,
-      recommended_alternative_meal: "Warm string hoppers with coconut sambol",
-      dietary_advice: "Include sesame oil in cooking for vata balance | Consume light dinner before 7 PM for better sleep | Consume fresh lime juice for vitamin C and digestion | Include murunga (drumstick) leaves for detoxification | Add more ginger and turmeric to your meals for better digestion | Include tamarind in moderation for digestive fire | Consume warm herbal teas with coriander and cumin seeds | Include pumpkin for eye health and digestion | Add more kokum or goraka for digestive fire | Add cardamom to tea for improved digestion"
+  const timeToMealSlot = (timeStr) => {
+    if (!timeStr || !timeStr.includes(":")) return "dinner";
+    const [h, m] = timeStr.split(":").map(Number);
+    const minutes = h * 60 + m;
+
+    if (minutes >= 300 && minutes < 660) return "breakfast";
+    if (minutes >= 660 && minutes < 960) return "lunch";
+    if (minutes >= 960 && minutes < 1320) return "dinner";
+    return "dinner";
+  };
+
+  const handlePredict = async () => {
+    setLoadingPredict(true);
+    setErrorPredict("");
+    setResult(null);
+
+    try {
+      const payload = {
+        ...formData,
+        vata_score_percent: Number(formData.vata_score_percent),
+        pitta_score_percent: Number(formData.pitta_score_percent),
+        kapha_score_percent: Number(formData.kapha_score_percent),
+        meal_time: timeToMealSlot(formData.meal_time),
+      };
+
+      const res = await predictAyurvedaDiet(payload);
+      setResult(res.data);
+    } catch (err) {
+      const msg =
+        err?.response?.data?.detail ||
+        err?.response?.data?.message ||
+        err?.message ||
+        "Prediction failed";
+      setErrorPredict(msg);
+    } finally {
+      setLoadingPredict(false);
     }
   };
 
-  const adviceList = result.prediction.dietary_advice.split(' | ');
+  const adviceList = result?.prediction?.dietary_advice
+    ? result.prediction.dietary_advice.split(' | ')
+    : [];
+
+  const dominantDosha = useMemo(() => {
+    const v = Number(formData.vata_score_percent) || 0;
+    const p = Number(formData.pitta_score_percent) || 0;
+    const k = Number(formData.kapha_score_percent) || 0;
+
+    const max = Math.max(v, p, k);
+    if (max === v) return "Vata";
+    if (max === p) return "Pitta";
+    return "Kapha";
+  }, [formData.vata_score_percent, formData.pitta_score_percent, formData.kapha_score_percent]);
+
+  const balanceIndex = useMemo(() => {
+    const v = Number(formData.vata_score_percent) || 0;
+    const p = Number(formData.pitta_score_percent) || 0;
+    const k = Number(formData.kapha_score_percent) || 0;
+    const arr = [v, p, k].sort((a, b) => a - b);
+    const spread = arr[2] - arr[0];
+    const score = Math.max(0, Math.min(100, 100 - spread));
+    return score;
+  }, [formData.vata_score_percent, formData.pitta_score_percent, formData.kapha_score_percent]);
+
+  const doshaChartData = useMemo(() => ([
+    { name: "Vata", value: Number(formData.vata_score_percent) || 0 },
+    { name: "Pitta", value: Number(formData.pitta_score_percent) || 0 },
+    { name: "Kapha", value: Number(formData.kapha_score_percent) || 0 },
+  ]), [formData.vata_score_percent, formData.pitta_score_percent, formData.kapha_score_percent]);
+
+  const doshaBarData = useMemo(() => ([
+    { dosha: "Vata", percent: Number(formData.vata_score_percent) || 0 },
+    { dosha: "Pitta", percent: Number(formData.pitta_score_percent) || 0 },
+    { dosha: "Kapha", percent: Number(formData.kapha_score_percent) || 0 },
+  ]), [formData.vata_score_percent, formData.pitta_score_percent, formData.kapha_score_percent]);
+
+  const levelToNumber = (v) => {
+    if (v === "low") return 1;
+    if (v === "high") return 3;
+    return 2;
+  };
+
+  const lifestyleRadarData = useMemo(() => ([
+    { metric: "Spiciness", value: levelToNumber(formData.food_spicy) },
+    { metric: "Oiliness", value: levelToNumber(formData.food_oily) },
+    { metric: "Activity", value: levelToNumber(formData.physical_activity) },
+    { metric: "Climate", value: (() => {
+      if (formData.climate === "cold") return 1;
+      if (formData.climate === "hot") return 3;
+      if (formData.climate === "humid") return 2.5;
+      return 2;
+    })() },
+  ]), [formData.food_spicy, formData.food_oily, formData.physical_activity, formData.climate]);
+
+  const pieColors = ["#3B82F6", "#EF4444", "#10B981"];
+
+  const suitabilityRating = result?.prediction?.suitability_rating ?? 0;
+  const scoreRange = result ? getScoreRange(suitabilityRating) : null;
 
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50">
@@ -140,7 +330,7 @@ export default function AyurvedaDietCoach() {
               <Activity className="w-6 h-6 text-green-600" />
               Your Profile
             </h2>
-            
+
             <div className="space-y-6">
               {/* Dosha Scores */}
               <div className="space-y-4">
@@ -148,7 +338,25 @@ export default function AyurvedaDietCoach() {
                   <Wind className="w-5 h-5 text-blue-500" />
                   Dosha Balance
                 </h3>
-                
+
+                {/* ✅ NEW: Loading / error banner for prakriti fetch */}
+                {loadingPrakriti && (
+                  <div className="flex items-center gap-2 px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                    <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-green-600"></div>
+                    Loading your dosha scores…
+                  </div>
+                )}
+                {!loadingPrakriti && prakritiError && (
+                  <div className="px-4 py-3 bg-yellow-50 border border-yellow-200 rounded-lg text-sm text-yellow-700">
+                    ⚠️ {prakritiError}
+                  </div>
+                )}
+                {!loadingPrakriti && !prakritiError && (
+                  <div className="px-4 py-3 bg-green-50 border border-green-200 rounded-lg text-sm text-green-700">
+                    ✅ Dosha scores loaded from your health profile
+                  </div>
+                )}
+
                 <div className="space-y-4">
                   <div>
                     <div className="flex justify-between mb-2">
@@ -284,6 +492,36 @@ export default function AyurvedaDietCoach() {
                       <option value="high">High</option>
                     </select>
                   </div>
+
+                  {/* Saltiness */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Saltiness</label>
+                    <select
+                      name="food_saltiness"
+                      value={formData.food_saltiness}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition text-sm"
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+
+                  {/* Sweetness */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Sweetness</label>
+                    <select
+                      name="food_sweetness"
+                      value={formData.food_sweetness}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition text-sm"
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -336,6 +574,21 @@ export default function AyurvedaDietCoach() {
                   )}
                 </div>
               </div>
+
+              <button
+                type="button"
+                onClick={handlePredict}
+                disabled={loadingPredict}
+                className="w-full mt-2 px-5 py-3 rounded-xl bg-green-600 text-white font-semibold hover:bg-green-700 disabled:opacity-60"
+              >
+                {loadingPredict ? "Analyzing..." : "Get Recommendations"}
+              </button>
+
+              {errorPredict && (
+                <div className="p-3 rounded-lg bg-red-50 border border-red-200 text-red-700 text-sm">
+                  {errorPredict}
+                </div>
+              )}
             </div>
           </div>
 
@@ -350,7 +603,13 @@ export default function AyurvedaDietCoach() {
                     Meal Suitability Score
                   </h2>
                   <p className="text-green-100 text-lg">Based on your dosha balance and lifestyle</p>
+
+                  <div className="mt-4 text-green-50 text-sm space-y-1">
+                    <p><strong>Dominant Dosha:</strong> {dominantDosha}</p>
+                    <p><strong>Balance Index:</strong> {Math.round(balanceIndex)} / 100</p>
+                  </div>
                 </div>
+
                 <div className="relative">
                   <div className="relative w-36 h-36 md:w-40 md:h-40">
                     <svg className="transform -rotate-90 w-full h-full">
@@ -370,35 +629,104 @@ export default function AyurvedaDietCoach() {
                         strokeWidth="14"
                         fill="none"
                         strokeDasharray={377}
-                        strokeDashoffset={377 - (377 * result.prediction.suitability_rating) / 10}
+                        strokeDashoffset={
+                          377 - (377 * suitabilityRating) / 10
+                        }
                         strokeLinecap="round"
                         className="transition-all duration-1000"
                       />
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center flex-col">
                       <span className="text-5xl font-bold">
-                        {result.prediction.suitability_rating.toFixed(1)}
+                        {suitabilityRating.toFixed(1)}
                       </span>
                       <span className="text-sm text-green-100">out of 10</span>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* ✅ Score Range Meaning — shown only after prediction */}
+              {scoreRange && (
+                <div className={`mt-6 rounded-xl px-5 py-4 ${scoreRange.bg} ${scoreRange.border} border flex items-start gap-3`}>
+                  <span className={`mt-0.5 inline-flex items-center justify-center w-7 h-7 rounded-full text-white text-xs font-bold flex-shrink-0 ${scoreRange.badge}`}>
+                    {suitabilityRating.toFixed(1)}
+                  </span>
+                  <div>
+                    <p className={`font-bold text-base ${scoreRange.text}`}>{scoreRange.label}</p>
+                    <p className={`text-sm mt-0.5 ${scoreRange.text} opacity-90`}>{scoreRange.meaning}</p>
+                  </div>
+                </div>
+              )}
             </div>
 
-            {/* Alternative Meal Recommendation */}
-            <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-green-100">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <Droplet className="w-6 h-6 text-green-600" />
-                Recommended Alternative Meal
-              </h2>
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border-l-4 border-green-600">
-                <p className="text-xl text-gray-800 font-medium">
-                  {result.prediction.recommended_alternative_meal}
-                </p>
-                <p className="text-sm text-gray-600 mt-2">This meal better aligns with your current dosha balance</p>
-              </div>
-            </div>
+      {/* Charts Card */}
+<div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-green-100">
+  <h2 className="text-2xl font-semibold text-gray-800 mb-2 flex items-center gap-2">
+    <TrendingUp className="w-6 h-6 text-green-600" />
+    Insights & Charts
+  </h2>
+
+  <p className="text-sm text-gray-600 mb-6">
+    Visual summary of your dosha balance and lifestyle factors.
+  </p>
+
+  {/* Charts row */}
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+    
+    {/* Dosha chart */}
+    <div className="lg:col-span-2 rounded-xl border border-green-100 p-4 bg-gradient-to-r from-green-50 to-white">
+      <h3 className="text-sm font-semibold text-gray-700 mb-3">
+        Dosha Distribution
+      </h3>
+
+      <div className="h-64">
+        <ResponsiveContainer width="100%" height="100%">
+          <PieChart>
+            <Pie
+              data={doshaChartData}
+              dataKey="value"
+              nameKey="name"
+              innerRadius={55}
+              outerRadius={90}
+              paddingAngle={3}
+            >
+              {doshaChartData.map((_, idx) => (
+                <Cell key={idx} fill={pieColors[idx % pieColors.length]} />
+              ))}
+            </Pie>
+            <ReTooltip />
+            <Legend />
+          </PieChart>
+        </ResponsiveContainer>
+      </div>
+    </div>
+
+    {/* Model output side cards */}
+    <div className="grid grid-cols-1 gap-3">
+      <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 min-h-[100px] flex flex-col justify-center">
+        <div className="text-xs text-gray-500 mb-1">Meal Slot (model)</div>
+        <div className="font-semibold text-gray-800 capitalize text-lg">
+          {timeToMealSlot(formData.meal_time)}
+        </div>
+      </div>
+
+      <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 min-h-[100px] flex flex-col justify-center">
+        <div className="text-xs text-gray-500 mb-1">Predicted Suitability</div>
+        <div className="font-semibold text-gray-800 text-lg">
+          {suitabilityRating.toFixed(1)} / 10
+        </div>
+      </div>
+
+      <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 min-h-[100px] flex flex-col justify-center">
+        <div className="text-xs text-gray-500 mb-1">Status</div>
+        <div className="font-semibold text-gray-800 text-lg capitalize">
+          {result?.status || "—"}
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
 
             {/* Dietary Advice */}
             <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-green-100">
@@ -407,17 +735,23 @@ export default function AyurvedaDietCoach() {
                 Personalized Dietary Recommendations
               </h2>
               <div className="grid gap-3">
-                {adviceList.map((advice, index) => (
-                  <div
-                    key={index}
-                    className="flex items-start gap-4 p-4 bg-gradient-to-r from-green-50 to-white rounded-xl hover:shadow-md transition-all duration-200 border border-green-100"
-                  >
-                    <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md">
-                      {index + 1}
+                {adviceList.length ? (
+                  adviceList.map((advice, index) => (
+                    <div
+                      key={index}
+                      className="flex items-start gap-4 p-4 bg-gradient-to-r from-green-50 to-white rounded-xl hover:shadow-md transition-all duration-200 border border-green-100"
+                    >
+                      <div className="flex-shrink-0 w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-600 text-white rounded-full flex items-center justify-center text-sm font-bold shadow-md">
+                        {index + 1}
+                      </div>
+                      <p className="text-gray-700 flex-1 pt-1">{advice}</p>
                     </div>
-                    <p className="text-gray-700 flex-1 pt-1">{advice}</p>
+                  ))
+                ) : (
+                  <div className="p-4 bg-gray-50 border border-gray-200 rounded-xl text-gray-600">
+                    Click <strong>Get Recommendations</strong> to see your personalized advice.
                   </div>
-                ))}
+                )}
               </div>
             </div>
 
@@ -425,7 +759,11 @@ export default function AyurvedaDietCoach() {
             <div className="bg-gradient-to-r from-emerald-100 to-green-100 rounded-2xl p-6 border border-green-200">
               <div className="flex items-center justify-center gap-3 text-green-800">
                 <Sparkles className="w-6 h-6" />
-                <p className="text-lg font-semibold">Analysis Complete - Follow these recommendations for optimal health</p>
+                <p className="text-lg font-semibold">
+                  {result?.status === "success"
+                    ? "Analysis Complete - Follow these recommendations for optimal health"
+                    : "Fill the form and run analysis to get results"}
+                </p>
               </div>
             </div>
           </div>

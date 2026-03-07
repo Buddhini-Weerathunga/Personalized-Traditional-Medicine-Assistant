@@ -295,33 +295,45 @@ export default function HealthPrediction() {
             </div>
           </div>
 
-          {/* ================= HEALTH RISK ANALYSIS ================= */}
-          <div className="bg-white rounded-2xl shadow p-6">
-            <h3 className="text-xl font-semibold text-green-800 mb-4">
-              Health Risk Analysis
-            </h3>
+        {/* ================= HEALTH RISK ANALYSIS ================= */}
+<div className="bg-white rounded-2xl shadow p-6">
+  <h3 className="text-xl font-semibold text-green-800 mb-4">
+    Health Risk Analysis
+  </h3>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
-              {Object.entries(result.health_risk).map(([risk, data]) => (
-                <div
-                  key={risk}
-                  className={`p-3 rounded-xl border min-h-[60px] flex flex-col justify-between ${
-                    data.present
-                      ? "border-red-300 bg-red-50"
-                      : "border-green-300 bg-green-50"
-                  }`}
-                >
-                  <p className="font-semibold text-sm text-gray-800 uppercase mb-2">
-                    {risk.replace("risk_", "").replace(/_/g, " ")}
-                  </p>
+  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
+    {Object.entries(result.health_risk)
+      // ✅ hide probability 0 items
+      .filter(([_, data]) => (data?.probability ?? 0) > 0)
+      // ✅ optional: show highest risk first
+      .sort((a, b) => (b[1]?.probability ?? 0) - (a[1]?.probability ?? 0))
+      .map(([risk, data]) => (
+        <div
+          key={risk}
+          className={`p-3 rounded-xl border min-h-[60px] flex flex-col justify-between ${
+            data.present
+              ? "border-red-300 bg-red-50"
+              : "border-green-300 bg-green-50"
+          }`}
+        >
+          <p className="font-semibold text-sm text-gray-800 uppercase mb-2">
+            {risk.replace("risk_", "").replace(/_/g, " ")}
+          </p>
 
-                  <p className="text-base text-gray-600">
-                    Probability: {(data.probability * 100).toFixed(2)}%
-                  </p>
-                </div>
-              ))}
-            </div>
-          </div>
+          <p className="text-base text-gray-600">
+            Probability: {(data.probability * 100).toFixed(2)}%
+          </p>
+        </div>
+      ))}
+  </div>
+
+  {/* ✅ If all are 0, show a friendly message */}
+  {Object.entries(result.health_risk).every(([_, d]) => (d?.probability ?? 0) === 0) && (
+    <div className="mt-4 p-4 bg-green-50 border border-green-200 rounded-xl text-green-800 text-sm">
+      No notable risks detected from your profile right now.
+    </div>
+  )}
+</div>
 
         </div>
       )}
