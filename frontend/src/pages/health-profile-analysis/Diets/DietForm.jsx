@@ -13,6 +13,55 @@ import {
   RadarChart, Radar, PolarGrid, PolarAngleAxis, PolarRadiusAxis,
 } from "recharts";
 
+const getScoreRange = (score) => {
+  if (score >= 9) return {
+    label: "Excellent",
+    meaning: "This meal is highly suitable for your body constitution and current conditions.",
+    color: "from-emerald-500 to-green-600",
+    bg: "bg-emerald-50",
+    border: "border-emerald-300",
+    text: "text-emerald-800",
+    badge: "bg-emerald-500"
+  };
+  if (score >= 7) return {
+    label: "Good",
+    meaning: "This meal is generally suitable and should support your dosha balance.",
+    color: "from-green-400 to-teal-500",
+    bg: "bg-green-50",
+    border: "border-green-300",
+    text: "text-green-800",
+    badge: "bg-green-500"
+  };
+  if (score >= 5) return {
+    label: "Moderate",
+    meaning: "This meal is acceptable occasionally, but it is not the best option for your body type.",
+    color: "from-yellow-400 to-amber-500",
+    bg: "bg-yellow-50",
+    border: "border-yellow-300",
+    text: "text-yellow-800",
+    badge: "bg-yellow-500"
+  };
+  if (score >= 3) return {
+    label: "Poor",
+    meaning: "This meal is not recommended. Eating it frequently may affect digestion and dosha balance.",
+    color: "from-orange-400 to-orange-600",
+    bg: "bg-orange-50",
+    border: "border-orange-300",
+    text: "text-orange-800",
+    badge: "bg-orange-500"
+  };
+  if (score >= 1) return {
+    label: "Very Poor",
+    meaning: "This meal is not suitable for your body type and current condition. It may disturb your dosha balance.",
+    color: "from-red-500 to-red-700",
+    bg: "bg-red-50",
+    border: "border-red-300",
+    text: "text-red-800",
+    badge: "bg-red-500"
+  };
+  return null;
+};
+
 export default function AyurvedaDietCoach() {
   const [formData, setFormData] = useState({
     vata_score_percent: 33,
@@ -256,6 +305,9 @@ export default function AyurvedaDietCoach() {
 
   const pieColors = ["#3B82F6", "#EF4444", "#10B981"];
 
+  const suitabilityRating = result?.prediction?.suitability_rating ?? 0;
+  const scoreRange = result ? getScoreRange(suitabilityRating) : null;
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-green-50 via-white to-emerald-50">
       <div className="max-w-7xl mx-auto p-4 md:p-8">
@@ -440,6 +492,36 @@ export default function AyurvedaDietCoach() {
                       <option value="high">High</option>
                     </select>
                   </div>
+
+                  {/* Saltiness */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Saltiness</label>
+                    <select
+                      name="food_saltiness"
+                      value={formData.food_saltiness}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition text-sm"
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
+
+                  {/* Sweetness */}
+                  <div>
+                    <label className="block text-sm font-medium text-gray-700 mb-2">Sweetness</label>
+                    <select
+                      name="food_sweetness"
+                      value={formData.food_sweetness}
+                      onChange={handleChange}
+                      className="w-full px-3 py-2.5 border border-gray-300 rounded-lg focus:ring-2 focus:ring-green-500 focus:border-transparent transition text-sm"
+                    >
+                      <option value="low">Low</option>
+                      <option value="medium">Medium</option>
+                      <option value="high">High</option>
+                    </select>
+                  </div>
                 </div>
               </div>
 
@@ -548,7 +630,7 @@ export default function AyurvedaDietCoach() {
                         fill="none"
                         strokeDasharray={377}
                         strokeDashoffset={
-                          377 - (377 * (result?.prediction?.suitability_rating ?? 0)) / 10
+                          377 - (377 * suitabilityRating) / 10
                         }
                         strokeLinecap="round"
                         className="transition-all duration-1000"
@@ -556,32 +638,48 @@ export default function AyurvedaDietCoach() {
                     </svg>
                     <div className="absolute inset-0 flex items-center justify-center flex-col">
                       <span className="text-5xl font-bold">
-                        {(result?.prediction?.suitability_rating ?? 0).toFixed(1)}
+                        {suitabilityRating.toFixed(1)}
                       </span>
                       <span className="text-sm text-green-100">out of 10</span>
                     </div>
                   </div>
                 </div>
               </div>
+
+              {/* ✅ Score Range Meaning — shown only after prediction */}
+              {scoreRange && (
+                <div className={`mt-6 rounded-xl px-5 py-4 ${scoreRange.bg} ${scoreRange.border} border flex items-start gap-3`}>
+                  <span className={`mt-0.5 inline-flex items-center justify-center w-7 h-7 rounded-full text-white text-xs font-bold flex-shrink-0 ${scoreRange.badge}`}>
+                    {suitabilityRating.toFixed(1)}
+                  </span>
+                  <div>
+                    <p className={`font-bold text-base ${scoreRange.text}`}>{scoreRange.label}</p>
+                    <p className={`text-sm mt-0.5 ${scoreRange.text} opacity-90`}>{scoreRange.meaning}</p>
+                  </div>
+                </div>
+              )}
             </div>
 
-           {/* Charts Card */}
+      {/* Charts Card */}
 <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-green-100">
   <h2 className="text-2xl font-semibold text-gray-800 mb-2 flex items-center gap-2">
     <TrendingUp className="w-6 h-6 text-green-600" />
     Insights & Charts
   </h2>
+
   <p className="text-sm text-gray-600 mb-6">
     Visual summary of your dosha balance and lifestyle factors.
   </p>
 
-  {/* ✅ Two charts same row on md+ */}
-  <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-    {/* Pie chart */}
-    <div className="rounded-xl border border-green-100 p-4 bg-gradient-to-r from-green-50 to-white">
+  {/* Charts row */}
+  <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 items-stretch">
+    
+    {/* Dosha chart */}
+    <div className="lg:col-span-2 rounded-xl border border-green-100 p-4 bg-gradient-to-r from-green-50 to-white">
       <h3 className="text-sm font-semibold text-gray-700 mb-3">
         Dosha Distribution
       </h3>
+
       <div className="h-64">
         <ResponsiveContainer width="100%" height="100%">
           <PieChart>
@@ -604,66 +702,31 @@ export default function AyurvedaDietCoach() {
       </div>
     </div>
 
-    {/* Radar chart (✅ now same row, not full width) */}
-    <div className="rounded-xl border border-green-100 p-4 bg-gradient-to-r from-green-50 to-white">
-      <h3 className="text-sm font-semibold text-gray-700 mb-3">
-        Lifestyle Intensity Radar
-      </h3>
-      <div className="h-64">
-        <ResponsiveContainer width="100%" height="100%">
-          <RadarChart data={lifestyleRadarData}>
-            <PolarGrid />
-            <PolarAngleAxis dataKey="metric" />
-            <PolarRadiusAxis domain={[0, 3]} />
-            <ReTooltip />
-            <Radar dataKey="value" fillOpacity={0.3} />
-          </RadarChart>
-        </ResponsiveContainer>
+    {/* Model output side cards */}
+    <div className="grid grid-cols-1 gap-3">
+      <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 min-h-[100px] flex flex-col justify-center">
+        <div className="text-xs text-gray-500 mb-1">Meal Slot (model)</div>
+        <div className="font-semibold text-gray-800 capitalize text-lg">
+          {timeToMealSlot(formData.meal_time)}
+        </div>
       </div>
 
-      <div className="mt-3 text-xs text-gray-600">
-        Scale: low=1, medium/moderate=2, high=3 (humid=2.5)
+      <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 min-h-[100px] flex flex-col justify-center">
+        <div className="text-xs text-gray-500 mb-1">Predicted Suitability</div>
+        <div className="font-semibold text-gray-800 text-lg">
+          {suitabilityRating.toFixed(1)} / 10
+        </div>
+      </div>
+
+      <div className="p-4 rounded-xl bg-gray-50 border border-gray-200 min-h-[100px] flex flex-col justify-center">
+        <div className="text-xs text-gray-500 mb-1">Status</div>
+        <div className="font-semibold text-gray-800 text-lg capitalize">
+          {result?.status || "—"}
+        </div>
       </div>
     </div>
   </div>
-
-
-              {/* Model output fields */}
-              <div className="mt-6 grid sm:grid-cols-3 gap-3">
-                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                  <div className="text-xs text-gray-500">Meal Slot (model)</div>
-                  <div className="font-semibold text-gray-800 capitalize">
-                    {timeToMealSlot(formData.meal_time)}
-                  </div>
-                </div>
-                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                  <div className="text-xs text-gray-500">Predicted Suitability</div>
-                  <div className="font-semibold text-gray-800">
-                    {(result?.prediction?.suitability_rating ?? 0).toFixed(1)} / 10
-                  </div>
-                </div>
-                <div className="p-4 rounded-xl bg-gray-50 border border-gray-200">
-                  <div className="text-xs text-gray-500">Status</div>
-                  <div className="font-semibold text-gray-800">
-                    {result?.status || "—"}
-                  </div>
-                </div>
-              </div>
-            </div>
-
-            {/* Alternative Meal Recommendation */}
-            <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-green-100">
-              <h2 className="text-2xl font-semibold text-gray-800 mb-4 flex items-center gap-2">
-                <Droplet className="w-6 h-6 text-green-600" />
-                Recommended Alternative Meal
-              </h2>
-              <div className="bg-gradient-to-r from-green-50 to-emerald-50 rounded-xl p-6 border-l-4 border-green-600">
-                <p className="text-xl text-gray-800 font-medium">
-                  {result?.prediction?.recommended_alternative_meal || "—"}
-                </p>
-                <p className="text-sm text-gray-600 mt-2">This meal better aligns with your current dosha balance</p>
-              </div>
-            </div>
+</div>
 
             {/* Dietary Advice */}
             <div className="bg-white rounded-2xl shadow-xl p-6 md:p-8 border border-green-100">
