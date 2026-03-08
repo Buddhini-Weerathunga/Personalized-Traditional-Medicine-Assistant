@@ -1,8 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 import PlantNavbar from '../../components/plant-identification/PlantNavbar';
-import PlantCard from '../../components/plant-identification/PlantCard';
-import LoadingSpinner from '../../components/plant-identification/LoadingSpinner';
 import { savePlantIdentification, generatePersonalizedAlerts } from '../../services/plant-identification/plantApi';
 
 const PlantResults = () => {
@@ -12,84 +10,33 @@ const PlantResults = () => {
   const [saved, setSaved] = useState(false);
   const [personalizedAlerts, setPersonalizedAlerts] = useState(null);
   const [loadingAlerts, setLoadingAlerts] = useState(false);
+  const [activeTab, setActiveTab] = useState('overview');
 
   const { result, image, healthData } = location.state || {};
 
-  // Mock data for development/testing (when no real data is passed)
   const mockResult = {
-    plantId: 'mock-123',
-    plantName: 'Gotu Kola',
-    scientificName: 'Centella asiatica',
+    plantId: 'mock-123', plantName: 'Gotu Kola', scientificName: 'Centella asiatica',
     description: 'Gotu Kola is a small herbaceous annual plant of the family Apiaceae. It is native to the wetlands of Asia and is known for its medicinal properties.',
-    medicinalUses: [
-      'Improves cognitive function and memory',
-      'Promotes wound healing and skin health',
-      'Reduces anxiety and stress',
-      'Supports circulation and venous health',
-      'Anti-inflammatory properties'
-    ],
-    ayurvedicProperties: {
-      rasa: 'Bitter, Sweet',
-      guna: 'Light, Cold',
-      virya: 'Cooling',
-      vipaka: 'Sweet'
-    },
-    warnings: [
-      'May cause drowsiness when combined with sedatives',
-      'Not recommended for pregnant women',
-      'May affect liver function with prolonged use',
-      'Consult doctor if taking blood thinners'
-    ],
-    commonNames: ['Gotu Kola', 'Indian Pennywort', 'Brahmi', 'Mandukaparni'],
-    similarPlants: [
-      {
-        plantId: 'sim-1',
-        plantName: 'Bacopa Monnieri',
-        scientificName: 'Bacopa monnieri',
-        thumbnail: 'https://via.placeholder.com/150/9c88ff/FFFFFF?text=Bacopa'
-      },
-      {
-        plantId: 'sim-2',
-        plantName: 'Hydrocotyle',
-        scientificName: 'Hydrocotyle umbellata',
-        thumbnail: 'https://via.placeholder.com/150/90ee90/FFFFFF?text=Hydrocotyle'
-      }
-    ]
+    medicinalUses: ['Improves cognitive function and memory','Promotes wound healing and skin health','Reduces anxiety and stress','Supports circulation and venous health','Anti-inflammatory properties'],
+    ayurvedicProperties: { rasa: 'Bitter, Sweet', guna: 'Light, Cold', virya: 'Cooling', vipaka: 'Sweet' },
+    warnings: ['May cause drowsiness when combined with sedatives','Not recommended for pregnant women','May affect liver function with prolonged use','Consult doctor if taking blood thinners'],
+    commonNames: ['Gotu Kola','Indian Pennywort','Brahmi','Mandukaparni'],
   };
 
-  const mockImage = 'https://via.placeholder.com/600/228b22/FFFFFF?text=Sample+Plant+Image';
-
   const mockHealthData = {
-    age: '35',
-    medications: ['Aspirin', 'Metformin'],
-    allergies: ['Pollen'],
-    conditions: ['Diabetes', 'Hypertension'],
-    isPregnant: false,
-    isBreastfeeding: false,
+    age: '35', medications: ['Aspirin','Metformin'], allergies: ['Pollen'],
+    conditions: ['Diabetes','Hypertension'], isPregnant: false, isBreastfeeding: false,
     otherHealthInfo: 'Family history of heart disease'
   };
 
-  // Use mock data if no real data is provided (for development/testing)
   const displayResult = result || mockResult;
-  const displayImage = image || mockImage;
+  const displayImage = image || null;
   const displayHealthData = healthData || mockHealthData;
 
-  // Comment out the redirect for development - you can access the page directly
-  // useEffect(() => {
-  //   if (!result) {
-  //     const timer = setTimeout(() => {
-  //       navigate('/plant-scan');
-  //     }, 100);
-  //     return () => clearTimeout(timer);
-  //   }
-  // }, [result, navigate]);
-
-  // Generate personalized alerts when both result and health data are available
   useEffect(() => {
     const fetchPersonalizedAlerts = async () => {
       const currentResult = result || mockResult;
       const currentHealthData = healthData || mockHealthData;
-      
       if (currentResult && currentHealthData && currentResult.plantId) {
         setLoadingAlerts(true);
         try {
@@ -97,83 +44,28 @@ const PlantResults = () => {
           setPersonalizedAlerts(alerts);
         } catch (error) {
           console.error('Error generating personalized alerts:', error);
-          // Set mock alerts for development
           setPersonalizedAlerts({
-            criticalAlerts: [
-              {
-                title: 'Drug Interaction Detected',
-                description: 'This plant may interact with your current medications (Aspirin, Metformin).',
-                recommendation: 'Consult your healthcare provider before use.',
-                reason: 'Potential bleeding risk when combined with blood thinners'
-              }
-            ],
-            highPriorityWarnings: [
-              {
-                title: 'Dosage Adjustment Required',
-                description: 'Standard dosing may need modification due to your health conditions.',
-                recommendation: 'Start with 50% of the recommended dose and monitor effects.'
-              }
-            ],
+            criticalAlerts: [{ title: 'Drug Interaction Detected', description: 'This plant may interact with your current medications (Aspirin, Metformin).', recommendation: 'Consult your healthcare provider before use.', reason: 'Potential bleeding risk when combined with blood thinners' }],
+            highPriorityWarnings: [{ title: 'Dosage Adjustment Required', description: 'Standard dosing may need modification due to your health conditions.', recommendation: 'Start with 50% of the recommended dose and monitor effects.' }],
             drugInteractions: [
-              {
-                medication: 'Aspirin',
-                interaction: 'May increase bleeding risk',
-                severity: 'moderate',
-                advice: 'Monitor for unusual bruising or bleeding. Consult doctor if planning long-term use.'
-              },
-              {
-                medication: 'Metformin',
-                interaction: 'May affect blood sugar regulation',
-                severity: 'mild',
-                advice: 'Monitor blood glucose levels more frequently.'
-              }
+              { medication: 'Aspirin', interaction: 'May increase bleeding risk', severity: 'moderate', advice: 'Monitor for unusual bruising or bleeding. Consult doctor if planning long-term use.' },
+              { medication: 'Metformin', interaction: 'May affect blood sugar regulation', severity: 'mild', advice: 'Monitor blood glucose levels more frequently.' }
             ],
-            dosageAdjustments: {
-              recommendation: 'Based on your age (35) and health conditions, start with lower doses.',
-              specificGuidelines: [
-                'Begin with 250mg daily instead of standard 500mg',
-                'Increase gradually over 2 weeks if well tolerated',
-                'Take with food to minimize side effects',
-                'Monitor blood pressure and blood sugar regularly'
-              ]
-            },
+            dosageAdjustments: { recommendation: 'Based on your age (35) and health conditions, start with lower doses.', specificGuidelines: ['Begin with 250mg daily instead of standard 500mg','Increase gradually over 2 weeks if well tolerated','Take with food to minimize side effects','Monitor blood pressure and blood sugar regularly'] },
             safetyStatus: 'caution'
           });
-        } finally {
-          setLoadingAlerts(false);
-        }
+        } finally { setLoadingAlerts(false); }
       }
     };
-
     fetchPersonalizedAlerts();
   }, [result, healthData]);
-
-  // Removed redirect - now shows mock data for development
-  // if (!result) {
-  //   return (
-  //     <div className="flex items-center justify-center min-h-screen">
-  //       <div className="text-center">
-  //         <div className="text-6xl mb-4">🌿</div>
-  //         <p className="text-gray-600">Redirecting to plant scan...</p>
-  //       </div>
-  //     </div>
-  //   );
-  // }
 
   const handleSaveToHistory = async () => {
     setSaving(true);
     try {
-      await savePlantIdentification({
-        plantName: displayResult.plantName,
-        scientificName: displayResult.scientificName,
-        image: displayImage,
-        identifiedAt: new Date().toISOString(),
-        ...displayResult
-      });
+      await savePlantIdentification({ plantName: displayResult.plantName, scientificName: displayResult.scientificName, image: displayImage, identifiedAt: new Date().toISOString(), ...displayResult });
       setSaved(true);
-      setTimeout(() => {
-        navigate('/plant-history');
-      }, 1500);
+      setTimeout(() => navigate('/plant-history'), 1500);
     } catch (error) {
       console.error('Failed to save identification:', error);
       alert('Failed to save to history. Please try again.');
@@ -181,395 +73,354 @@ const PlantResults = () => {
     }
   };
 
-  const handleScanAnother = () => {
-    navigate('/plant-scan');
-  };
+  const tabs = [
+    { key: 'overview', label: 'Overview' },
+    { key: 'health', label: 'Health Analysis' },
+    { key: 'safety', label: 'Safety & Warnings' },
+  ];
 
   return (
     <>
       <PlantNavbar />
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-white">
-      {/* Background Decorations */}
-      <div className="pointer-events-none">
-        <div className="absolute -top-16 -left-10 w-72 h-72 bg-green-200 rounded-full blur-3xl opacity-40" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-emerald-200 rounded-full blur-3xl opacity-40" />
-      </div>
-
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-100 text-green-700 text-xs font-semibold mb-4">
-            <span>🌿 Plant Analysis Complete</span>
+      <div className="min-h-screen bg-gradient-to-b from-[#f0fdf4] via-white to-[#f0fdf4]">
+        <section className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-16">
+          {/* Header */}
+          <div className="text-center mb-10">
+            <p className="inline-block text-xs font-semibold tracking-widest uppercase text-emerald-600 bg-emerald-50 px-4 py-1.5 rounded-full mb-4">
+              Analysis Complete
+            </p>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight">
+              {displayResult.plantName}
+            </h1>
+            <p className="mt-2 text-base sm:text-lg text-gray-400 italic">{displayResult.scientificName}</p>
           </div>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-4">
-            <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-              Plant Details
-            </span>
-          </h1>
-          <p className="text-lg md:text-xl text-gray-600 leading-relaxed max-w-2xl mx-auto">
-            Detailed analysis and safety information
-          </p>
-        </div>
 
-      {!result && (
-        <div className="mb-6 bg-amber-50/50 border border-amber-200 rounded-xl p-4">
-          <p className="text-amber-800 flex items-center gap-2 text-sm">
-            <span>ℹ️</span>
-            <span className="font-medium">Development Mode: Showing sample data for demonstration</span>
-          </p>
-        </div>
-      )}
+          {/* Dev Banner */}
+          {!result && (
+            <div className="mb-8 bg-amber-50 border border-amber-200 rounded-xl p-3 flex items-center gap-3 max-w-2xl mx-auto">
+              <svg className="w-5 h-5 text-amber-500 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11.25 11.25l.041-.02a.75.75 0 011.063.852l-.708 2.836a.75.75 0 001.063.853l.041-.021M21 12a9 9 0 11-18 0 9 9 0 0118 0zm-9-3.75h.008v.008H12V8.25z" /></svg>
+              <p className="text-sm text-amber-700 font-medium">Development Mode — Showing sample data for demonstration</p>
+            </div>
+          )}
 
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-8 mb-12">
-        <div className="lg:sticky lg:top-8 h-fit">
-          <div className="w-full rounded-2xl overflow-hidden shadow-md border border-green-100">
-            <img src={displayImage} alt="Identified plant" className="w-full h-auto" />
-          </div>
-        </div>
-
-        <div className="lg:col-span-2 flex flex-col gap-6">
-          <div className="bg-white/80 p-6 rounded-2xl shadow-md border border-green-100">
-            <h2 className="text-gray-900 text-3xl font-bold mb-2">{displayResult.plantName}</h2>
-            {displayResult.scientificName && (
-              <p className="text-gray-500 text-xl mb-4">
-                <em>{displayResult.scientificName}</em>
-              </p>
-            )}
-            
-
-
-            {displayResult.description && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="text-green-800 text-xl font-semibold mb-3">Description</h3>
-                <p className="text-gray-600 leading-relaxed">{displayResult.description}</p>
-              </div>
-            )}
-
-            {displayResult.medicinalUses && displayResult.medicinalUses.length > 0 && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="text-green-800 text-xl font-semibold mb-3">Medicinal Uses</h3>
-                <ul className="space-y-2">
-                  {displayResult.medicinalUses.map((use, index) => (
-                    <li key={index} className="pl-6 relative text-gray-600 leading-relaxed">
-                      <span className="absolute left-0">💊</span>
-                      {use}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {displayResult.ayurvedicProperties && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="text-green-800 text-xl font-semibold mb-3">Ayurvedic Properties</h3>
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {displayResult.ayurvedicProperties.rasa && (
-                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                      <strong className="text-green-800 block mb-1">Rasa (Taste):</strong>
-                      <span className="text-gray-700">{displayResult.ayurvedicProperties.rasa}</span>
-                    </div>
-                  )}
-                  {displayResult.ayurvedicProperties.guna && (
-                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                      <strong className="text-green-800 block mb-1">Guna (Quality):</strong>
-                      <span className="text-gray-700">{displayResult.ayurvedicProperties.guna}</span>
-                    </div>
-                  )}
-                  {displayResult.ayurvedicProperties.virya && (
-                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                      <strong className="text-green-800 block mb-1">Virya (Potency):</strong>
-                      <span className="text-gray-700">{displayResult.ayurvedicProperties.virya}</span>
-                    </div>
-                  )}
-                  {displayResult.ayurvedicProperties.vipaka && (
-                    <div className="p-4 bg-green-50 rounded-lg border border-green-200">
-                      <strong className="text-green-800 block mb-1">Vipaka (Post-digestive effect):</strong>
-                      <span className="text-gray-700">{displayResult.ayurvedicProperties.vipaka}</span>
-                    </div>
-                  )}
-                </div>
-              </div>
-            )}
-
-            {/* Personalized Health Analysis */}
-            {(healthData || displayHealthData) && (
-              <div className="mt-6 pt-6 border-t border-gray-200 bg-blue-50 p-6 rounded-lg border-2 border-blue-300">
-                <h3 className="text-blue-900 text-xl font-semibold mb-3 flex items-center gap-2">
-                  <span>🏥</span>
-                  AI-Generated Personalized Safety Analysis
-                </h3>
-
-                {loadingAlerts && (
-                  <div className="flex items-center justify-center py-8">
-                    <LoadingSpinner message="Analyzing plant safety based on your health profile..." size="medium" />
-                  </div>
-                )}
-
-                {personalizedAlerts && !loadingAlerts && (
-                  <div className="mb-6 space-y-4">
-                    {/* Critical Alerts */}
-                    {personalizedAlerts.criticalAlerts && personalizedAlerts.criticalAlerts.length > 0 && (
-                      <div className="bg-red-50 border-2 border-red-300 rounded-lg p-4">
-                        <h4 className="font-bold text-red-900 mb-3 flex items-center gap-2 text-lg">
-                          <span className="text-2xl">🚨</span>
-                          CRITICAL ALERTS - Immediate Attention Required
-                        </h4>
-                        {personalizedAlerts.criticalAlerts.map((alert, idx) => (
-                          <div key={idx} className="bg-white rounded-lg p-4 mb-3 last:mb-0 border-l-4 border-red-600">
-                            <h5 className="font-semibold text-red-800 mb-2">{alert.title}</h5>
-                            <p className="text-gray-700 mb-2">{alert.description}</p>
-                            <div className="bg-red-100 rounded p-3 mt-2">
-                              <p className="text-sm font-semibold text-red-900">⚠️ Action Required:</p>
-                              <p className="text-sm text-red-800">{alert.recommendation}</p>
-                            </div>
-                            {alert.reason && (
-                              <p className="text-xs text-gray-600 mt-2 italic">
-                                Reason: {alert.reason}
-                              </p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* High Priority Warnings */}
-                    {personalizedAlerts.highPriorityWarnings && personalizedAlerts.highPriorityWarnings.length > 0 && (
-                      <div className="bg-orange-50 border-2 border-orange-300 rounded-lg p-4">
-                        <h4 className="font-bold text-orange-900 mb-3 flex items-center gap-2">
-                          <span className="text-xl">⚠️</span>
-                          High Priority Warnings
-                        </h4>
-                        {personalizedAlerts.highPriorityWarnings.map((warning, idx) => (
-                          <div key={idx} className="bg-white rounded-lg p-4 mb-3 last:mb-0 border-l-4 border-orange-500">
-                            <h5 className="font-semibold text-orange-800 mb-1">{warning.title}</h5>
-                            <p className="text-gray-700 text-sm mb-2">{warning.description}</p>
-                            {warning.recommendation && (
-                              <p className="text-sm text-orange-700 bg-orange-100 rounded p-2">
-                                💡 {warning.recommendation}
-                              </p>
-                            )}
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Medication Interactions */}
-                    {personalizedAlerts.drugInteractions && personalizedAlerts.drugInteractions.length > 0 && (
-                      <div className="bg-purple-50 border-2 border-purple-300 rounded-lg p-4">
-                        <h4 className="font-bold text-purple-900 mb-3 flex items-center gap-2">
-                          <span className="text-xl">💊</span>
-                          Medication Interaction Analysis
-                        </h4>
-                        {personalizedAlerts.drugInteractions.map((interaction, idx) => (
-                          <div key={idx} className="bg-white rounded-lg p-4 mb-3 last:mb-0">
-                            <div className="flex items-start justify-between mb-2">
-                              <h5 className="font-semibold text-purple-800">{interaction.medication}</h5>
-                              <span className={`px-3 py-1 rounded-full text-xs font-bold ${
-                                interaction.severity === 'severe' ? 'bg-red-200 text-red-900' :
-                                interaction.severity === 'moderate' ? 'bg-orange-200 text-orange-900' :
-                                'bg-yellow-200 text-yellow-900'
-                              }`}>
-                                {interaction.severity.toUpperCase()}
-                              </span>
-                            </div>
-                            <p className="text-gray-700 text-sm mb-2">{interaction.interaction}</p>
-                            <p className="text-purple-700 text-sm font-medium bg-purple-100 rounded p-2">
-                              📋 {interaction.advice}
-                            </p>
-                          </div>
-                        ))}
-                      </div>
-                    )}
-
-                    {/* Dosage Adjustments */}
-                    {personalizedAlerts.dosageAdjustments && (
-                      <div className="bg-blue-50 border border-blue-300 rounded-lg p-4">
-                        <h4 className="font-semibold text-blue-900 mb-2 flex items-center gap-2">
-                          <span>📏</span>
-                          Personalized Dosage Recommendations
-                        </h4>
-                        <div className="bg-white rounded-lg p-4">
-                          <p className="text-gray-700 mb-2">{personalizedAlerts.dosageAdjustments.recommendation}</p>
-                          {personalizedAlerts.dosageAdjustments.specificGuidelines && (
-                            <ul className="space-y-1 mt-3">
-                              {personalizedAlerts.dosageAdjustments.specificGuidelines.map((guideline, idx) => (
-                                <li key={idx} className="text-sm text-gray-600 pl-4 relative">
-                                  <span className="absolute left-0">•</span>
-                                  {guideline}
-                                </li>
-                              ))}
-                            </ul>
-                          )}
-                        </div>
-                      </div>
-                    )}
-
-                    {/* Safe to Use Confirmation */}
-                    {personalizedAlerts.safetyStatus === 'safe' && (
-                      <div className="bg-green-50 border-2 border-green-300 rounded-lg p-4">
-                        <div className="flex items-center gap-3">
-                          <span className="text-3xl">✅</span>
-                          <div>
-                            <h4 className="font-bold text-green-900">Generally Safe for Your Profile</h4>
-                            <p className="text-green-700 text-sm mt-1">
-                              Based on your health data, this plant appears to be safe for use. 
-                              However, always start with small doses and monitor for any reactions.
-                            </p>
-                          </div>
-                        </div>
-                      </div>
-                    )}
-                  </div>
-                )}
-
-                <div className="space-y-4">
-                  {/* Age-specific recommendations */}
-                  {(healthData?.age || displayHealthData?.age) && (
-                    <div className="bg-white p-4 rounded-lg">
-                      <h4 className="font-semibold text-blue-800 mb-2">Age Considerations:</h4>
-                      <p className="text-gray-700">
-                        {(healthData?.age || displayHealthData?.age) < 18 ? 
-                          "⚠️ Pediatric use requires medical supervision. Dosage adjustments may be necessary." :
-                          (healthData?.age || displayHealthData?.age) > 65 ?
-                          "⚠️ Elderly patients may have increased sensitivity. Start with lower doses." :
-                          "✓ Standard adult dosing applies. Follow recommended guidelines."}
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Medication interactions */}
-                  {(healthData?.medications || displayHealthData?.medications)?.length > 0 && (
-                    <div className="bg-white p-4 rounded-lg">
-                      <h4 className="font-semibold text-orange-800 mb-2">⚠️ Medication Interactions Check:</h4>
-                      <p className="text-gray-700 mb-2">
-                        You are taking {(healthData?.medications || displayHealthData?.medications).length} medication(s). Potential interactions detected:
-                      </p>
-                      <ul className="space-y-1">
-                        {(healthData?.medications || displayHealthData?.medications).map((med, idx) => (
-                          <li key={idx} className="text-sm text-gray-600 pl-4">
-                            • {med}: Please consult healthcare provider
-                          </li>
-                        ))}
-                      </ul>
-                    </div>
-                  )}
-
-                  {/* Allergy warnings */}
-                  {(healthData?.allergies || displayHealthData?.allergies)?.length > 0 && (
-                    <div className="bg-red-50 p-4 rounded-lg border border-red-200">
-                      <h4 className="font-semibold text-red-800 mb-2">🚨 Allergy Alert:</h4>
-                      <p className="text-red-700">
-                        Cross-reactivity may occur with: {(healthData?.allergies || displayHealthData?.allergies).join(', ')}
-                        <br />
-                        <strong>Recommendation:</strong> Perform patch test before full use.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Pregnancy/Breastfeeding warnings */}
-                  {((healthData?.isPregnant || displayHealthData?.isPregnant) || (healthData?.isBreastfeeding || displayHealthData?.isBreastfeeding)) && (
-                    <div className="bg-pink-50 p-4 rounded-lg border-2 border-pink-300">
-                      <h4 className="font-semibold text-pink-800 mb-2">
-                        {(healthData?.isPregnant || displayHealthData?.isPregnant) ? "🤰 Pregnancy Alert:" : "🤱 Breastfeeding Alert:"}
-                      </h4>
-                      <p className="text-pink-700 font-medium">
-                        ⚠️ This plant may not be safe during {(healthData?.isPregnant || displayHealthData?.isPregnant) ? "pregnancy" : "breastfeeding"}.
-                        Consult with your healthcare provider before use.
-                      </p>
-                    </div>
-                  )}
-
-                  {/* Chronic conditions */}
-                  {(healthData?.conditions || displayHealthData?.conditions)?.length > 0 && (
-                    <div className="bg-white p-4 rounded-lg">
-                      <h4 className="font-semibold text-gray-800 mb-2">🏥 Health Conditions:</h4>
-                      <p className="text-gray-700 mb-2">
-                        Based on your conditions ({(healthData?.conditions || displayHealthData?.conditions).join(', ')}):
-                      </p>
-                      <p className="text-orange-700 font-medium">
-                        ⚠️ Special monitoring required. Consult specialist before use.
-                      </p>
-                    </div>
-                  )}
-
-                  <div className="bg-green-50 p-4 rounded-lg border border-green-200">
-                    <p className="text-sm text-green-800 flex items-start gap-2">
-                      <span>💡</span>
-                      <span>
-                        This analysis is based on your health profile. Always consult a healthcare 
-                        professional before using any medicinal plant, especially with existing conditions or medications.
-                      </span>
-                    </p>
-                  </div>
-                </div>
-              </div>
-            )}
-
-            {displayResult.warnings && displayResult.warnings.length > 0 && (
-              <div className="mt-6 pt-6 border-t border-gray-200 bg-yellow-50 p-6 rounded-lg border border-yellow-200">
-                <h3 className="text-yellow-900 text-xl font-semibold mb-3">⚠️ General Warnings & Precautions</h3>
-                <ul className="space-y-2 mb-4">
-                  {displayResult.warnings.map((warning, index) => (
-                    <li key={index} className="pl-6 relative text-yellow-800 leading-relaxed">
-                      <span className="absolute left-0">⚠️</span>
-                      {warning}
-                    </li>
-                  ))}
-                </ul>
-                {displayResult.plantId && (
-                  <button
-                    onClick={() => navigate(`/plant-safety/${displayResult.plantId}`)}
-                    className="w-full bg-orange-600 hover:bg-orange-700 text-white font-semibold py-3 px-6 rounded-lg transition-colors flex items-center justify-center gap-2"
-                  >
-                    🛡️ View Complete Safety Information
+          {/* Main Layout */}
+          <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            {/* Left Content */}
+            <div className="lg:col-span-2 flex flex-col gap-6">
+              {/* Tab Navigation */}
+              <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
+                {tabs.map((tab) => (
+                  <button key={tab.key} onClick={() => setActiveTab(tab.key)}
+                    className={`flex-1 px-4 py-2.5 text-xs font-semibold rounded-lg transition-all ${activeTab === tab.key ? 'bg-white text-emerald-700 shadow-sm' : 'text-gray-500 hover:text-gray-700'}`}>
+                    {tab.label}
                   </button>
-                )}
+                ))}
               </div>
-            )}
 
-            {displayResult.commonNames && displayResult.commonNames.length > 0 && (
-              <div className="mt-6 pt-6 border-t border-gray-200">
-                <h3 className="text-green-800 text-xl font-semibold mb-3">Common Names</h3>
-                <div className="flex flex-wrap gap-2">
-                  {displayResult.commonNames.map((name, index) => (
-                    <span key={index} className="inline-block px-4 py-2 bg-green-100 text-green-800 rounded-full text-sm">
-                      {name}
-                    </span>
-                  ))}
+              {/* Overview Tab */}
+              {activeTab === 'overview' && (
+                <>
+                  {displayResult.description && (
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                      <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+                        <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
+                        Description
+                      </h3>
+                      <p className="text-sm text-gray-600 leading-relaxed">{displayResult.description}</p>
+                    </div>
+                  )}
+                  {displayResult.medicinalUses?.length > 0 && (
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                      <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg>
+                        Medicinal Uses
+                      </h3>
+                      <div className="space-y-3">
+                        {displayResult.medicinalUses.map((use, i) => (
+                          <div key={i} className="flex items-start gap-3 p-3 bg-gray-50 rounded-xl">
+                            <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center flex-shrink-0 mt-0.5">
+                              <svg className="w-3.5 h-3.5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>
+                            </div>
+                            <span className="text-sm text-gray-700">{use}</span>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {displayResult.ayurvedicProperties && (
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                      <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M11.48 3.499a.562.562 0 011.04 0l2.125 5.111a.563.563 0 00.475.345l5.518.442c.499.04.701.663.321.988l-4.204 3.602a.563.563 0 00-.182.557l1.285 5.385a.562.562 0 01-.84.61l-4.725-2.885a.563.563 0 00-.586 0L6.982 20.54a.562.562 0 01-.84-.61l1.285-5.386a.562.562 0 00-.182-.557l-4.204-3.602a.563.563 0 01.321-.988l5.518-.442a.563.563 0 00.475-.345L11.48 3.5z" /></svg>
+                        Ayurvedic Properties
+                      </h3>
+                      <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                        {[
+                          { key: 'rasa', label: 'Rasa (Taste)', color: 'bg-amber-50 border-amber-100 text-amber-800' },
+                          { key: 'guna', label: 'Guna (Quality)', color: 'bg-blue-50 border-blue-100 text-blue-800' },
+                          { key: 'virya', label: 'Virya (Potency)', color: 'bg-red-50 border-red-100 text-red-800' },
+                          { key: 'vipaka', label: 'Vipaka (Post-digestive)', color: 'bg-purple-50 border-purple-100 text-purple-800' },
+                        ].map(({ key, label, color }) => displayResult.ayurvedicProperties[key] && (
+                          <div key={key} className={`p-4 rounded-xl border ${color}`}>
+                            <p className="text-[11px] font-bold tracking-widest uppercase opacity-60 mb-1">{label}</p>
+                            <p className="text-sm font-semibold">{displayResult.ayurvedicProperties[key]}</p>
+                          </div>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                  {displayResult.commonNames?.length > 0 && (
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                      <h3 className="text-base font-bold text-gray-900 mb-3 flex items-center gap-2">
+                        <svg className="w-5 h-5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.568 3H5.25A2.25 2.25 0 003 5.25v4.318c0 .597.237 1.17.659 1.591l9.581 9.581c.699.699 1.78.872 2.607.33a18.095 18.095 0 005.223-5.223c.542-.827.369-1.908-.33-2.607L11.16 3.66A2.25 2.25 0 009.568 3z" /><path strokeLinecap="round" strokeLinejoin="round" d="M6 6h.008v.008H6V6z" /></svg>
+                        Common Names
+                      </h3>
+                      <div className="flex flex-wrap gap-2">
+                        {displayResult.commonNames.map((name, i) => (
+                          <span key={i} className="px-3 py-1.5 bg-emerald-50 text-emerald-700 rounded-full text-xs font-medium border border-emerald-100">{name}</span>
+                        ))}
+                      </div>
+                    </div>
+                  )}
+                </>
+              )}
+
+              {/* Health Analysis Tab */}
+              {activeTab === 'health' && (healthData || displayHealthData) && (
+                <div className="flex flex-col gap-5">
+                  <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                    <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
+                      <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M21 8.25c0-2.485-2.099-4.5-4.688-4.5-1.935 0-3.597 1.126-4.312 2.733-.715-1.607-2.377-2.733-4.313-2.733C5.1 3.75 3 5.765 3 8.25c0 7.22 9 12 9 12s9-4.78 9-12z" /></svg>
+                      Personalized Safety Analysis
+                    </h3>
+
+                    {loadingAlerts && (
+                      <div className="flex items-center justify-center py-8 gap-3">
+                        <div className="w-5 h-5 border-2 border-emerald-600 border-t-transparent rounded-full animate-spin"></div>
+                        <span className="text-sm text-gray-500">Analyzing plant safety based on your health profile...</span>
+                      </div>
+                    )}
+
+                    {personalizedAlerts && !loadingAlerts && (
+                      <div className="space-y-4">
+                        {/* Critical Alerts */}
+                        {personalizedAlerts.criticalAlerts?.length > 0 && (
+                          <div className="bg-red-50 rounded-xl p-5 border border-red-200">
+                            <h4 className="text-sm font-bold text-red-800 mb-3 flex items-center gap-2">
+                              <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m0-10.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
+                              Critical Alerts
+                            </h4>
+                            {personalizedAlerts.criticalAlerts.map((alert, idx) => (
+                              <div key={idx} className="bg-white rounded-xl p-4 mb-3 last:mb-0 border-l-4 border-red-500">
+                                <h5 className="text-sm font-bold text-red-800 mb-1">{alert.title}</h5>
+                                <p className="text-xs text-gray-600 mb-2">{alert.description}</p>
+                                <div className="bg-red-50 rounded-lg p-2.5">
+                                  <p className="text-xs font-semibold text-red-700">Action Required: {alert.recommendation}</p>
+                                </div>
+                                {alert.reason && <p className="text-[11px] text-gray-400 mt-2 italic">Reason: {alert.reason}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* High Priority Warnings */}
+                        {personalizedAlerts.highPriorityWarnings?.length > 0 && (
+                          <div className="bg-amber-50 rounded-xl p-5 border border-amber-200">
+                            <h4 className="text-sm font-bold text-amber-800 mb-3 flex items-center gap-2">
+                              <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+                              High Priority Warnings
+                            </h4>
+                            {personalizedAlerts.highPriorityWarnings.map((w, idx) => (
+                              <div key={idx} className="bg-white rounded-xl p-4 mb-3 last:mb-0 border-l-4 border-amber-400">
+                                <h5 className="text-sm font-bold text-amber-800 mb-1">{w.title}</h5>
+                                <p className="text-xs text-gray-600 mb-2">{w.description}</p>
+                                {w.recommendation && <p className="text-xs text-amber-700 bg-amber-50 rounded-lg p-2">{w.recommendation}</p>}
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Drug Interactions */}
+                        {personalizedAlerts.drugInteractions?.length > 0 && (
+                          <div className="bg-purple-50 rounded-xl p-5 border border-purple-200">
+                            <h4 className="text-sm font-bold text-purple-800 mb-3 flex items-center gap-2">
+                              <svg className="w-5 h-5 text-purple-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.75 3.104v5.714a2.25 2.25 0 01-.659 1.591L5 14.5M9.75 3.104c-.251.023-.501.05-.75.082m.75-.082a24.301 24.301 0 014.5 0m0 0v5.714c0 .597.237 1.17.659 1.591L19.8 15.3M14.25 3.104c.251.023.501.05.75.082M19.8 15.3l-1.57.393A9.065 9.065 0 0112 15a9.065 9.065 0 00-6.23.693L5 14.5m14.8.8l1.402 1.402c1.232 1.232.65 3.318-1.067 3.611A48.309 48.309 0 0112 21c-2.773 0-5.491-.235-8.135-.687-1.718-.293-2.3-2.379-1.067-3.61L5 14.5" /></svg>
+                              Medication Interactions
+                            </h4>
+                            {personalizedAlerts.drugInteractions.map((inter, idx) => (
+                              <div key={idx} className="bg-white rounded-xl p-4 mb-3 last:mb-0">
+                                <div className="flex items-center justify-between mb-2">
+                                  <h5 className="text-sm font-bold text-purple-800">{inter.medication}</h5>
+                                  <span className={`px-2.5 py-1 rounded-full text-[11px] font-bold ${
+                                    inter.severity === 'severe' ? 'bg-red-100 text-red-700' : inter.severity === 'moderate' ? 'bg-amber-100 text-amber-700' : 'bg-yellow-100 text-yellow-700'
+                                  }`}>{inter.severity.toUpperCase()}</span>
+                                </div>
+                                <p className="text-xs text-gray-600 mb-2">{inter.interaction}</p>
+                                <p className="text-xs text-purple-700 bg-purple-50 rounded-lg p-2">{inter.advice}</p>
+                              </div>
+                            ))}
+                          </div>
+                        )}
+
+                        {/* Dosage Adjustments */}
+                        {personalizedAlerts.dosageAdjustments && (
+                          <div className="bg-blue-50 rounded-xl p-5 border border-blue-200">
+                            <h4 className="text-sm font-bold text-blue-800 mb-3 flex items-center gap-2">
+                              <svg className="w-5 h-5 text-blue-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M10.5 6h9.75M10.5 6a1.5 1.5 0 11-3 0m3 0a1.5 1.5 0 10-3 0M3.75 6H7.5m3 12h9.75m-9.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-3.75 0H7.5m9-6h3.75m-3.75 0a1.5 1.5 0 01-3 0m3 0a1.5 1.5 0 00-3 0m-9.75 0h9.75" /></svg>
+                              Dosage Recommendations
+                            </h4>
+                            <div className="bg-white rounded-xl p-4">
+                              <p className="text-sm text-gray-700 mb-3">{personalizedAlerts.dosageAdjustments.recommendation}</p>
+                              {personalizedAlerts.dosageAdjustments.specificGuidelines?.map((g, idx) => (
+                                <div key={idx} className="flex items-start gap-2.5 py-1.5">
+                                  <span className="w-5 h-5 rounded-full bg-blue-100 text-blue-700 text-[11px] font-bold flex items-center justify-center flex-shrink-0 mt-0.5">{idx + 1}</span>
+                                  <span className="text-xs text-gray-600">{g}</span>
+                                </div>
+                              ))}
+                            </div>
+                          </div>
+                        )}
+
+                        {personalizedAlerts.safetyStatus === 'safe' && (
+                          <div className="bg-emerald-50 rounded-xl p-4 border border-emerald-200 flex items-center gap-3">
+                            <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center flex-shrink-0">
+                              <svg className="w-5 h-5 text-emerald-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
+                            </div>
+                            <div>
+                              <h4 className="text-sm font-bold text-emerald-800">Generally Safe for Your Profile</h4>
+                              <p className="text-xs text-emerald-600 mt-0.5">Start with small doses and monitor for any reactions.</p>
+                            </div>
+                          </div>
+                        )}
+                      </div>
+                    )}
+                  </div>
+
+                  {/* Additional Health Context */}
+                  <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100 space-y-4">
+                    <h3 className="text-base font-bold text-gray-900 mb-2">Your Health Context</h3>
+
+                    {(healthData?.age || displayHealthData?.age) && (
+                      <div className="p-3 bg-gray-50 rounded-xl">
+                        <p className="text-[11px] font-bold tracking-widest uppercase text-gray-400 mb-1">Age Considerations</p>
+                        <p className="text-xs text-gray-600">
+                          {(healthData?.age || displayHealthData?.age) < 18 ? 'Pediatric use requires medical supervision. Dosage adjustments may be necessary.' :
+                           (healthData?.age || displayHealthData?.age) > 65 ? 'Elderly patients may have increased sensitivity. Start with lower doses.' :
+                           'Standard adult dosing applies. Follow recommended guidelines.'}
+                        </p>
+                      </div>
+                    )}
+                    {(healthData?.medications || displayHealthData?.medications)?.length > 0 && (
+                      <div className="p-3 bg-amber-50 rounded-xl border border-amber-100">
+                        <p className="text-[11px] font-bold tracking-widest uppercase text-amber-600 mb-1">Medication Check</p>
+                        <p className="text-xs text-gray-600 mb-2">Taking {(healthData?.medications || displayHealthData?.medications).length} medication(s):</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {(healthData?.medications || displayHealthData?.medications).map((med, i) => (
+                            <span key={i} className="px-2.5 py-1 bg-white text-amber-700 rounded-full text-[11px] font-medium border border-amber-200">{med}</span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                    {(healthData?.allergies || displayHealthData?.allergies)?.length > 0 && (
+                      <div className="p-3 bg-red-50 rounded-xl border border-red-100">
+                        <p className="text-[11px] font-bold tracking-widest uppercase text-red-600 mb-1">Allergy Alert</p>
+                        <p className="text-xs text-red-700">Cross-reactivity may occur with: {(healthData?.allergies || displayHealthData?.allergies).join(', ')}. Perform a patch test before full use.</p>
+                      </div>
+                    )}
+                    {((healthData?.isPregnant || displayHealthData?.isPregnant) || (healthData?.isBreastfeeding || displayHealthData?.isBreastfeeding)) && (
+                      <div className="p-3 bg-pink-50 rounded-xl border border-pink-200">
+                        <p className="text-[11px] font-bold tracking-widest uppercase text-pink-600 mb-1">
+                          {(healthData?.isPregnant || displayHealthData?.isPregnant) ? 'Pregnancy Alert' : 'Breastfeeding Alert'}
+                        </p>
+                        <p className="text-xs text-pink-700 font-medium">This plant may not be safe during {(healthData?.isPregnant || displayHealthData?.isPregnant) ? 'pregnancy' : 'breastfeeding'}. Consult your healthcare provider.</p>
+                      </div>
+                    )}
+                    {(healthData?.conditions || displayHealthData?.conditions)?.length > 0 && (
+                      <div className="p-3 bg-gray-50 rounded-xl">
+                        <p className="text-[11px] font-bold tracking-widest uppercase text-gray-400 mb-1">Health Conditions</p>
+                        <div className="flex flex-wrap gap-1.5 mb-1.5">
+                          {(healthData?.conditions || displayHealthData?.conditions).map((c, i) => (
+                            <span key={i} className="px-2.5 py-1 bg-white text-gray-600 rounded-full text-[11px] font-medium border border-gray-200">{c}</span>
+                          ))}
+                        </div>
+                        <p className="text-xs text-amber-600 font-medium">Special monitoring required. Consult specialist before use.</p>
+                      </div>
+                    )}
+                    <div className="p-3 bg-emerald-50 rounded-xl border border-emerald-100">
+                      <p className="text-xs text-emerald-700">This analysis is based on your health profile. Always consult a healthcare professional before using any medicinal plant.</p>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              {/* Safety Tab */}
+              {activeTab === 'safety' && (
+                <>
+                  {displayResult.warnings?.length > 0 && (
+                    <div className="bg-white rounded-2xl p-6 shadow-sm border border-gray-100">
+                      <h3 className="text-base font-bold text-gray-900 mb-4 flex items-center gap-2">
+                        <svg className="w-5 h-5 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+                        General Warnings & Precautions
+                      </h3>
+                      <div className="space-y-3">
+                        {displayResult.warnings.map((w, i) => (
+                          <div key={i} className="flex items-start gap-3 p-3 bg-amber-50 rounded-xl border border-amber-100">
+                            <svg className="w-4 h-4 text-amber-500 flex-shrink-0 mt-0.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg>
+                            <span className="text-sm text-amber-800">{w}</span>
+                          </div>
+                        ))}
+                      </div>
+                      {displayResult.plantId && (
+                        <button onClick={() => navigate(`/plant-safety/${displayResult.plantId}`)}
+                          className="w-full mt-5 px-4 py-2.5 text-sm font-semibold text-white bg-amber-600 rounded-xl hover:bg-amber-700 transition-colors flex items-center justify-center gap-2">
+                          <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75m-3-7.036A11.959 11.959 0 013.598 6 11.99 11.99 0 003 9.749c0 5.592 3.824 10.29 9 11.623 5.176-1.332 9-6.03 9-11.622 0-1.31-.21-2.571-.598-3.751h-.152c-3.196 0-6.1-1.248-8.25-3.285z" /></svg>
+                          View Complete Safety Information
+                        </button>
+                      )}
+                    </div>
+                  )}
+                </>
+              )}
+            </div>
+
+            {/* Right Sidebar */}
+            <div className="flex flex-col gap-5">
+              {displayImage && (
+                <div className="bg-white rounded-2xl p-3 shadow-sm border border-gray-100">
+                  <img src={displayImage} alt={displayResult.plantName} className="w-full h-auto rounded-xl" />
+                </div>
+              )}
+
+              {/* Actions */}
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 space-y-3">
+                <button onClick={handleSaveToHistory} disabled={saving || saved}
+                  className="w-full px-4 py-2.5 text-sm font-semibold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed flex items-center justify-center gap-2">
+                  {saved ? (<><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M4.5 12.75l6 6 9-13.5" /></svg>Saved!</>) : saving ? 'Saving...' : (<><svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M17.593 3.322c1.1.128 1.907 1.077 1.907 2.185V21L12 17.25 4.5 21V5.507c0-1.108.806-2.057 1.907-2.185a48.507 48.507 0 0111.186 0z" /></svg>Save to History</>)}
+                </button>
+                <button onClick={() => navigate('/plant-scan')}
+                  className="w-full px-4 py-2.5 text-sm font-semibold text-gray-700 bg-gray-100 rounded-xl hover:bg-gray-200 transition-colors flex items-center justify-center gap-2">
+                  <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M6.827 6.175A2.31 2.31 0 015.186 7.23c-.38.054-.757.112-1.134.175C2.999 7.58 2.25 8.507 2.25 9.574V18a2.25 2.25 0 002.25 2.25h15A2.25 2.25 0 0021.75 18V9.574c0-1.067-.75-1.994-1.802-2.169a47.865 47.865 0 00-1.134-.175 2.31 2.31 0 01-1.64-1.055l-.822-1.316a2.192 2.192 0 00-1.736-1.039 48.774 48.774 0 00-5.232 0 2.192 2.192 0 00-1.736 1.039l-.821 1.316z" /><path strokeLinecap="round" strokeLinejoin="round" d="M16.5 12.75a4.5 4.5 0 11-9 0 4.5 4.5 0 019 0z" /></svg>
+                  Scan Another Plant
+                </button>
+              </div>
+
+              {/* Quick Stats */}
+              <div className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100">
+                <h3 className="text-[11px] font-bold tracking-widest uppercase text-gray-400 mb-4">Quick Stats</h3>
+                <div className="space-y-3">
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-emerald-50 flex items-center justify-center"><svg className="w-4 h-4 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9 12.75L11.25 15 15 9.75M21 12a9 9 0 11-18 0 9 9 0 0118 0z" /></svg></div>
+                    <div><p className="text-[11px] text-gray-400 font-medium">Medicinal Uses</p><p className="text-xs font-semibold text-gray-800">{displayResult.medicinalUses?.length || 0}</p></div>
+                  </div>
+                  <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-amber-50 flex items-center justify-center"><svg className="w-4 h-4 text-amber-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m-9.303 3.376c-.866 1.5.217 3.374 1.948 3.374h14.71c1.73 0 2.813-1.874 1.948-3.374L13.949 3.378c-.866-1.5-3.032-1.5-3.898 0L2.697 16.126zM12 15.75h.007v.008H12v-.008z" /></svg></div>
+                    <div><p className="text-[11px] text-gray-400 font-medium">Warnings</p><p className="text-xs font-semibold text-gray-800">{displayResult.warnings?.length || 0}</p></div>
+                  </div>
                 </div>
               </div>
-            )}
+            </div>
           </div>
-
-          <div className="flex gap-4">
-            <button 
-              className="flex-1 px-8 py-3.5 text-base font-medium bg-green-600 text-white rounded-lg hover:bg-green-700 hover:-translate-y-0.5 hover:shadow-lg transition-all disabled:opacity-60 disabled:cursor-not-allowed"
-              onClick={handleSaveToHistory}
-              disabled={saving || saved}
-            >
-              {saved ? '✓ Saved!' : saving ? 'Saving...' : 'Save to History'}
-            </button>
-            <button 
-              className="flex-1 px-8 py-3.5 text-base font-medium bg-gray-100 text-gray-800 rounded-lg hover:bg-gray-200 transition-colors"
-              onClick={handleScanAnother}
-            >
-              Scan Another Plant
-            </button>
-          </div>
-        </div>
+        </section>
       </div>
-
-      {displayResult.similarPlants && displayResult.similarPlants.length > 0 && (
-        <div className="mt-12 p-8 bg-white rounded-xl shadow-lg">
-          <h3 className="text-green-800 text-2xl font-semibold mb-6">Similar Plants</h3>
-          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-            {displayResult.similarPlants.map((plant, index) => (
-              <PlantCard key={index} plant={plant} />
-            ))}
-          </div>
-        </div>
-      )}
-      </div>
-    </div>
     </>
   );
 };
