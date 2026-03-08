@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PlantNavbar from '../../components/plant-identification/PlantNavbar';
-import PlantCard from '../../components/plant-identification/PlantCard';
 import LoadingSpinner from '../../components/plant-identification/LoadingSpinner';
 import { getPlantHistory, deletePlantIdentification } from '../../services/plant-identification/plantApi';
 
@@ -9,7 +8,7 @@ const PlantHistory = () => {
   const [history, setHistory] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
-  const [filter, setFilter] = useState('all'); // all, recent, favorites
+  const [filter, setFilter] = useState('all');
   const [searchTerm, setSearchTerm] = useState('');
   const navigate = useNavigate();
 
@@ -57,20 +56,15 @@ const PlantHistory = () => {
   };
 
   const filteredHistory = history.filter(item => {
-    // Apply search filter
     const matchesSearch = item.plantName?.toLowerCase().includes(searchTerm.toLowerCase()) ||
                          item.scientificName?.toLowerCase().includes(searchTerm.toLowerCase());
-    
-    // Apply category filter
     if (filter === 'recent') {
       const oneDayAgo = new Date(Date.now() - 24 * 60 * 60 * 1000);
       return matchesSearch && new Date(item.identifiedAt) > oneDayAgo;
     }
-    
     if (filter === 'favorites') {
       return matchesSearch && item.isFavorite;
     }
-    
     return matchesSearch;
   });
 
@@ -80,190 +74,188 @@ const PlantHistory = () => {
     const diffInMs = now - date;
     const diffInHours = Math.floor(diffInMs / (1000 * 60 * 60));
     const diffInDays = Math.floor(diffInHours / 24);
-
     if (diffInHours < 1) return 'Just now';
     if (diffInHours < 24) return `${diffInHours} hours ago`;
     if (diffInDays === 1) return 'Yesterday';
     if (diffInDays < 7) return `${diffInDays} days ago`;
-    
-    return date.toLocaleDateString('en-US', { 
-      year: 'numeric', 
-      month: 'short', 
-      day: 'numeric' 
-    });
+    return date.toLocaleDateString('en-US', { year: 'numeric', month: 'short', day: 'numeric' });
   };
 
   if (loading) {
     return <LoadingSpinner message="Loading your plant history..." />;
   }
 
+  const filters = [
+    { key: 'all', label: 'All' },
+    { key: 'recent', label: 'Recent' },
+    { key: 'favorites', label: 'Favorites' },
+  ];
+
   return (
     <>
       <PlantNavbar />
-      <div className="min-h-screen bg-gradient-to-br from-green-50 via-emerald-50 to-white">
-      {/* Background Decorations */}
-      <div className="pointer-events-none">
-        <div className="absolute -top-16 -left-10 w-72 h-72 bg-green-200 rounded-full blur-3xl opacity-40" />
-        <div className="absolute bottom-0 right-0 w-96 h-96 bg-emerald-200 rounded-full blur-3xl opacity-40" />
-      </div>
 
-      <div className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 py-12">
-        <div className="text-center mb-12">
-          <div className="inline-flex items-center gap-2 px-4 py-2 rounded-full bg-green-100 text-green-700 text-xs font-semibold mb-4">
-            <span>📚 Your Plant Journey</span>
+      <div className="min-h-screen bg-gradient-to-b from-[#f0fdf4] via-white to-[#f0fdf4]">
+        <section className="relative max-w-6xl mx-auto px-4 sm:px-6 lg:px-8 pt-14 pb-16">
+          {/* Header */}
+          <div className="text-center mb-10">
+            <p className="inline-block text-xs font-semibold tracking-widest uppercase text-emerald-600 bg-emerald-50 px-4 py-1.5 rounded-full mb-4">
+              Your Plant Journey
+            </p>
+            <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight">
+              Plant <span className="text-emerald-600">History</span>
+            </h1>
+            <p className="mt-3 text-base sm:text-lg text-gray-500 max-w-xl mx-auto">
+              View and manage your previously identified plants
+            </p>
           </div>
-          <h1 className="text-4xl md:text-5xl lg:text-6xl font-bold text-gray-900 leading-tight mb-4">
-            <span className="bg-gradient-to-r from-green-600 to-emerald-600 bg-clip-text text-transparent">
-              Plant History
-            </span>
-          </h1>
-          <p className="text-lg md:text-xl text-gray-600 leading-relaxed max-w-2xl mx-auto">
-            View and manage your previously identified plants
-          </p>
-        </div>
 
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 mb-8">
-        <button 
-          className="group inline-flex items-center gap-2 px-6 py-3 text-sm font-semibold text-green-800 bg-white border-2 border-green-300 rounded-full shadow-[0_8px_24px_rgba(16,185,129,0.12)] hover:bg-green-50 hover:border-green-500 transition-all hover:-translate-y-0.5 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-          onClick={() => navigate('/plant-scan')}
-        >
-          <span className="flex items-center justify-center w-8 h-8 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 text-white text-base shadow-inner">+</span>
-          <span className="leading-tight">
-            <span className="block">Identify New Plant</span>
-            <span className="block text-[11px] font-normal text-green-700/80">Scan or upload a photo</span>
-          </span>
-        </button>
-      </div>
-
-      <div className="flex flex-col lg:flex-row justify-between items-stretch lg:items-center gap-4 mb-8 bg-white p-6 rounded-2xl shadow-xl border-2 border-green-100">
-        <div className="relative flex-1 max-w-md">
-          <input
-            type="text"
-            placeholder="Search by plant name..."
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-            className="w-full px-4 pr-10 py-3 border-2 border-gray-200 rounded-lg text-base focus:outline-none focus:border-green-600 transition-colors"
-          />
-          <span className="absolute right-4 top-1/2 -translate-y-1/2 pointer-events-none">🔍</span>
-        </div>
-
-        <div className="flex gap-2">
-          <button 
-            className={`px-4 py-2 border-2 rounded-lg text-sm font-medium transition-all ${
-              filter === 'all' 
-                ? 'bg-green-600 text-white border-green-600' 
-                : 'bg-white border-gray-200 hover:bg-gray-50'
-            }`}
-            onClick={() => setFilter('all')}
-          >
-            All
-          </button>
-          <button 
-            className={`px-4 py-2 border-2 rounded-lg text-sm font-medium transition-all ${
-              filter === 'recent' 
-                ? 'bg-green-600 text-white border-green-600' 
-                : 'bg-white border-gray-200 hover:bg-gray-50'
-            }`}
-            onClick={() => setFilter('recent')}
-          >
-            Recent
-          </button>
-          <button 
-            className={`px-4 py-2 border-2 rounded-lg text-sm font-medium transition-all ${
-              filter === 'favorites' 
-                ? 'bg-green-600 text-white border-green-600' 
-                : 'bg-white border-gray-200 hover:bg-gray-50'
-            }`}
-            onClick={() => setFilter('favorites')}
-          >
-            Favorites
-          </button>
-        </div>
-      </div>
-
-      {error && (
-        <div className="flex items-center justify-center gap-4 px-8 py-6 bg-red-50 text-red-700 rounded-xl mb-8">
-          <span className="text-xl">⚠️</span>
-          <span className="flex-1">{error}</span>
-          <button onClick={fetchHistory} className="px-4 py-2 bg-white border border-red-700 rounded-lg text-red-700 font-medium hover:bg-red-50">
-            Retry
-          </button>
-        </div>
-      )}
-
-      {filteredHistory.length === 0 ? (
-        <div className="text-center py-16 px-8 bg-white rounded-xl shadow-lg">
-          <div className="text-8xl mb-4">🌿</div>
-          <h2 className="text-green-800 text-3xl font-bold mb-2">No plants identified yet</h2>
-          <p className="text-gray-600 text-lg mb-8">Start by scanning your first plant!</p>
-          <button 
-            className="group inline-flex items-center gap-2 px-8 py-3.5 text-base font-semibold text-green-800 bg-white border-2 border-green-300 rounded-full shadow-[0_10px_30px_rgba(16,185,129,0.15)] hover:bg-green-50 hover:border-green-500 hover:-translate-y-0.5 hover:shadow-lg transition-all focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-green-600"
-            onClick={() => navigate('/plant-scan')}
-          >
-            <span className="flex items-center justify-center w-9 h-9 rounded-full bg-gradient-to-br from-green-500 to-emerald-600 text-white text-lg shadow-inner">🌿</span>
-            <span>Identify a Plant</span>
-          </button>
-        </div>
-      ) : (
-        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 mb-8">
-          {filteredHistory.map((item) => (
-            <div key={item._id} className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col">
-              <div className="relative w-full h-48 overflow-hidden">
-                <img src={item.image} alt={item.plantName} className="w-full h-full object-cover" />
-
-              </div>
-              
-              <div className="p-5 flex-1">
-                <h3 className="text-green-800 text-xl font-semibold mb-2">{item.plantName}</h3>
-                {item.scientificName && (
-                  <p className="text-gray-500 text-sm mb-3">
-                    <em>{item.scientificName}</em>
-                  </p>
-                )}
-                
-                <div className="flex items-center gap-2 mb-3">
-                  <span className="text-gray-400 text-sm">
-                    📅 {formatDate(item.identifiedAt)}
-                  </span>
-                </div>
-
-                {item.medicinalUses && item.medicinalUses.length > 0 && (
-                  <div className="mt-2">
-                    <span className="inline-block px-3 py-1.5 bg-green-100 text-green-800 rounded-xl text-sm">
-                      💊 {item.medicinalUses.length} medicinal uses
-                    </span>
-                  </div>
-                )}
+          {/* Toolbar */}
+          <div className="bg-white rounded-2xl shadow-sm border border-gray-100 p-5 mb-8">
+            <div className="flex flex-col lg:flex-row items-stretch lg:items-center gap-4">
+              {/* Search */}
+              <div className="flex-1 flex items-center gap-3 bg-gray-50 rounded-xl px-4 py-2.5">
+                <svg className="w-[18px] h-[18px] text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                </svg>
+                <input
+                  type="text"
+                  placeholder="Search by plant name..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="flex-1 bg-transparent text-sm text-gray-800 placeholder:text-gray-400 outline-none"
+                />
               </div>
 
-              <div className="flex justify-end gap-2 p-5 pt-0 border-t border-gray-100">
-                <button 
-                  className="p-2 text-xl bg-transparent rounded-lg hover:bg-gray-100 transition-colors"
-                  onClick={() => handleViewDetails(item)}
-                  title="View Details"
-                >
-                  👁️
-                </button>
-                <button 
-                  className="p-2 text-xl bg-transparent rounded-lg hover:bg-red-50 transition-colors"
-                  onClick={() => handleDelete(item._id)}
-                  title="Delete"
-                >
-                  🗑️
-                </button>
+              {/* Filters */}
+              <div className="flex gap-1 p-1 bg-gray-100 rounded-xl">
+                {filters.map((f) => (
+                  <button
+                    key={f.key}
+                    onClick={() => setFilter(f.key)}
+                    className={`px-4 py-2 text-xs font-semibold rounded-lg transition-all ${
+                      filter === f.key
+                        ? 'bg-white text-emerald-700 shadow-sm'
+                        : 'text-gray-500 hover:text-gray-700'
+                    }`}
+                  >
+                    {f.label}
+                  </button>
+                ))}
               </div>
+
+              {/* New Scan */}
+              <button
+                onClick={() => navigate('/plant-scan')}
+                className="flex items-center justify-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors shadow-sm"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" />
+                </svg>
+                Identify New Plant
+              </button>
             </div>
-          ))}
-        </div>
-      )}
+          </div>
 
-      {filteredHistory.length > 0 && (
-        <div className="text-center p-6 bg-white rounded-xl shadow-lg">
-          <p className="text-gray-600 text-sm">Showing {filteredHistory.length} of {history.length} identifications</p>
-        </div>
-      )}
+          {/* Error */}
+          {error && (
+            <div className="bg-white rounded-2xl p-5 shadow-sm border border-red-100 mb-8 flex items-center gap-4">
+              <div className="w-10 h-10 rounded-xl bg-red-50 flex items-center justify-center flex-shrink-0">
+                <svg className="w-5 h-5 text-red-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" />
+                </svg>
+              </div>
+              <p className="flex-1 text-sm text-red-700">{error}</p>
+              <button onClick={fetchHistory} className="px-4 py-2 text-xs font-semibold text-red-700 bg-red-50 rounded-lg hover:bg-red-100 transition-colors">
+                Retry
+              </button>
+            </div>
+          )}
+
+          {/* Empty State */}
+          {filteredHistory.length === 0 ? (
+            <div className="bg-white rounded-2xl p-12 shadow-sm border border-gray-100 text-center">
+              <div className="w-16 h-16 mx-auto mb-5 rounded-full bg-emerald-50 flex items-center justify-center">
+                <svg className="w-8 h-8 text-emerald-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z" />
+                </svg>
+              </div>
+              <h2 className="text-xl font-bold text-gray-900 mb-2">No plants identified yet</h2>
+              <p className="text-sm text-gray-500 mb-6">Start by scanning your first medicinal plant</p>
+              <button
+                onClick={() => navigate('/plant-scan')}
+                className="px-6 py-2.5 text-sm font-semibold text-white bg-emerald-600 rounded-full hover:bg-emerald-700 transition-colors"
+              >
+                Identify a Plant
+              </button>
+            </div>
+          ) : (
+            <>
+              {/* Plant Grid */}
+              <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5 mb-8">
+                {filteredHistory.map((item) => (
+                  <div key={item._id} className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-lg hover:border-emerald-100 transition-all flex flex-col group">
+                    {/* Image */}
+                    <div className="relative w-full h-44 overflow-hidden bg-gray-50">
+                      <img src={item.image} alt={item.plantName} className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300" />
+                    </div>
+
+                    {/* Content */}
+                    <div className="p-5 flex-1 flex flex-col">
+                      <h3 className="text-base font-bold text-gray-900 mb-0.5">{item.plantName}</h3>
+                      {item.scientificName && (
+                        <p className="text-xs text-gray-400 italic mb-3">{item.scientificName}</p>
+                      )}
+
+                      <div className="flex items-center gap-1.5 text-xs text-gray-400 mb-3">
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M6.75 3v2.25M17.25 3v2.25M3 18.75V7.5a2.25 2.25 0 012.25-2.25h13.5A2.25 2.25 0 0121 7.5v11.25m-18 0A2.25 2.25 0 005.25 21h13.5A2.25 2.25 0 0021 18.75m-18 0v-7.5A2.25 2.25 0 015.25 9h13.5A2.25 2.25 0 0121 11.25v7.5" />
+                        </svg>
+                        {formatDate(item.identifiedAt)}
+                      </div>
+
+                      {item.medicinalUses && item.medicinalUses.length > 0 && (
+                        <span className="inline-block w-fit px-2.5 py-1 bg-emerald-50 text-emerald-700 rounded-full text-[11px] font-medium mb-3">
+                          {item.medicinalUses.length} medicinal uses
+                        </span>
+                      )}
+
+                      <div className="mt-auto pt-3 border-t border-gray-50 flex justify-end gap-1.5">
+                        <button
+                          onClick={() => handleViewDetails(item)}
+                          title="View Details"
+                          className="p-2 rounded-lg text-gray-400 hover:text-emerald-600 hover:bg-emerald-50 transition-colors"
+                        >
+                          <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M2.036 12.322a1.012 1.012 0 010-.639C3.423 7.51 7.36 4.5 12 4.5c4.638 0 8.573 3.007 9.963 7.178.07.207.07.431 0 .639C20.577 16.49 16.64 19.5 12 19.5c-4.638 0-8.573-3.007-9.963-7.178z" />
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                          </svg>
+                        </button>
+                        <button
+                          onClick={() => handleDelete(item._id)}
+                          title="Delete"
+                          className="p-2 rounded-lg text-gray-400 hover:text-red-500 hover:bg-red-50 transition-colors"
+                        >
+                          <svg className="w-[18px] h-[18px]" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                            <path strokeLinecap="round" strokeLinejoin="round" d="M14.74 9l-.346 9m-4.788 0L9.26 9m9.968-3.21c.342.052.682.107 1.022.166m-1.022-.165L18.16 19.673a2.25 2.25 0 01-2.244 2.077H8.084a2.25 2.25 0 01-2.244-2.077L4.772 5.79m14.456 0a48.108 48.108 0 00-3.478-.397m-12 .562c.34-.059.68-.114 1.022-.165m0 0a48.11 48.11 0 013.478-.397m7.5 0v-.916c0-1.18-.91-2.164-2.09-2.201a51.964 51.964 0 00-3.32 0c-1.18.037-2.09 1.022-2.09 2.201v.916m7.5 0a48.667 48.667 0 00-7.5 0" />
+                          </svg>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                ))}
+              </div>
+
+              {/* Count */}
+              <div className="text-center">
+                <p className="text-xs text-gray-400">
+                  Showing {filteredHistory.length} of {history.length} identifications
+                </p>
+              </div>
+            </>
+          )}
+        </section>
       </div>
-    </div>
     </>
   );
 };
