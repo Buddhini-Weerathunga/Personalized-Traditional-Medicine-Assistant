@@ -5,306 +5,175 @@ import PlantNavbar from '../../components/plant-identification/PlantNavbar';
 import PlantCard from '../../components/plant-identification/PlantCard';
 import { savePlantIdentification } from '../../services/plant-identification/plantApi';
 
-// Comprehensive plant database for all 8 plants
+// Comprehensive plant database for the 5 identifiable plants
 const PLANT_DATABASE = {
-  'Amla': {
-    plantId: 'amla-001',
-    plantName: 'Amla',
-    scientificName: 'Phyllanthus emblica',
-    description: 'Amla, also known as Indian Gooseberry, is one of the most important plants in Ayurvedic medicine. It is a small to medium-sized deciduous tree native to India. The fruit is highly nutritious and is one of the richest natural sources of Vitamin C. Amla has been used for thousands of years in traditional medicine for its rejuvenating and healing properties.',
+  'Aloevera': {
+    plantId: 'aloevera-001',
+    plantName: 'Aloe Vera',
+    scientificName: 'Aloe barbadensis miller',
+    description: 'Aloe Vera is a succulent plant species from the genus Aloe. The gel inside its thick, fleshy leaves has been used for thousands of years in Ayurvedic and traditional medicine for skin care, wound healing, and digestive health.',
     medicinalUses: [
-      'Rich source of Vitamin C - boosts immunity and fights infections',
-      'Promotes healthy hair growth and prevents premature graying',
-      'Improves digestion and relieves constipation',
-      'Helps manage diabetes by regulating blood sugar levels',
-      'Anti-aging properties - rejuvenates skin and promotes collagen production',
-      'Supports heart health and reduces cholesterol',
-      'Enhances memory and cognitive function',
-      'Detoxifies the body and purifies blood'
+      'Soothes burns, sunburns, and skin irritations',
+      'Promotes wound healing and tissue repair',
+      'Supports digestive health and relieves constipation',
+      'Moisturizes and rejuvenates skin naturally',
+      'Helps manage blood sugar levels',
+      'Boosts immunity with antioxidant compounds',
+      'Reduces dental plaque and oral infections',
+      'Anti-inflammatory properties for joint pain relief'
     ],
     ayurvedicProperties: {
-      rasa: 'Sour, Sweet, Pungent, Bitter, Astringent (5 of 6 tastes)',
-      guna: 'Light (Laghu), Dry (Ruksha)',
+      rasa: 'Bitter (Tikta), Sweet (Madhura)',
+      guna: 'Heavy (Guru), Unctuous (Snigdha)',
       virya: 'Cooling (Sheeta)',
       vipaka: 'Sweet (Madhura)'
     },
-    doshaEffect: 'Balances all three doshas (Vata, Pitta, Kapha) - Tridoshahara',
-    partsUsed: ['Fruit', 'Seed', 'Leaves', 'Bark', 'Root'],
+    doshaEffect: 'Balances Pitta and Kapha doshas',
+    partsUsed: ['Leaf gel', 'Leaf latex', 'Whole leaf'],
     preparationMethods: [
-      'Fresh fruit juice',
-      'Dried powder (Churna)',
-      'Amla pickle (Achar)',
-      'Amla candy (Murabba)',
-      'Hair oil infusion',
-      'Chyawanprash ingredient'
+      'Fresh gel applied topically for skin conditions',
+      'Aloe juice for internal digestive support',
+      'Gel mixed with turmeric for wound healing',
+      'Aloe pulp blended into smoothies',
+      'Dried powder (Kumari Churna) for supplements'
     ],
     warnings: [
-      'May lower blood sugar - diabetics should monitor levels',
-      'Can increase bleeding risk if taken with blood thinners',
-      'May cause acidity in some people when consumed on empty stomach',
-      'Pregnant women should consult doctor before use'
+      'Aloe latex may cause cramping and diarrhea',
+      'Not recommended internally during pregnancy',
+      'May interact with diabetes and heart medications',
+      'Topical use may cause sensitivity in some individuals'
     ],
-    commonNames: ['Indian Gooseberry', 'Amalaki', 'Dhatri', 'Nelli', 'Amla']
+    commonNames: ['Kumari', 'Ghritkumari', 'Kathalai', 'Komarika']
   },
-  'Betel': {
-    plantId: 'betel-001',
-    plantName: 'Betel',
-    scientificName: 'Piper betle',
-    description: 'Betel is a vine belonging to the Piperaceae family, native to South and Southeast Asia. The heart-shaped leaves have been used for thousands of years in traditional medicine and cultural practices. Betel leaves are known for their strong aromatic flavor and numerous medicinal properties. They are commonly chewed with areca nut in many Asian cultures.',
+  'Cinnamon': {
+    plantId: 'cinnamon-001',
+    plantName: 'Cinnamon',
+    scientificName: 'Cinnamomum verum',
+    description: 'Cinnamon is a spice obtained from the inner bark of trees from the genus Cinnamomum. Known as "Tvak" in Ayurveda, it has been used for over 4,000 years as a culinary spice and a powerful medicinal herb.',
     medicinalUses: [
-      'Natural antiseptic - heals wounds and prevents infections',
-      'Relieves cough and respiratory problems',
-      'Improves oral health and freshens breath',
-      'Aids digestion and relieves gastric problems',
-      'Reduces inflammation and pain',
-      'Helps control diabetes',
-      'Treats headaches when applied as paste',
-      'Supports wound healing and skin health'
+      'Regulates blood sugar levels and improves insulin sensitivity',
+      'Powerful anti-inflammatory and antioxidant properties',
+      'Supports cardiovascular health and reduces cholesterol',
+      'Aids digestion and relieves bloating',
+      'Natural antimicrobial — fights bacterial and fungal infections',
+      'Improves brain function and cognitive performance',
+      'Helps relieve respiratory conditions and cold symptoms',
+      'Supports oral health and freshens breath'
     ],
     ayurvedicProperties: {
-      rasa: 'Pungent (Katu), Bitter (Tikta)',
-      guna: 'Light (Laghu), Sharp (Tikshna)',
-      virya: 'Heating (Ushna)',
-      vipaka: 'Pungent (Katu)'
-    },
-    doshaEffect: 'Balances Kapha and Vata, may increase Pitta in excess',
-    partsUsed: ['Leaves', 'Stem', 'Root'],
-    preparationMethods: [
-      'Fresh leaf chewing',
-      'Leaf juice extract',
-      'Poultice for wounds',
-      'Oil infusion',
-      'Decoction for gargling'
-    ],
-    warnings: [
-      'Excessive chewing may cause oral cancer risk',
-      'May interact with certain medications',
-      'Not recommended during pregnancy',
-      'Can cause mouth irritation in sensitive individuals',
-      'Avoid combining with tobacco products'
-    ],
-    commonNames: ['Paan', 'Vetrilai', 'Nagavalli', 'Tambula', 'Betel Leaf']
-  },
-  'Ginger': {
-    plantId: 'ginger-001',
-    plantName: 'Ginger',
-    scientificName: 'Zingiber officinale',
-    description: 'Ginger is a flowering plant whose rhizome (underground stem) is widely used as a spice and medicine. Native to Southeast Asia, it has been used for over 5,000 years in Ayurvedic and Chinese medicine. Ginger contains bioactive compounds like gingerol that provide powerful anti-inflammatory and antioxidant effects. It is considered a universal medicine in Ayurveda.',
-    medicinalUses: [
-      'Relieves nausea and motion sickness',
-      'Reduces muscle pain and soreness',
-      'Anti-inflammatory - helps with arthritis and joint pain',
-      'Aids digestion and reduces bloating',
-      'Lowers blood sugar levels',
-      'Reduces menstrual pain',
-      'Fights infections - antibacterial and antiviral',
-      'Improves brain function and memory',
-      'Helps reduce cholesterol levels'
-    ],
-    ayurvedicProperties: {
-      rasa: 'Pungent (Katu)',
-      guna: 'Light (Laghu), Oily (Snigdha)',
+      rasa: 'Pungent (Katu), Sweet (Madhura)',
+      guna: 'Light (Laghu), Dry (Ruksha), Sharp (Tikshna)',
       virya: 'Heating (Ushna)',
       vipaka: 'Sweet (Madhura)'
     },
     doshaEffect: 'Balances Vata and Kapha, may increase Pitta in excess',
-    partsUsed: ['Rhizome (Root)', 'Fresh ginger', 'Dried ginger (Sonth)'],
+    partsUsed: ['Inner bark', 'Leaves', 'Essential oil', 'Bark powder'],
     preparationMethods: [
-      'Fresh ginger tea',
-      'Dried powder in food',
-      'Ginger juice with honey',
-      'Ginger paste for external application',
-      'Pickled ginger',
-      'Ginger oil'
+      'Cinnamon tea or decoction with honey',
+      'Powdered bark in warm milk (golden milk)',
+      'Essential oil for aromatherapy',
+      'Bark infusion for digestive remedy',
+      'Cinnamon water for blood sugar management'
     ],
     warnings: [
-      'May increase bleeding risk with blood thinners',
-      'Can cause heartburn in some people',
-      'High doses may lower blood sugar too much',
-      'May interact with heart medications',
-      'Avoid large amounts during pregnancy'
+      'Cassia cinnamon contains high coumarin — prefer Ceylon variety',
+      'May lower blood sugar excessively with diabetes medications',
+      'Avoid large medicinal doses during pregnancy',
+      'Can cause mouth sores or allergic reactions in sensitive individuals'
     ],
-    commonNames: ['Adrak', 'Shunti', 'Sonth', 'Inji', 'Ale']
+    commonNames: ['Tvak', 'Dalchini', 'Pattai', 'Lavanga Pattai']
   },
-  'Guava': {
-    plantId: 'guava-001',
-    plantName: 'Guava',
-    scientificName: 'Psidium guajava',
-    description: 'Guava is a tropical fruit tree native to Central America and now grown throughout tropical and subtropical regions. Both the fruit and leaves have significant medicinal value in traditional medicine. Guava leaves are particularly valued in Ayurveda for their therapeutic properties. The plant is rich in vitamins, antioxidants, and bioactive compounds.',
+  'Hathawariya': {
+    plantId: 'hathawariya-001',
+    plantName: 'Hathawariya',
+    scientificName: 'Asparagus racemosus',
+    description: 'Hathawariya, also known as Shatavari, is one of the most important herbs in Ayurvedic medicine, revered as the "Queen of Herbs." It is a powerful adaptogen and rejuvenative tonic, particularly valued for reproductive health.',
     medicinalUses: [
-      'Controls diabetes - leaves lower blood glucose levels',
-      'Treats diarrhea and dysentery',
-      'Rich in Vitamin C - boosts immunity',
-      'Promotes weight loss',
-      'Improves heart health and lowers cholesterol',
-      'Helps with menstrual cramps',
-      'Anticancer properties',
-      'Improves skin health and reduces acne',
-      'Supports digestive health'
+      'Premier female reproductive tonic — supports fertility and hormonal balance',
+      'Powerful adaptogen that helps the body cope with stress',
+      'Boosts immunity and strengthens the immune system',
+      'Improves digestive health and heals gastric ulcers',
+      'Galactagogue — promotes lactation in nursing mothers',
+      'Anti-aging and rejuvenative properties (Rasayana)',
+      'Supports urinary tract health',
+      'Nourishes and strengthens the nervous system'
     ],
     ayurvedicProperties: {
-      rasa: 'Sweet (Madhura), Astringent (Kashaya)',
-      guna: 'Light (Laghu), Dry (Ruksha)',
+      rasa: 'Sweet (Madhura), Bitter (Tikta)',
+      guna: 'Heavy (Guru), Unctuous (Snigdha)',
       virya: 'Cooling (Sheeta)',
       vipaka: 'Sweet (Madhura)'
     },
-    doshaEffect: 'Balances Pitta and Kapha, may increase Vata',
-    partsUsed: ['Leaves', 'Fruit', 'Bark', 'Root'],
+    doshaEffect: 'Balances Vata and Pitta doshas',
+    partsUsed: ['Tuberous roots', 'Leaves', 'Whole plant'],
     preparationMethods: [
-      'Fresh fruit consumption',
-      'Leaf tea/decoction',
-      'Leaf paste for wounds',
-      'Bark decoction for diarrhea',
-      'Juice'
+      'Root powder mixed with warm milk and honey',
+      'Shatavari Ghrita (medicated ghee preparation)',
+      'Decoction of dried roots for digestive support',
+      'Root powder capsules as daily supplement',
+      'Fresh root juice for reproductive health'
     ],
     warnings: [
-      'May lower blood sugar - diabetics should monitor',
-      'Excess consumption may cause constipation',
-      'Unripe fruit may cause digestive issues',
-      'May interact with diabetes medications'
+      'Avoid if allergic to asparagus family plants',
+      'Consult physician if on hormonal medications',
+      'May cause weight gain due to nourishing quality',
+      'Not recommended during active respiratory congestion'
     ],
-    commonNames: ['Amrood', 'Peru', 'Jamphal', 'Koiyya', 'Goiaba']
-  },
-  'Neem': {
-    plantId: 'neem-001',
-    plantName: 'Neem',
-    scientificName: 'Azadirachta indica',
-    description: 'Neem is an evergreen tree native to the Indian subcontinent and has been called the "village pharmacy" due to its wide-ranging medicinal properties. Every part of the neem tree has therapeutic value. It has been used in Ayurveda for over 4,000 years. Neem is known for its powerful antibacterial, antifungal, and blood-purifying properties.',
-    medicinalUses: [
-      'Powerful blood purifier and detoxifier',
-      'Treats skin diseases - acne, eczema, psoriasis',
-      'Natural pesticide and insect repellent',
-      'Dental care - prevents gum disease and cavities',
-      'Controls diabetes and blood sugar',
-      'Boosts immunity',
-      'Treats fungal infections',
-      'Helps with malaria and fever',
-      'Promotes hair health and treats dandruff'
-    ],
-    ayurvedicProperties: {
-      rasa: 'Bitter (Tikta), Astringent (Kashaya)',
-      guna: 'Light (Laghu), Dry (Ruksha)',
-      virya: 'Cooling (Sheeta)',
-      vipaka: 'Pungent (Katu)'
-    },
-    doshaEffect: 'Balances Pitta and Kapha, may increase Vata',
-    partsUsed: ['Leaves', 'Bark', 'Seeds', 'Oil', 'Flowers', 'Root'],
-    preparationMethods: [
-      'Leaf juice or paste',
-      'Neem oil for skin and hair',
-      'Neem water bath',
-      'Neem bark decoction',
-      'Neem capsules/tablets',
-      'Neem toothpaste'
-    ],
-    warnings: [
-      'Not safe during pregnancy - may cause miscarriage',
-      'Not recommended for infants and young children',
-      'May lower blood sugar significantly',
-      'Can affect fertility - avoid if trying to conceive',
-      'May interact with diabetes and immunosuppressant drugs'
-    ],
-    commonNames: ['Nimba', 'Margosa', 'Vembu', 'Vepa', 'Indian Lilac']
+    commonNames: ['Shatavari', 'Satamuli', 'Kilavari', 'Shatmuli']
   },
   'Papaya': {
     plantId: 'papaya-001',
     plantName: 'Papaya',
     scientificName: 'Carica papaya',
-    description: 'Papaya is a tropical fruit tree native to Central America and now cultivated worldwide. Both the fruit and leaves have extensive medicinal uses in traditional medicine. Papaya leaves are particularly known for their ability to increase platelet count. The fruit contains papain, a powerful digestive enzyme used in medicine and food industry.',
+    description: 'Papaya is a tropical fruit-bearing plant native to Central America, now cultivated worldwide. Every part of the papaya plant has therapeutic applications in traditional medicine. The fruit is rich in papain, a powerful digestive enzyme.',
     medicinalUses: [
-      'Increases platelet count - used in dengue treatment',
-      'Excellent digestive aid due to papain enzyme',
-      'Rich in Vitamin C and antioxidants',
-      'Supports heart health',
-      'Anti-inflammatory properties',
-      'Promotes wound healing',
-      'Helps with menstrual pain regulation',
-      'Supports skin health and reduces wrinkles',
-      'May have anticancer properties'
+      'Increases platelet count — widely used in dengue treatment',
+      'Excellent digestive aid due to the enzyme papain',
+      'Rich in Vitamin C and antioxidants for immune support',
+      'Anti-inflammatory properties reduce swelling and pain',
+      'Promotes wound healing and skin health',
+      'Supports cardiovascular health and reduces cholesterol',
+      'Anti-parasitic — seeds help eliminate intestinal worms',
+      'Leaf extract supports liver health and detoxification'
     ],
     ayurvedicProperties: {
-      rasa: 'Sweet (Madhura), Slightly Pungent',
+      rasa: 'Sweet (Madhura), slightly Pungent (Katu)',
       guna: 'Light (Laghu), Soft (Mridu)',
       virya: 'Heating (Ushna)',
       vipaka: 'Sweet (Madhura)'
     },
-    doshaEffect: 'Balances Vata and Kapha, may increase Pitta',
-    partsUsed: ['Fruit', 'Leaves', 'Seeds', 'Latex', 'Root'],
+    doshaEffect: 'Balances Vata and Kapha, may slightly increase Pitta',
+    partsUsed: ['Ripe fruit', 'Unripe fruit', 'Leaves', 'Seeds', 'Latex'],
     preparationMethods: [
-      'Fresh ripe fruit',
-      'Leaf juice/extract for platelets',
-      'Green papaya salad',
-      'Papaya enzyme supplements',
-      'Seed powder',
-      'Leaf tea'
+      'Fresh ripe fruit consumed directly for nutrition',
+      'Leaf juice extract for boosting platelet count',
+      'Papaya enzyme supplements for digestion',
+      'Seed powder as anti-parasitic remedy',
+      'Leaf tea for liver support'
     ],
     warnings: [
-      'AVOID during pregnancy - may cause miscarriage',
-      'Unripe papaya contains latex - can cause allergic reactions',
-      'May interact with blood thinning medications',
-      'Seeds may affect male fertility in high doses',
-      'People with latex allergy should avoid'
+      'Unripe papaya must be AVOIDED during pregnancy',
+      'Papaya latex can cause allergic reactions',
+      'May interact with blood-thinning medications',
+      'Seeds in high doses may affect male fertility'
     ],
-    commonNames: ['Papita', 'Pappali', 'Boppayi', 'Erandakarkati', 'Pawpaw']
-  },
-  'Tulsi': {
-    plantId: 'tulsi-001',
-    plantName: 'Tulsi',
-    scientificName: 'Ocimum tenuiflorum',
-    description: 'Tulsi, also known as Holy Basil, is one of the most sacred plants in India and is called the "Queen of Herbs" in Ayurveda. It is an aromatic perennial plant native to the Indian subcontinent. Tulsi has been used for thousands of years for its remarkable healing properties. It is considered an adaptogen that helps the body cope with stress and promotes longevity.',
-    medicinalUses: [
-      'Powerful adaptogen - reduces stress and anxiety',
-      'Boosts immunity and fights infections',
-      'Treats respiratory disorders - cough, cold, asthma',
-      'Reduces fever',
-      'Improves digestion',
-      'Purifies blood and improves skin health',
-      'Supports heart health and reduces cholesterol',
-      'Natural anti-inflammatory',
-      'Protects against radiation damage',
-      'Promotes oral health'
-    ],
-    ayurvedicProperties: {
-      rasa: 'Pungent (Katu), Bitter (Tikta)',
-      guna: 'Light (Laghu), Dry (Ruksha)',
-      virya: 'Heating (Ushna)',
-      vipaka: 'Pungent (Katu)'
-    },
-    doshaEffect: 'Balances Vata and Kapha, may increase Pitta in excess',
-    partsUsed: ['Leaves', 'Seeds', 'Root', 'Stem'],
-    preparationMethods: [
-      'Fresh leaf consumption',
-      'Tulsi tea',
-      'Tulsi juice with honey',
-      'Tulsi powder',
-      'Essential oil',
-      'Tulsi drops'
-    ],
-    warnings: [
-      'May lower blood sugar - diabetics should monitor',
-      'Can thin blood - avoid before surgery',
-      'May affect fertility - avoid if trying to conceive',
-      'Not recommended during pregnancy in medicinal doses',
-      'May interact with blood thinning medications'
-    ],
-    commonNames: ['Holy Basil', 'Sacred Basil', 'Tulasi', 'Thulasi', 'Vrinda']
+    commonNames: ['Papita', 'Pappali', 'Boppayi', 'Erandakarkati', 'Gaslabu']
   },
   'Turmeric': {
     plantId: 'turmeric-001',
     plantName: 'Turmeric',
     scientificName: 'Curcuma longa',
-    description: 'Turmeric is a flowering plant of the ginger family, native to the Indian subcontinent. The rhizome (underground stem) is used both as a spice and medicine. Turmeric contains curcumin, one of the most studied natural compounds with powerful anti-inflammatory and antioxidant properties. It has been a cornerstone of Ayurvedic medicine for over 4,000 years.',
+    description: 'Turmeric is a golden-colored flowering plant of the ginger family, native to the Indian subcontinent. Its rhizome contains curcumin, one of the most extensively researched natural compounds. Known as "Haridra" in Ayurveda, it has been a cornerstone of traditional medicine for over 4,000 years.',
     medicinalUses: [
-      'Powerful anti-inflammatory - helps with arthritis',
-      'Strong antioxidant - fights free radicals',
-      'Improves brain function and memory',
-      'Reduces risk of heart disease',
-      'May help prevent cancer',
-      'Helps with depression',
-      'Anti-aging properties',
-      'Wound healing and skin health',
-      'Supports liver function',
-      'Helps manage diabetes'
+      'Potent anti-inflammatory — helps manage arthritis and joint pain',
+      'Strong antioxidant — neutralizes free radicals',
+      'Supports brain health and may prevent neurodegenerative diseases',
+      'Promotes cardiovascular health',
+      'Aids wound healing when applied topically',
+      'Supports liver function and natural detoxification',
+      'Helps manage blood sugar levels',
+      'Enhances skin health and promotes glow',
+      'Boosts immunity and fights infections'
     ],
     ayurvedicProperties: {
       rasa: 'Bitter (Tikta), Pungent (Katu)',
@@ -312,25 +181,24 @@ const PLANT_DATABASE = {
       virya: 'Heating (Ushna)',
       vipaka: 'Pungent (Katu)'
     },
-    doshaEffect: 'Balances all three doshas, especially Kapha',
-    partsUsed: ['Rhizome (Root)', 'Leaves'],
+    doshaEffect: 'Balances all three doshas (Tridoshahara), especially Kapha',
+    partsUsed: ['Rhizome (fresh)', 'Dried rhizome powder', 'Leaves'],
     preparationMethods: [
-      'Golden milk (Turmeric with milk)',
-      'Turmeric powder in food',
-      'Turmeric paste for wounds',
-      'Turmeric supplements/capsules',
-      'Fresh turmeric juice',
-      'Turmeric tea'
+      'Golden milk — turmeric with warm milk and black pepper',
+      'Turmeric paste for wounds and skin conditions',
+      'Turmeric tea with ginger and honey',
+      'Haldi water on empty stomach',
+      'Curcumin extract capsules',
+      'Turmeric in daily cooking'
     ],
     warnings: [
-      'May increase bleeding risk with blood thinners',
-      'Can cause stomach upset in high doses',
-      'May lower blood sugar - diabetics should monitor',
-      'Avoid high doses during pregnancy',
-      'May interact with chemotherapy drugs',
-      'Can aggravate gallbladder problems'
+      'May increase bleeding risk with blood-thinning medications',
+      'High doses can cause stomach upset',
+      'May lower blood sugar — monitor if diabetic',
+      'Avoid medicinal doses during pregnancy',
+      'Can aggravate gallbladder conditions'
     ],
-    commonNames: ['Haldi', 'Haridra', 'Manjal', 'Pasupu', 'Indian Saffron']
+    commonNames: ['Haldi', 'Haridra', 'Manjal', 'Pasupu', 'Kaha']
   }
 };
 
@@ -464,22 +332,6 @@ const PlantDescriptionDetail = () => {
               <div className="w-full rounded-2xl overflow-hidden shadow-md border border-green-100 mb-4">
                 <img src={displayImage} alt="Identified plant" className="w-full h-auto" />
               </div>
-              
-              {/* Confidence Score */}
-              {displayResult.confidence > 0 && (
-                <div className="bg-white/80 rounded-xl p-4 shadow-md border border-green-100 text-center mb-4">
-                  <p className="text-sm text-gray-500 mb-2">Identification Confidence</p>
-                  <span className={`inline-block px-4 py-2 rounded-full font-bold text-lg ${
-                    displayResult.confidence >= 80 
-                      ? 'bg-green-100 text-green-800' 
-                      : displayResult.confidence >= 60 
-                      ? 'bg-orange-100 text-orange-800' 
-                      : 'bg-red-100 text-red-800'
-                  }`}>
-                    {displayResult.confidence}%
-                  </span>
-                </div>
-              )}
 
               {/* Dosha Effect */}
               {displayResult.doshaEffect && (
