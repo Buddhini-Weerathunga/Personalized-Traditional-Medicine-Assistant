@@ -20,7 +20,6 @@ const PlantResults = () => {
     plantId: 'mock-123',
     plantName: 'Gotu Kola',
     scientificName: 'Centella asiatica',
-    confidence: 92,
     description: 'Gotu Kola is a small herbaceous annual plant of the family Apiaceae. It is native to the wetlands of Asia and is known for its medicinal properties.',
     medicinalUses: [
       'Improves cognitive function and memory',
@@ -47,14 +46,12 @@ const PlantResults = () => {
         plantId: 'sim-1',
         plantName: 'Bacopa Monnieri',
         scientificName: 'Bacopa monnieri',
-        confidence: 85,
         thumbnail: 'https://via.placeholder.com/150/9c88ff/FFFFFF?text=Bacopa'
       },
       {
         plantId: 'sim-2',
         plantName: 'Hydrocotyle',
         scientificName: 'Hydrocotyle umbellata',
-        confidence: 78,
         thumbnail: 'https://via.placeholder.com/150/90ee90/FFFFFF?text=Hydrocotyle'
       }
     ]
@@ -169,7 +166,6 @@ const PlantResults = () => {
       await savePlantIdentification({
         plantName: displayResult.plantName,
         scientificName: displayResult.scientificName,
-        confidence: displayResult.confidence,
         image: displayImage,
         identifiedAt: new Date().toISOString(),
         ...displayResult
@@ -239,17 +235,7 @@ const PlantResults = () => {
               </p>
             )}
             
-            <div className="mb-6">
-              <span className={`inline-block px-4 py-2 rounded-full font-semibold text-sm ${
-                displayResult.confidence >= 80 
-                  ? 'bg-green-100 text-green-800' 
-                  : displayResult.confidence >= 60 
-                  ? 'bg-orange-100 text-orange-800' 
-                  : 'bg-red-100 text-red-800'
-              }`}>
-                Confidence: {displayResult.confidence}%
-              </span>
-            </div>
+
 
             {displayResult.description && (
               <div className="mt-6 pt-6 border-t border-gray-200">

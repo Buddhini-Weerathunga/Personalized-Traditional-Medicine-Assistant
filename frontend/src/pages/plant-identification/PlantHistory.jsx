@@ -210,9 +210,7 @@ const PlantHistory = () => {
             <div key={item._id} className="bg-white rounded-xl overflow-hidden shadow-md hover:shadow-xl hover:-translate-y-1 transition-all flex flex-col">
               <div className="relative w-full h-48 overflow-hidden">
                 <img src={item.image} alt={item.plantName} className="w-full h-full object-cover" />
-                <div className="absolute top-2 right-2 bg-white/95 backdrop-blur px-3 py-1.5 rounded-full font-semibold text-sm text-green-800">
-                  {item.confidence}%
-                </div>
+
               </div>
               
               <div className="p-5 flex-1">
