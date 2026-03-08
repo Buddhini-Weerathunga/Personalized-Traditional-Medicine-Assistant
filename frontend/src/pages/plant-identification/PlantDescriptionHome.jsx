@@ -10,35 +10,40 @@ const PlantDescriptionHome = () => {
   const [recentPlants, setRecentPlants] = useState([]);
 
   const allPlants = [
-    { plantId: 'gotu-kola', plantName: 'Gotu Kola', scientificName: 'Centella asiatica', category: 'Brain & Memory', description: 'Known for cognitive enhancement and wound healing' },
-    { plantId: 'brahmi', plantName: 'Brahmi', scientificName: 'Bacopa monnieri', category: 'Brain & Memory', description: 'Memory enhancer and anxiety reducer' },
-    { plantId: 'shankhpushpi', plantName: 'Shankhpushpi', scientificName: 'Convolvulus prostratus', category: 'Brain & Memory', description: 'Brain tonic for mental clarity and focus' },
-    { plantId: 'jatamansi', plantName: 'Jatamansi', scientificName: 'Nardostachys jatamansi', category: 'Brain & Memory', description: 'Calms the mind and improves sleep quality' },
-    { plantId: 'tulsi', plantName: 'Holy Basil (Tulsi)', scientificName: 'Ocimum tenuiflorum', category: 'Immunity & Stress', description: 'Sacred herb for immunity and stress relief' },
-    { plantId: 'ashwagandha', plantName: 'Ashwagandha', scientificName: 'Withania somnifera', category: 'Immunity & Stress', description: 'Adaptogenic herb for energy and vitality' },
-    { plantId: 'giloy', plantName: 'Giloy', scientificName: 'Tinospora cordifolia', category: 'Immunity & Stress', description: 'Powerful immune booster and fever reducer' },
-    { plantId: 'amla', plantName: 'Amla (Indian Gooseberry)', scientificName: 'Phyllanthus emblica', category: 'Immunity & Stress', description: 'Rich in vitamin C, boosts immunity and vitality' },
-    { plantId: 'ginger', plantName: 'Ginger', scientificName: 'Zingiber officinale', category: 'Digestive', description: 'Digestive aid and anti-nausea remedy' },
-    { plantId: 'triphala', plantName: 'Triphala', scientificName: 'Terminalia chebula complex', category: 'Digestive', description: 'Ayurvedic formula for digestive health' },
-    { plantId: 'fennel', plantName: 'Fennel', scientificName: 'Foeniculum vulgare', category: 'Digestive', description: 'Relieves bloating and improves digestion' },
-    { plantId: 'neem', plantName: 'Neem', scientificName: 'Azadirachta indica', category: 'Skin & Hair', description: 'Blood purifier and skin health promoter' },
-    { plantId: 'aloe-vera', plantName: 'Aloe Vera', scientificName: 'Aloe barbadensis', category: 'Skin & Hair', description: 'Skin healing and digestive support' },
-    { plantId: 'bhringraj', plantName: 'Bhringraj', scientificName: 'Eclipta alba', category: 'Skin & Hair', description: 'Promotes hair growth and prevents graying' },
-    { plantId: 'sandalwood', plantName: 'Sandalwood', scientificName: 'Santalum album', category: 'Skin & Hair', description: 'Cooling and soothing for skin ailments' },
-    { plantId: 'turmeric', plantName: 'Turmeric', scientificName: 'Curcuma longa', category: 'Anti-inflammatory', description: 'Powerful anti-inflammatory and antioxidant' },
-    { plantId: 'boswellia', plantName: 'Boswellia (Frankincense)', scientificName: 'Boswellia serrata', category: 'Anti-inflammatory', description: 'Reduces inflammation and joint pain' },
-    { plantId: 'guggul', plantName: 'Guggul', scientificName: 'Commiphora wightii', category: 'Anti-inflammatory', description: 'Supports joint health and cholesterol management' },
-    { plantId: 'arjuna', plantName: 'Arjuna', scientificName: 'Terminalia arjuna', category: 'Heart Health', description: 'Strengthens heart muscles and improves circulation' },
-    { plantId: 'vasaka', plantName: 'Vasaka', scientificName: 'Adhatoda vasica', category: 'Respiratory', description: 'Relieves cough and respiratory disorders' },
+    { plantId: 'gotu-kola', plantName: 'Gotu Kola (ගොටුකොළ)', scientificName: 'Centella asiatica', category: 'Brain & Memory', description: 'Known for cognitive enhancement and wound healing', image: '/images/plants/gotu-kola.jpg' },
+    { plantId: 'brahmi', plantName: 'Brahmi (ලුණුවිල)', scientificName: 'Bacopa monnieri', category: 'Brain & Memory', description: 'Memory enhancer and anxiety reducer', image: '/images/plants/brahmi.jpg' },
+    { plantId: 'shankhpushpi', plantName: 'Shankhpushpi (කටරොළු)', scientificName: 'Convolvulus prostratus', category: 'Brain & Memory', description: 'Brain tonic for mental clarity and focus', image: '/images/plants/shankhpushpi.jpg' },
+    { plantId: 'tulsi', plantName: 'Holy Basil (මදුරුතලා)', scientificName: 'Ocimum tenuiflorum', category: 'Immunity & Stress', description: 'Sacred herb for immunity and stress relief', image: '/images/plants/tulsi.jpg' },
+    { plantId: 'giloy', plantName: 'Giloy (රසකිඳ)', scientificName: 'Tinospora cordifolia', category: 'Immunity & Stress', description: 'Powerful immune booster and fever reducer', image: '/images/plants/giloy.jpg' },
+    { plantId: 'amla', plantName: 'Amla (නෙල්ලි)', scientificName: 'Phyllanthus emblica', category: 'Immunity & Stress', description: 'Rich in vitamin C, boosts immunity and vitality', image: '/images/plants/amla.jpg' },
+    { plantId: 'ginger', plantName: 'Ginger (ඉඟුරු)', scientificName: 'Zingiber officinale', category: 'Digestive', description: 'Digestive aid and anti-nausea remedy', image: '/images/plants/ginger.jpg' },
+    { plantId: 'fennel', plantName: 'Fennel (මාදුරු)', scientificName: 'Foeniculum vulgare', category: 'Digestive', description: 'Relieves bloating and improves digestion', image: '/images/plants/fennel.jpg' },
+    { plantId: 'neem', plantName: 'Neem (කොහොඹ)', scientificName: 'Azadirachta indica', category: 'Skin & Hair', description: 'Blood purifier and skin health promoter', image: '/images/plants/neem.jpg' },
+    { plantId: 'aloe-vera', plantName: 'Aloe Vera (කොමාරිකා)', scientificName: 'Aloe barbadensis', category: 'Skin & Hair', description: 'Skin healing and digestive support', image: '/images/plants/aloe-vera.jpg' },
+    { plantId: 'bhringraj', plantName: 'Bhringraj (කීකිරිඳිය)', scientificName: 'Eclipta alba', category: 'Skin & Hair', description: 'Promotes hair growth and prevents graying', image: '/images/plants/bhringraj.jpg' },
+    { plantId: 'sandalwood', plantName: 'Sandalwood (සුදු හඳුන්)', scientificName: 'Santalum album', category: 'Skin & Hair', description: 'Cooling and soothing for skin ailments', image: '/images/plants/sandalwood.jpg' },
+    { plantId: 'turmeric', plantName: 'Turmeric (කහ)', scientificName: 'Curcuma longa', category: 'Anti-inflammatory', description: 'Powerful anti-inflammatory and antioxidant', image: '/images/plants/turmeric.jpg' },
+    { plantId: 'arjuna', plantName: 'Arjuna (කුඹුක්)', scientificName: 'Terminalia arjuna', category: 'Heart Health', description: 'Strengthens heart muscles and improves circulation', image: '/images/plants/arjuna.jpg' },
+    { plantId: 'vasaka', plantName: 'Vasaka (ආඩතෝඩා)', scientificName: 'Adhatoda vasica', category: 'Respiratory', description: 'Relieves cough and respiratory disorders', image: '/images/plants/vasaka.jpg' },
+    { plantId: 'aralu', plantName: 'Aralu (අරළු)', scientificName: 'Terminalia chebula', category: 'Digestive', description: 'Detoxifier and digestive tonic, one of the three fruits in Triphala', image: '/images/plants/aralu.jpg' },
+    { plantId: 'bulu', plantName: 'Bulu (බුළු)', scientificName: 'Terminalia bellirica', category: 'Digestive', description: 'Rejuvenative herb for respiratory and digestive health', image: '/images/plants/bulu.jpg' },
+    { plantId: 'cinnamon', plantName: 'Cinnamon (කුරුඳු)', scientificName: 'Cinnamomum verum', category: 'Digestive', description: 'Warming spice that aids digestion and regulates blood sugar', image: '/images/plants/cinnamon.jpg' },
+    { plantId: 'cardamom', plantName: 'Cardamom (එනසාල්)', scientificName: 'Elettaria cardamomum', category: 'Digestive', description: 'Aromatic spice for digestive comfort and fresh breath', image: '/images/plants/cardamom.jpg' },
+    { plantId: 'black-pepper', plantName: 'Black Pepper (ගම්මිරිස්)', scientificName: 'Piper nigrum', category: 'Digestive', description: 'Enhances nutrient absorption and stimulates digestion', image: '/images/plants/black-pepper.jpg' },
+    { plantId: 'iramusu', plantName: 'Iramusu (ඉරමුසු)', scientificName: 'Hemidesmus indicus', category: 'Skin & Hair', description: 'Blood purifier used for skin diseases and urinary disorders', image: '/images/plants/iramusu.jpg' },
+    { plantId: 'ranawara', plantName: 'Ranawara (රණවරා)', scientificName: 'Cassia auriculata', category: 'Skin & Hair', description: 'Promotes skin health and helps manage blood sugar levels', image: '/images/plants/ranawara.jpg' },
+    { plantId: 'polpala', plantName: 'Polpala (පොල්පලා)', scientificName: 'Aerva lanata', category: 'Immunity & Stress', description: 'Kidney stone remedy and natural diuretic for urinary health', image: '/images/plants/polpala.jpg' },
   ];
 
   const categories = [
     { name: 'All Plants', count: allPlants.length },
-    { name: 'Brain & Memory', count: 4 },
-    { name: 'Immunity & Stress', count: 4 },
-    { name: 'Digestive', count: 3 },
-    { name: 'Skin & Hair', count: 4 },
-    { name: 'Anti-inflammatory', count: 3 },
+    { name: 'Brain & Memory', count: 3 },
+    { name: 'Immunity & Stress', count: 5 },
+    { name: 'Digestive', count: 8 },
+    { name: 'Skin & Hair', count: 6 },
+    { name: 'Anti-inflammatory', count: 1 },
+    { name: 'Heart Health', count: 1 },
+    { name: 'Respiratory', count: 1 },
   ];
 
   useEffect(() => {
@@ -48,9 +53,6 @@ const PlantDescriptionHome = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    if (searchQuery.trim()) {
-      navigate(`/plant-description?search=${encodeURIComponent(searchQuery)}`);
-    }
   };
 
   const handlePlantClick = (plant) => {
@@ -74,7 +76,12 @@ const PlantDescriptionHome = () => {
 
   const displayPlants = allPlants.filter(p => {
     const matchesCategory = activeCategory === 'All Plants' || p.category === activeCategory;
-    const matchesSearch = !searchQuery || p.plantName.toLowerCase().includes(searchQuery.toLowerCase()) || p.scientificName.toLowerCase().includes(searchQuery.toLowerCase());
+    const query = searchQuery.trim().toLowerCase();
+    const matchesSearch = !query ||
+      p.plantName.toLowerCase().includes(query) ||
+      p.scientificName.toLowerCase().includes(query) ||
+      p.plantId.toLowerCase().includes(query) ||
+      p.category.toLowerCase().includes(query);
     return matchesCategory && matchesSearch;
   });
 
@@ -191,24 +198,37 @@ const PlantDescriptionHome = () => {
                   <div
                     key={i}
                     onClick={() => handlePlantClick(plant)}
-                    className="bg-white rounded-2xl p-5 shadow-sm border border-gray-100 hover:shadow-lg hover:border-emerald-100 transition-all cursor-pointer group flex flex-col"
+                    className="bg-white rounded-2xl overflow-hidden shadow-sm border border-gray-100 hover:shadow-lg hover:border-emerald-100 transition-all cursor-pointer group flex flex-col"
                   >
-                    <div className={`w-10 h-10 rounded-xl ${color.bg} flex items-center justify-center mb-4`}>
-                      <svg className={`w-5 h-5 ${color.accent}`} fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.5}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
-                      </svg>
+                    <div className="relative w-full h-44 bg-gray-100 overflow-hidden">
+                      <img
+                        src={plant.image}
+                        alt={plant.plantName}
+                        className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
+                        onError={(e) => {
+                          e.target.style.display = 'none';
+                          e.target.nextSibling.style.display = 'flex';
+                        }}
+                      />
+                      <div className="absolute inset-0 items-center justify-center bg-gradient-to-br from-emerald-50 to-green-100" style={{ display: 'none' }}>
+                        <svg className="w-12 h-12 text-emerald-300" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" />
+                        </svg>
+                      </div>
                     </div>
-                    <span className={`inline-block w-fit px-2.5 py-1 ${color.bg} ${color.text} rounded-full text-[11px] font-medium mb-2`}>
-                      {plant.category}
-                    </span>
-                    <h3 className="text-sm font-bold text-gray-900 mb-0.5">{plant.plantName}</h3>
-                    <p className="text-xs text-gray-400 italic mb-2">{plant.scientificName}</p>
-                    <p className="text-xs text-gray-500 leading-relaxed flex-1">{plant.description}</p>
-                    <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-emerald-600 group-hover:gap-2 transition-all">
-                      View Details
-                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                        <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
-                      </svg>
+                    <div className="p-5 flex flex-col flex-1">
+                      <span className={`inline-block w-fit px-2.5 py-1 ${color.bg} ${color.text} rounded-full text-[11px] font-medium mb-2`}>
+                        {plant.category}
+                      </span>
+                      <h3 className="text-sm font-bold text-gray-900 mb-0.5">{plant.plantName}</h3>
+                      <p className="text-xs text-gray-400 italic mb-2">{plant.scientificName}</p>
+                      <p className="text-xs text-gray-500 leading-relaxed flex-1">{plant.description}</p>
+                      <div className="mt-4 flex items-center gap-1 text-xs font-semibold text-emerald-600 group-hover:gap-2 transition-all">
+                        View Details
+                        <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                          <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                        </svg>
+                      </div>
                     </div>
                   </div>
                 );
