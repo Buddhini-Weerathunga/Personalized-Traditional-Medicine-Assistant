@@ -13,30 +13,30 @@ try:
     from dosha_diagnosis.inference.predict_from_face import predict_dosha_from_face_image
     DOSHA_AVAILABLE = True
 except Exception as e:
-    print(f"⚠️ Dosha diagnosis not available: {e}")
+    print(f"[WARN] Dosha diagnosis not available: {e}")
     DOSHA_AVAILABLE = False
 
 try:
     from health_profile_analysis.models.app import predict_health
     HEALTH_PROFILE_AVAILABLE = True
 except Exception as e:
-    print(f"⚠️ Health profile analysis not available: {e}")
+    print(f"[WARN] Health profile analysis not available: {e}")
     HEALTH_PROFILE_AVAILABLE = False
 
 try:
     from diets_predictions.predictor import predict_diet
     DIET_AVAILABLE = True
 except Exception as e:
-    print(f"⚠️ Diet predictions not available: {e}")
+    print(f"[WARN] Diet predictions not available: {e}")
     DIET_AVAILABLE = False
 
 # ===================== IMPORT PLANT IDENTIFICATION =====================
 try:
     from plant_identification.predictor import identify_plant, get_plant_info, get_similar_plants
     PLANT_ID_AVAILABLE = True
-    print("✅ Plant identification module loaded successfully!")
+    print("[OK] Plant identification module loaded successfully!")
 except Exception as e:
-    print(f"⚠️ Plant identification not available: {e}")
+    print(f"[WARN] Plant identification not available: {e}")
     PLANT_ID_AVAILABLE = False
 
 # ===================== CREATE FASTAPI APP (ONLY ONCE) =====================
