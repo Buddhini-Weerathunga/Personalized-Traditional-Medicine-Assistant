@@ -1,0 +1,14 @@
+{
+  "accuracy": 0.819047619047619,
+  "precision_macro": 0.811445493487193,
+  "recall_macro": 0.8091106630824372,
+  "f1_macro": 0.8026293829524981,
+  "f1_weighted": 0.8240343014428706,
+  "per_class_accuracy": {
+    "Aloevera": 0.775,
+    "Cinnamon": 0.6666666666666666,
+    "Hathawariya": 0.890625,
+    "Papaya": 0.9354838709677419,
+    "Turmeric": 0.7777777777777778
+  }
+}
