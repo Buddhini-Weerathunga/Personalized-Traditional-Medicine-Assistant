@@ -321,6 +321,45 @@ export const checkDrugInteractions = async (plantId, medications) => {
   }
 };
 
+/**
+ * Get available plant parts for a specific plant
+ */
+export const getPlantParts = async (plantName) => {
+  try {
+    const response = await axios.get(`${PLANT_API_BASE}/plant-parts/${encodeURIComponent(plantName)}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching plant parts:', error);
+    throw new Error(error.response?.data?.message || 'Failed to get plant parts.');
+  }
+};
+
+/**
+ * Update an existing risk alert
+ */
+export const updateRiskAlert = async (alertId, data) => {
+  try {
+    const response = await axios.put(`${PLANT_API_BASE}/risk-alerts/${alertId}`, data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating risk alert:', error);
+    throw new Error(error.response?.data?.message || 'Failed to update risk alert.');
+  }
+};
+
+/**
+ * Delete a risk alert permanently
+ */
+export const deleteRiskAlert = async (alertId) => {
+  try {
+    const response = await axios.delete(`${PLANT_API_BASE}/risk-alerts/${alertId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting risk alert:', error);
+    throw new Error(error.response?.data?.message || 'Failed to delete risk alert.');
+  }
+};
+
 export default {
   identifyPlant,
   savePlantIdentification,
@@ -339,4 +378,7 @@ export default {
   getPlantWarnings,
   checkDrugInteractions,
   generatePersonalizedAlerts,
+  getPlantParts,
+  updateRiskAlert,
+  deleteRiskAlert,
 };

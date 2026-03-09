@@ -1,8 +1,9 @@
 import React, { useState, useRef } from 'react';
+import { useNavigate } from 'react-router-dom';
 import PlantNavbar from '../../components/plant-identification/PlantNavbar';
 import ImageUploader from '../../components/plant-identification/ImageUploader';
 import LoadingSpinner from '../../components/plant-identification/LoadingSpinner';
-import { identifyPlant } from '../../services/plant-identification/plantApi';
+import { identifyPlant, savePlantIdentification } from '../../services/plant-identification/plantApi';
 
 // Comprehensive plant database for the 5 identifiable plants
 const PLANT_DATABASE = {
@@ -203,6 +204,7 @@ const PLANT_DATABASE = {
 };
 
 const PlantScan = () => {
+  const navigate = useNavigate();
   const [selectedImage, setSelectedImage] = useState(null);
   const [previewUrl, setPreviewUrl] = useState(null);
   const [loading, setLoading] = useState(false);
@@ -231,6 +233,14 @@ const PlantScan = () => {
     await startIdentification(file);
   };
 
+  const fileToBase64 = (file) => {
+    return new Promise((resolve) => {
+      const reader = new FileReader();
+      reader.onloadend = () => resolve(reader.result);
+      reader.readAsDataURL(file);
+    });
+  };
+
   const startIdentification = async (imageFile) => {
     setLoading(true);
     setError(null);
@@ -245,6 +255,22 @@ const PlantScan = () => {
       setTimeout(() => {
         resultRef.current?.scrollIntoView({ behavior: 'smooth', block: 'start' });
       }, 100);
+
+      // Auto-save to history with image
+      if (enrichedResult && enrichedResult.plantName && enrichedResult.is_plant !== false) {
+        try {
+          const base64Image = await fileToBase64(imageFile);
+          await savePlantIdentification({
+            plantName: enrichedResult.plantName,
+            scientificName: enrichedResult.scientificName || '',
+            confidence: enrichedResult.confidence || 0,
+            image: base64Image,
+            identifiedAt: new Date().toISOString(),
+          });
+        } catch (saveErr) {
+          console.error('Auto-save to history failed:', saveErr);
+        }
+      }
     } catch (err) {
       setError(err.message || 'Failed to identify plant. Please try again.');
       setLoading(false);
@@ -712,6 +738,28 @@ const PlantScan = () => {
                   </div>
                 )}
               </div>
+            </div>
+
+            {/* Back & More Plants Buttons */}
+            <div className="flex justify-end gap-3 mt-10">
+              <button
+                onClick={handleReset}
+                className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-gray-700 bg-white border border-gray-200 rounded-xl hover:bg-gray-50 hover:border-gray-300 transition-all shadow-sm"
+              >
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M10.5 19.5L3 12m0 0l7.5-7.5M3 12h18" />
+                </svg>
+                Back
+              </button>
+              <button
+                onClick={() => navigate('/plant-description')}
+                className="flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-all shadow-sm"
+              >
+                More Plants
+                <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                  <path strokeLinecap="round" strokeLinejoin="round" d="M13.5 4.5L21 12m0 0l-7.5 7.5M21 12H3" />
+                </svg>
+              </button>
             </div>
           </section>
         )}
