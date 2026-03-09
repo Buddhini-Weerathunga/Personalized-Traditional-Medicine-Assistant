@@ -24,7 +24,7 @@ class ChannelAttention(nn.Module):
     def __init__(self, in_features, reduction=16):
         super(ChannelAttention, self).__init__()
         self.attention = nn.Sequential(
-            nn.AdaptiveAvgPool2d(1),
+            nn.AdaptiveAvgPool1d(1),
             nn.Flatten(),
             nn.Linear(in_features, in_features // reduction),
             nn.ReLU(inplace=True),
@@ -33,7 +33,12 @@ class ChannelAttention(nn.Module):
         )
 
     def forward(self, x):
-        weights = self.attention(x)
+        # x shape: (B, C, H, W) from backbone
+        # Pool spatial dims first, then apply channel attention
+        b, c, h, w = x.shape
+        # Global average pool over spatial dims -> (B, C, 1)
+        pooled = x.view(b, c, h * w).mean(dim=2, keepdim=True)  # (B, C, 1)
+        weights = self.attention(pooled)  # AdaptiveAvgPool1d(1) -> Flatten -> Linear...
         return x * weights.unsqueeze(-1).unsqueeze(-1)
 
 
