@@ -6,14 +6,26 @@ import Button from "../../../components/common/Button";
 
 import MessageBubble from "./MessageBubble";
 
-export default function ChatWindow() {
+export default function ChatWindow({ initialMessage }) {
   const { messages, loadingInitial, sending, sendMessage } = useChat();
   const [input, setInput] = useState("");
   const bottomRef = useRef(null);
+  const [initialMessageSent, setInitialMessageSent] = useState(false);
 
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, sending]);
+
+  // Send initial message if provided and not already sent
+  useEffect(() => {
+    if (initialMessage && !initialMessageSent && !loadingInitial) {
+      const sendInitialMessage = async () => {
+        await sendMessage(initialMessage);
+        setInitialMessageSent(true);
+      };
+      sendInitialMessage();
+    }
+  }, [initialMessage, initialMessageSent, loadingInitial, sendMessage]);
 
   const handleSend = async (e) => {
     e.preventDefault();

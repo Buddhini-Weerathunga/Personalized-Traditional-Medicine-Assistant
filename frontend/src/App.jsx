@@ -18,6 +18,7 @@ import ProtectedRoute from "./components/ProtectedRoute.jsx";
 /* ✅ Dosha Diagnosis Pages */
 import HomePage from "./dosha-diagnosis/home/HomePage.jsx";
 import ChatbotPage from "./dosha-diagnosis/chat/ChatbotPage.jsx";
+import SharedChatPage from "./dosha-diagnosis/chat/SharedChatPage.jsx";
 import PrakritiFormPage from "./dosha-diagnosis/prakriti-analysis/PrakritiFormPage.jsx";
 import PrakritiAnalysisPage from "./dosha-diagnosis/prakriti-analysis/PrakritiAnalysisPage.jsx";
 import CaptureFacePage from "./dosha-diagnosis/prakriti-analysis/CaptureFacePage.jsx";
@@ -49,6 +50,7 @@ function App() {
 
           {/* Dosha general pages */}
           <Route path="/chat" element={<ChatbotPage />} />
+          <Route path="/shared-chat" element={<SharedChatPage />} />
           <Route path="/prescription" element={<PrescriptionPage />} />
           <Route path="/prescription/:id" element={<PrescriptionDetailPage />} />
           <Route path="/about" element={<AboutPage />} />
