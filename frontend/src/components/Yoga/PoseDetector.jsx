@@ -1,200 +1,277 @@
-import { useEffect, useRef } from 'react';
-import * as poseDetection from '@tensorflow-models/pose-detection';
+import { useEffect, useRef, useState } from 'react';
 import * as tf from '@tensorflow/tfjs';
-import Webcam from 'react-webcam'; // Optional: Use if react-webcam works
+import * as poseDetection from '@tensorflow-models/pose-detection';
+import '@tensorflow/tfjs-backend-webgl';
 
-const PoseDetector = ({ videoRef, canvasRef, onPoseDetected, isActive }) => {
+const PoseDetector = ({ 
+  videoRef, 
+  canvasRef, 
+  onPoseDetected, 
+  isActive,
+  onStatusChange 
+}) => {
   const detectorRef = useRef(null);
   const animationFrameRef = useRef(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const lastValidAnglesRef = useRef({});
 
   useEffect(() => {
     if (isActive) {
       initPoseDetection();
     } else {
-      stopPoseDetection();
+      stopDetection();
     }
 
     return () => {
-      stopPoseDetection();
+      stopDetection();
     };
   }, [isActive]);
 
   const initPoseDetection = async () => {
     try {
-      // Initialize TensorFlow.js with WebGL backend
-      await tf.ready();
-      await tf.setBackend('webgl');
-
-      // Use MediaPipe Pose for web (better compatibility)
-      const model = poseDetection.SupportedModels.MediaPipePose;
-      const detectorConfig = {
-        runtime: 'mediapipe',
-        solutionPath: 'https://cdn.jsdelivr.net/npm/@mediapipe/pose',
-        modelType: 'full',
-        enableSegmentation: false,
-        smoothLandmarks: true,
-        minDetectionConfidence: 0.5,
-        minTrackingConfidence: 0.5
-      };
-
-      detectorRef.current = await poseDetection.createDetector(model, detectorConfig);
+      setIsLoading(true);
+      setError(null);
       
-      if (videoRef.current) {
+      await tf.setBackend('webgl');
+      await tf.ready();
+      
+      console.log('TensorFlow initialized');
+
+      const detectorConfig = {
+        modelType: poseDetection.movenet.modelType.SINGLEPOSE_THUNDER,
+        enableSmoothing: true,
+        minPoseScore: 0.3
+      };
+      
+      detectorRef.current = await poseDetection.createDetector(
+        poseDetection.SupportedModels.MoveNet, 
+        detectorConfig
+      );
+      
+      console.log('MoveNet detector created');
+      setIsLoading(false);
+      
+      // Wait for video to be ready
+      if (videoRef.current?.readyState >= 2) {
         startDetection();
       }
-    } catch (error) {
-      console.error('Error initializing pose detection:', error);
-      // Fallback to MoveNet
-      initMoveNetFallback();
+    } catch (err) {
+      console.error('Failed to initialize:', err);
+      setError(err.message);
+      setIsLoading(false);
     }
   };
 
-  const initMoveNetFallback = async () => {
-    try {
-      const model = poseDetection.SupportedModels.MoveNet;
-      const detectorConfig = {
-        modelType: poseDetection.movenet.modelType.SINGLEPOSE_LIGHTNING,
-      };
-      
-      detectorRef.current = await poseDetection.createDetector(model, detectorConfig);
-      startDetection();
-    } catch (error) {
-      console.error('Error with MoveNet fallback:', error);
-    }
-  };
-
-  const startDetection = async () => {
+  const startDetection = () => {
     if (!videoRef.current || !canvasRef.current || !detectorRef.current) return;
 
-    const detectPose = async () => {
+    // Check if video has valid dimensions
+    if (videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) {
+      console.log('Waiting for video dimensions...');
+      setTimeout(startDetection, 100);
+      return;
+    }
+
+    const detect = async () => {
       try {
+        // Double-check video dimensions before processing
+        if (videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) {
+          console.log('Video dimensions not ready yet');
+          return;
+        }
+
         const poses = await detectorRef.current.estimatePoses(videoRef.current, {
-          flipHorizontal: false,
-          maxPoses: 1
+          maxPoses: 1,
+          flipHorizontal: true
         });
 
-        if (poses.length > 0 && onPoseDetected) {
+        if (poses && poses.length > 0) {
           const pose = poses[0];
+          
+          const validKeypoints = pose.keypoints.filter(k => k.score > 0.3);
+          const avgConfidence = validKeypoints.length > 0 
+            ? validKeypoints.reduce((sum, k) => sum + (k.score || 0), 0) / validKeypoints.length * 100
+            : 0;
+          
+          if (onStatusChange) {
+            onStatusChange({
+              isDetecting: validKeypoints.length >= 5,
+              jointCount: validKeypoints.length,
+              confidence: Math.round(avgConfidence)
+            });
+          }
+          
           drawPose(pose);
           
-          // Calculate joint angles
-          const jointAngles = calculateJointAngles(pose.keypoints);
-          onPoseDetected(jointAngles);
+          const angles = calculateJointAngles(pose.keypoints);
+          
+          if (Object.keys(angles).length >= 4) {
+            lastValidAnglesRef.current = angles;
+            if (onPoseDetected) {
+              onPoseDetected(angles);
+            }
+          } else if (Object.keys(lastValidAnglesRef.current).length > 0) {
+            if (onPoseDetected) {
+              onPoseDetected(lastValidAnglesRef.current);
+            }
+          }
+        } else {
+          if (onStatusChange) {
+            onStatusChange({
+              isDetecting: false,
+              jointCount: 0,
+              confidence: 0
+            });
+          }
+          clearCanvas();
         }
-      } catch (error) {
-        console.error('Error detecting pose:', error);
+      } catch (err) {
+        console.error('Detection error:', err);
+        // Don't stop detection on error, just log it
       }
 
       if (isActive) {
-        animationFrameRef.current = requestAnimationFrame(detectPose);
+        animationFrameRef.current = requestAnimationFrame(detect);
       }
     };
 
-    detectPose();
+    detect();
   };
 
-  const stopPoseDetection = () => {
+  const stopDetection = () => {
     if (animationFrameRef.current) {
       cancelAnimationFrame(animationFrameRef.current);
+      animationFrameRef.current = null;
     }
-    if (detectorRef.current) {
-      detectorRef.current.dispose();
-      detectorRef.current = null;
+  };
+
+  const clearCanvas = () => {
+    if (canvasRef.current) {
+      const ctx = canvasRef.current.getContext('2d');
+      ctx.clearRect(0, 0, canvasRef.current.width, canvasRef.current.height);
     }
   };
 
   const calculateJointAngles = (keypoints) => {
     const angles = {};
     
-    // Calculate angle between three points
-    const angleBetweenPoints = (a, b, c) => {
-      if (!a || !b || !c || a.score < 0.3 || b.score < 0.3 || c.score < 0.3) {
-        return null;
+    const getPoint = (name) => {
+      const nameMap = {
+        'left_shoulder': ['left_shoulder', 'left_shoulder_1'],
+        'right_shoulder': ['right_shoulder', 'right_shoulder_1'],
+        'left_elbow': ['left_elbow', 'left_elbow_1'],
+        'right_elbow': ['right_elbow', 'right_elbow_1'],
+        'left_wrist': ['left_wrist', 'left_wrist_1'],
+        'right_wrist': ['right_wrist', 'right_wrist_1'],
+        'left_hip': ['left_hip', 'left_hip_1'],
+        'right_hip': ['right_hip', 'right_hip_1'],
+        'left_knee': ['left_knee', 'left_knee_1'],
+        'right_knee': ['right_knee', 'right_knee_1'],
+        'left_ankle': ['left_ankle', 'left_ankle_1'],
+        'right_ankle': ['right_ankle', 'right_ankle_1']
+      };
+      
+      const possibleNames = nameMap[name] || [name];
+      
+      for (const possibleName of possibleNames) {
+        const point = keypoints.find(k => 
+          k.name?.toLowerCase().includes(possibleName.toLowerCase()) ||
+          k.name?.toLowerCase().replace('_', '') === possibleName.toLowerCase().replace('_', '')
+        );
+        if (point && point.score > 0.3) return point;
       }
-
-      const ab = Math.sqrt(Math.pow(b.x - a.x, 2) + Math.pow(b.y - a.y, 2));
-      const bc = Math.sqrt(Math.pow(b.x - c.x, 2) + Math.pow(b.y - c.y, 2));
-      const ac = Math.sqrt(Math.pow(c.x - a.x, 2) + Math.pow(c.y - a.y, 2));
-
-      const radians = Math.acos((ab * ab + bc * bc - ac * ac) / (2 * ab * bc));
-      return radians * (180 / Math.PI);
+      return null;
     };
 
-    // Get keypoint by name
-    const getKeypoint = (name) => keypoints.find(k => k.name === name);
+    const calculateAngle = (p1, p2, p3) => {
+      if (!p1 || !p2 || !p3) return null;
+      
+      const a = { x: p1.x - p2.x, y: p1.y - p2.y };
+      const b = { x: p3.x - p2.x, y: p3.y - p2.y };
 
-    // Calculate shoulder angles
-    const leftShoulder = angleBetweenPoints(
-      getKeypoint('left_elbow'),
-      getKeypoint('left_shoulder'),
-      getKeypoint('left_hip')
-    );
-    if (leftShoulder) angles.left_shoulder = leftShoulder;
+      const dot = a.x * b.x + a.y * b.y;
+      const magA = Math.sqrt(a.x * a.x + a.y * a.y);
+      const magB = Math.sqrt(b.x * b.x + b.y * b.y);
 
-    const rightShoulder = angleBetweenPoints(
-      getKeypoint('right_elbow'),
-      getKeypoint('right_shoulder'),
-      getKeypoint('right_hip')
-    );
-    if (rightShoulder) angles.right_shoulder = rightShoulder;
+      if (magA === 0 || magB === 0) return null;
 
-    // Calculate elbow angles
-    const leftElbow = angleBetweenPoints(
-      getKeypoint('left_shoulder'),
-      getKeypoint('left_elbow'),
-      getKeypoint('left_wrist')
-    );
-    if (leftElbow) angles.left_elbow = leftElbow;
+      const angle = Math.acos(dot / (magA * magB)) * (180 / Math.PI);
+      return Math.round(angle);
+    };
 
-    const rightElbow = angleBetweenPoints(
-      getKeypoint('right_shoulder'),
-      getKeypoint('right_elbow'),
-      getKeypoint('right_wrist')
-    );
-    if (rightElbow) angles.right_elbow = rightElbow;
+    // Get all points
+    const leftShoulder = getPoint('left_shoulder');
+    const rightShoulder = getPoint('right_shoulder');
+    const leftElbow = getPoint('left_elbow');
+    const rightElbow = getPoint('right_elbow');
+    const leftWrist = getPoint('left_wrist');
+    const rightWrist = getPoint('right_wrist');
+    const leftHip = getPoint('left_hip');
+    const rightHip = getPoint('right_hip');
+    const leftKnee = getPoint('left_knee');
+    const rightKnee = getPoint('right_knee');
+    const leftAnkle = getPoint('left_ankle');
+    const rightAnkle = getPoint('right_ankle');
 
-    // Calculate hip angles
-    const leftHip = angleBetweenPoints(
-      getKeypoint('left_shoulder'),
-      getKeypoint('left_hip'),
-      getKeypoint('left_knee')
-    );
-    if (leftHip) angles.left_hip = leftHip;
+    // Calculate angles
+    if (leftElbow && leftShoulder && leftWrist) {
+      angles.left_elbow = calculateAngle(leftShoulder, leftElbow, leftWrist);
+    }
+    
+    if (rightElbow && rightShoulder && rightWrist) {
+      angles.right_elbow = calculateAngle(rightShoulder, rightElbow, rightWrist);
+    }
+    
+    if (leftShoulder && leftElbow && leftHip) {
+      angles.left_shoulder = calculateAngle(leftElbow, leftShoulder, leftHip);
+    }
+    
+    if (rightShoulder && rightElbow && rightHip) {
+      angles.right_shoulder = calculateAngle(rightElbow, rightShoulder, rightHip);
+    }
+    
+    if (leftHip && leftShoulder && leftKnee) {
+      angles.left_hip = calculateAngle(leftShoulder, leftHip, leftKnee);
+    }
+    
+    if (rightHip && rightShoulder && rightKnee) {
+      angles.right_hip = calculateAngle(rightShoulder, rightHip, rightKnee);
+    }
+    
+    if (leftKnee && leftHip && leftAnkle) {
+      angles.left_knee = calculateAngle(leftHip, leftKnee, leftAnkle);
+    }
+    
+    if (rightKnee && rightHip && rightAnkle) {
+      angles.right_knee = calculateAngle(rightHip, rightKnee, rightAnkle);
+    }
 
-    const rightHip = angleBetweenPoints(
-      getKeypoint('right_shoulder'),
-      getKeypoint('right_hip'),
-      getKeypoint('right_knee')
-    );
-    if (rightHip) angles.right_hip = rightHip;
+    // Filter out null values
+    Object.keys(angles).forEach(key => {
+      if (angles[key] === null || isNaN(angles[key])) {
+        delete angles[key];
+      }
+    });
 
-    // Calculate knee angles
-    const leftKnee = angleBetweenPoints(
-      getKeypoint('left_hip'),
-      getKeypoint('left_knee'),
-      getKeypoint('left_ankle')
-    );
-    if (leftKnee) angles.left_knee = leftKnee;
-
-    const rightKnee = angleBetweenPoints(
-      getKeypoint('right_hip'),
-      getKeypoint('right_knee'),
-      getKeypoint('right_ankle')
-    );
-    if (rightKnee) angles.right_knee = rightKnee;
-
+    console.log('Calculated angles:', angles);
     return angles;
   };
 
   const drawPose = (pose) => {
+    if (!canvasRef.current || !videoRef.current) return;
+
     const canvas = canvasRef.current;
     const ctx = canvas.getContext('2d');
-    const { keypoints } = pose;
+    const video = videoRef.current;
 
-    // Clear canvas
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
-    // Draw skeleton
+    const { keypoints } = pose;
+
     const connections = [
       ['left_shoulder', 'right_shoulder'],
       ['left_shoulder', 'left_elbow'],
@@ -210,34 +287,75 @@ const PoseDetector = ({ videoRef, canvasRef, onPoseDetected, isActive }) => {
       ['right_knee', 'right_ankle']
     ];
 
-    // Draw connections
-    ctx.strokeStyle = '#3B82F6';
-    ctx.lineWidth = 3;
-
     connections.forEach(([start, end]) => {
-      const startPoint = keypoints.find(k => k.name === start);
-      const endPoint = keypoints.find(k => k.name === end);
+      const p1 = keypoints.find(k => k.name?.includes(start));
+      const p2 = keypoints.find(k => k.name?.includes(end));
 
-      if (startPoint?.score > 0.3 && endPoint?.score > 0.3) {
+      if (p1?.score > 0.3 && p2?.score > 0.3) {
         ctx.beginPath();
-        ctx.moveTo(startPoint.x, startPoint.y);
-        ctx.lineTo(endPoint.x, endPoint.y);
+        ctx.moveTo(p1.x, p1.y);
+        ctx.lineTo(p2.x, p2.y);
+        
+        const avgScore = (p1.score + p2.score) / 2;
+        if (avgScore > 0.7) {
+          ctx.strokeStyle = '#00ff00';
+        } else if (avgScore > 0.5) {
+          ctx.strokeStyle = '#ffff00';
+        } else {
+          ctx.strokeStyle = '#ff0000';
+        }
+        
+        ctx.lineWidth = 3;
         ctx.stroke();
       }
     });
 
-    // Draw keypoints
-    keypoints.forEach(keypoint => {
-      if (keypoint.score > 0.3) {
+    keypoints.forEach(point => {
+      if (point.score > 0.3) {
         ctx.beginPath();
-        ctx.arc(keypoint.x, keypoint.y, 6, 0, 2 * Math.PI);
-        ctx.fillStyle = '#EF4444';
+        ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
+        
+        if (point.score > 0.7) {
+          ctx.fillStyle = '#00ff00';
+        } else if (point.score > 0.5) {
+          ctx.fillStyle = '#ffff00';
+        } else {
+          ctx.fillStyle = '#ff0000';
+        }
+        
         ctx.fill();
+        ctx.strokeStyle = '#ffffff';
+        ctx.lineWidth = 2;
+        ctx.stroke();
       }
     });
   };
 
-  return null; // This component doesn't render anything visible
+  if (error) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-red-50 bg-opacity-90">
+        <div className="text-center p-6">
+          <p className="text-red-600 font-bold">Error: {error}</p>
+          <button onClick={initPoseDetection} className="mt-4 px-4 py-2 bg-blue-600 text-white rounded">
+            Retry
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (isLoading) {
+    return (
+      <div className="absolute inset-0 flex items-center justify-center bg-black bg-opacity-50">
+        <div className="text-center text-white">
+          <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mx-auto mb-4"></div>
+          <p>Loading pose detection...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return null;
 };
 
 export default PoseDetector;
