@@ -1,9 +1,9 @@
+// backend/src/models/YogaSession.js
 const mongoose = require('mongoose');
 
 const YogaSessionSchema = new mongoose.Schema({
   userId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'User',
+    type: String,
     required: true
   },
   poseId: {
@@ -16,43 +16,29 @@ const YogaSessionSchema = new mongoose.Schema({
     default: Date.now
   },
   endTime: Date,
-  duration: Number, // in seconds
+  duration: Number,
   jointAngles: {
     type: Map,
     of: {
       current: Number,
       ideal: Number,
-      deviation: Number
+      deviation: Number,
+      isCorrect: Boolean
     }
   },
   corrections: [{
     joint: String,
     message: String,
     timestamp: Date,
-    correctionType: {
-      type: String,
-      enum: ['visual', 'audio', 'both']
-    }
+    severity: String
   }],
-  score: {
-    type: Number,
-    min: 0,
-    max: 100
-  },
+  score: Number,
   feedback: {
     postureAccuracy: Number,
     alignmentScore: Number,
     suggestions: [String]
   },
-  difficultyLevel: {
-    type: String,
-    enum: ['beginner', 'intermediate', 'advanced'],
-    default: 'beginner'
-  },
-  toleranceThresholds: {
-    type: Map,
-    of: Number
-  }
+  difficultyLevel: String
 }, { timestamps: true });
 
 module.exports = mongoose.model('YogaSession', YogaSessionSchema);

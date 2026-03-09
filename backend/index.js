@@ -21,6 +21,9 @@ const plantRoutes = require("./src/routes/plant-identification/plantRoutes");
 const authRoutes = require("./src/routes/auth");
 const userRoutes = require("./src/routes/userRoutes");
 
+// 🧘 Yoga routes - ADD THIS LINE
+const yogaRoutes = require("./src/routes/yoga");
+
 // 🛑 Error handlers (from dosha-diagnosis)
 const {
   notFound,
@@ -61,6 +64,8 @@ app.use(
 app.use("/api/patient-input", require("./src/routes/health-profile-analysis/patientInput"));
 app.use("/api/prakriti", require("./src/routes/health-profile-analysis/prakritiGet"));
 
+// 🧘 ADD YOGA ROUTES HERE - IMPORTANT: Place this before error handlers
+app.use("/api/yoga", yogaRoutes);
 // ---------- PLANT IDENTIFICATION ROUTES ----------
 app.use("/api/plant-identification", plantRoutes);
 
@@ -78,7 +83,6 @@ app.use("/api/chat", chatRoutes);
 app.use("/api/prakriti", prakritiRoutes);
 
 // 👇 New prescription/history routes
-// Full URL: POST http://localhost:5000/api/prakritiReports/reports
 app.use("/api/prakritiReports", prakritiReportRoutes);
 
 // ---------- ERROR HANDLERS ----------
@@ -86,6 +90,25 @@ app.use(notFound);
 app.use(errorHandler);
 
 const PORT = process.env.PORT || 5000;
+
+// TEST ENDPOINT - Add this temporarily
+app.post('/api/yoga/test-analyze', (req, res) => {
+  console.log('✅ TEST ENDPOINT HIT');
+  console.log('Request body:', req.body);
+  
+  // Always return success for testing
+  res.json({
+    success: true,
+    corrections: [],
+    feedback: {
+      postureAccuracy: 85,
+      alignmentScore: 90,
+      suggestions: ['Test mode: backend is working!'],
+      validJointsCount: 8
+    },
+    score: 87
+  });
+});
 
 app.listen(PORT, () => {
   console.log(`Server running on port ${PORT}`);
