@@ -1,7 +1,7 @@
 import axios from '../../api/axios';
 
-// Base endpoint for plant identification API
-const PLANT_API_BASE = '/api/plant-identification';
+// Base endpoint for plant identification API (without /api prefix since axios baseURL already includes it)
+const PLANT_API_BASE = '/plant-identification';
 
 /**
  * Identify a plant from an image with optional health data for personalized analysis
@@ -247,6 +247,26 @@ export const dismissAlert = async (alertId) => {
 };
 
 /**
+ * Check personalized risks for a plant based on health data
+ * @param {Object} data - Plant and health data
+ * @param {string} data.plantName - The name of the plant
+ * @param {string} data.plantPart - The part of the plant being used
+ * @param {Object} data.healthData - User's health information
+ * @returns {Promise} - Personalized risk alerts
+ */
+export const checkPersonalizedRisks = async (data) => {
+  try {
+    const response = await axios.post(`${PLANT_API_BASE}/risk-alerts/personalized`, data);
+    return response.data;
+  } catch (error) {
+    console.error('Error checking personalized risks:', error);
+    throw new Error(
+      error.response?.data?.message || 'Failed to check personalized risks.'
+    );
+  }
+};
+
+/**
  * Get comprehensive safety information for a specific plant
  * @param {string} plantId - The plant ID
  * @returns {Promise} - Detailed safety information
@@ -301,6 +321,45 @@ export const checkDrugInteractions = async (plantId, medications) => {
   }
 };
 
+/**
+ * Get available plant parts for a specific plant
+ */
+export const getPlantParts = async (plantName) => {
+  try {
+    const response = await axios.get(`${PLANT_API_BASE}/plant-parts/${encodeURIComponent(plantName)}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error fetching plant parts:', error);
+    throw new Error(error.response?.data?.message || 'Failed to get plant parts.');
+  }
+};
+
+/**
+ * Update an existing risk alert
+ */
+export const updateRiskAlert = async (alertId, data) => {
+  try {
+    const response = await axios.put(`${PLANT_API_BASE}/risk-alerts/${alertId}`, data);
+    return response.data;
+  } catch (error) {
+    console.error('Error updating risk alert:', error);
+    throw new Error(error.response?.data?.message || 'Failed to update risk alert.');
+  }
+};
+
+/**
+ * Delete a risk alert permanently
+ */
+export const deleteRiskAlert = async (alertId) => {
+  try {
+    const response = await axios.delete(`${PLANT_API_BASE}/risk-alerts/${alertId}`);
+    return response.data;
+  } catch (error) {
+    console.error('Error deleting risk alert:', error);
+    throw new Error(error.response?.data?.message || 'Failed to delete risk alert.');
+  }
+};
+
 export default {
   identifyPlant,
   savePlantIdentification,
@@ -314,8 +373,12 @@ export default {
   getSimilarPlants,
   getRiskAlerts,
   dismissAlert,
+  checkPersonalizedRisks,
   getPlantSafetyInfo,
   getPlantWarnings,
   checkDrugInteractions,
   generatePersonalizedAlerts,
+  getPlantParts,
+  updateRiskAlert,
+  deleteRiskAlert,
 };

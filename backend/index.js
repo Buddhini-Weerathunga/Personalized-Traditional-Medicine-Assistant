@@ -14,6 +14,9 @@ const chatRoutes = require("./src/dosha-diagnosis/routes/chat.routes");
 const prakritiRoutes = require("./src/dosha-diagnosis/routes/prakriti.routes");
 const prakritiReportRoutes = require("./src/dosha-diagnosis/routes/prakritiReport.routes");
 
+// 🌿 Plant Identification routes
+const plantRoutes = require("./src/routes/plant-identification/plantRoutes");
+
 // ⚙️ Main auth & user routes (your existing ones)
 const authRoutes = require("./src/routes/auth");
 const userRoutes = require("./src/routes/userRoutes");
@@ -63,6 +66,8 @@ app.use("/api/prakriti", require("./src/routes/health-profile-analysis/prakritiG
 
 // 🧘 ADD YOGA ROUTES HERE - IMPORTANT: Place this before error handlers
 app.use("/api/yoga", yogaRoutes);
+// ---------- PLANT IDENTIFICATION ROUTES ----------
+app.use("/api/plant-identification", plantRoutes);
 
 // ---------- HEALTH CHECK ----------
 app.get("/api/health", (req, res) => {
