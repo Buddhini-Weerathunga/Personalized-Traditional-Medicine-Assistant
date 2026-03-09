@@ -78,19 +78,7 @@ def identify_plant(
         
         # Run inference
         with torch.no_grad():
-            model = model_wrapper.model
-            
-            # The model has separate backbone, embedding_head, and classifier
-            # We need to pass through all of them to get class predictions
-            if hasattr(model, 'backbone') and hasattr(model, 'embedding_head') and hasattr(model, 'classifier'):
-                # Custom model architecture: backbone -> embedding_head -> classifier
-                backbone_features = model.backbone(input_batch)
-                embeddings = model.embedding_head(backbone_features)
-                outputs = model.classifier(embeddings)
-            else:
-                # Standard model - direct forward pass
-                outputs = model(input_batch)
-            
+            outputs = model_wrapper.model(input_batch)
             probabilities = F.softmax(outputs, dim=1)
         
         # Get top predictions
@@ -151,31 +139,24 @@ def get_scientific_name(common_name: str) -> str:
     # This is a placeholder mapping - you should expand this
     # or load from a database/file
     scientific_names = {
+        "aloevera": "Aloe barbadensis miller",
         "aloe vera": "Aloe barbadensis miller",
+        "cinnamon": "Cinnamomum verum",
+        "hathawariya": "Asparagus racemosus",
+        "papaya": "Carica papaya",
+        "turmeric": "Curcuma longa",
         "tulsi": "Ocimum tenuiflorum",
         "holy basil": "Ocimum tenuiflorum",
         "neem": "Azadirachta indica",
-        "turmeric": "Curcuma longa",
         "ginger": "Zingiber officinale",
         "ashwagandha": "Withania somnifera",
         "brahmi": "Bacopa monnieri",
         "mint": "Mentha",
         "peppermint": "Mentha piperita",
-        "lavender": "Lavandula",
-        "chamomile": "Matricaria chamomilla",
-        "eucalyptus": "Eucalyptus globulus",
-        "tea tree": "Melaleuca alternifolia",
-        "rosemary": "Salvia rosmarinus",
-        "thyme": "Thymus vulgaris",
-        "oregano": "Origanum vulgare",
-        "basil": "Ocimum basilicum",
-        "sage": "Salvia officinalis",
-        "lemongrass": "Cymbopogon",
         "moringa": "Moringa oleifera",
         "amla": "Phyllanthus emblica",
         "giloy": "Tinospora cordifolia",
         "shatavari": "Asparagus racemosus",
-        "triphala": "Terminalia chebula",
     }
     
     # Try to find a match (case-insensitive)
@@ -193,8 +174,8 @@ def get_plant_info(plant_name: str) -> Dict:
     """
     # Placeholder - you should expand this with actual plant data
     plant_database = {
-        "aloe vera": {
-            "description": "Aloe vera is a succulent plant species known for its medicinal properties.",
+        "aloevera": {
+            "description": "Aloe vera is a succulent plant species known for its medicinal properties in Ayurveda.",
             "uses": ["Skin care", "Burns treatment", "Digestive health", "Wound healing"],
             "parts_used": ["Gel", "Latex", "Leaves"],
             "precautions": ["May cause skin irritation in some people", "Not recommended for internal use during pregnancy"],
@@ -205,28 +186,52 @@ def get_plant_info(plant_name: str) -> Dict:
                 "dosha_effect": "Balances Pitta and Kapha"
             }
         },
-        "tulsi": {
-            "description": "Tulsi (Holy Basil) is a sacred plant in Ayurveda known for its adaptogenic properties.",
-            "uses": ["Respiratory health", "Stress relief", "Immunity booster", "Digestive aid"],
-            "parts_used": ["Leaves", "Seeds", "Roots"],
-            "precautions": ["May lower blood sugar", "Avoid during pregnancy"],
+        "cinnamon": {
+            "description": "Cinnamon is a spice obtained from the inner bark of several tree species, widely used in traditional medicine.",
+            "uses": ["Blood sugar regulation", "Anti-inflammatory", "Digestive aid", "Respiratory health"],
+            "parts_used": ["Bark", "Leaves", "Essential oil"],
+            "precautions": ["May interact with diabetes medications", "Avoid excessive consumption during pregnancy"],
             "ayurvedic_properties": {
-                "rasa": "Pungent, Bitter",
+                "rasa": "Pungent, Sweet",
                 "virya": "Hot",
-                "vipaka": "Pungent",
-                "dosha_effect": "Balances Kapha and Vata"
+                "vipaka": "Sweet",
+                "dosha_effect": "Balances Vata and Kapha"
             }
         },
-        "neem": {
-            "description": "Neem is known as the 'village pharmacy' in India for its numerous medicinal uses.",
-            "uses": ["Skin disorders", "Blood purification", "Dental care", "Pest control"],
-            "parts_used": ["Leaves", "Bark", "Seeds", "Oil"],
-            "precautions": ["Not for internal use during pregnancy", "May affect fertility"],
+        "hathawariya": {
+            "description": "Hathawariya (Asparagus racemosus / Shatavari) is a highly valued Ayurvedic herb known as the 'Queen of Herbs'.",
+            "uses": ["Female reproductive health", "Immunity booster", "Digestive tonic", "Anti-aging"],
+            "parts_used": ["Roots", "Leaves"],
+            "precautions": ["Avoid if allergic to asparagus", "Consult doctor if on hormonal medications"],
             "ayurvedic_properties": {
-                "rasa": "Bitter, Astringent",
+                "rasa": "Sweet, Bitter",
                 "virya": "Cold",
+                "vipaka": "Sweet",
+                "dosha_effect": "Balances Vata and Pitta"
+            }
+        },
+        "papaya": {
+            "description": "Papaya is a tropical fruit plant with significant medicinal value in traditional medicine systems.",
+            "uses": ["Digestive enzyme source", "Wound healing", "Anti-parasitic", "Skin health"],
+            "parts_used": ["Fruit", "Leaves", "Seeds", "Latex"],
+            "precautions": ["Avoid unripe papaya during pregnancy", "May interact with blood-thinning medications"],
+            "ayurvedic_properties": {
+                "rasa": "Sweet, Bitter",
+                "virya": "Hot",
+                "vipaka": "Sweet",
+                "dosha_effect": "Balances Vata and Kapha"
+            }
+        },
+        "turmeric": {
+            "description": "Turmeric is a golden spice and one of the most important herbs in Ayurvedic medicine.",
+            "uses": ["Anti-inflammatory", "Antioxidant", "Wound healing", "Digestive health", "Skin care"],
+            "parts_used": ["Rhizome", "Powder"],
+            "precautions": ["May interact with blood-thinning medications", "Avoid excessive use during pregnancy"],
+            "ayurvedic_properties": {
+                "rasa": "Bitter, Pungent",
+                "virya": "Hot",
                 "vipaka": "Pungent",
-                "dosha_effect": "Balances Pitta and Kapha"
+                "dosha_effect": "Balances all three doshas"
             }
         }
     }
