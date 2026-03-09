@@ -546,6 +546,7 @@ export default function AyurvedaDietCoach() {
                   </select>
                 </div>
 
+              {/*
                 <div>
                   <label className="block text-sm font-medium text-gray-700 mb-2">Climate</label>
                   {weatherInfo.detected ? (
@@ -572,8 +573,9 @@ export default function AyurvedaDietCoach() {
                       </div>
                     </div>
                   )}
-                </div>
+                </div>*/}
               </div>
+              
 
               <button
                 type="button"
@@ -606,7 +608,7 @@ export default function AyurvedaDietCoach() {
 
                   <div className="mt-4 text-green-50 text-sm space-y-1">
                     <p><strong>Dominant Dosha:</strong> {dominantDosha}</p>
-                    <p><strong>Balance Index:</strong> {Math.round(balanceIndex)} / 100</p>
+                    
                   </div>
                 </div>
 
