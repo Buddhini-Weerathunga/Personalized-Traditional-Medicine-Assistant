@@ -556,6 +556,7 @@ router.post('/risk-alerts/personalized', async (req, res) => {
     res.json({ success: true, alerts: [riskAlert] });
   } catch (error) {
     console.error('Personalized risk check error:', error.message);
+    console.error('Full error:', error);
     res.status(500).json({ success: false, message: 'Failed to check personalized risks' });
   }
 });
