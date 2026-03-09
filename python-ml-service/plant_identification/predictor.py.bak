@@ -14,64 +14,6 @@ from typing import Dict, List, Optional, Tuple, Union
 from .model_loader import get_model
 
 
-def check_leaf_like_image(image: Image.Image) -> Tuple[bool, str]:
-    """
-    Pre-filter images to reject obvious non-leaf photos (flowers, full trees,
-    landscapes, etc.) before running the classifier. Uses basic color and
-    composition heuristics.
-
-    Returns (is_acceptable, reason).
-    """
-    img = image.copy()
-    # Resize for fast analysis
-    img = img.resize((256, 256))
-    pixels = np.array(img, dtype=np.float32)  # (256,256,3) RGB
-
-    r, g, b = pixels[:, :, 0], pixels[:, :, 1], pixels[:, :, 2]
-    total = r + g + b + 1e-6  # avoid division by zero
-
-    # Normalised channels
-    r_ratio = r / total
-    g_ratio = g / total
-    b_ratio = b / total
-
-    # --- 1. Sky detection (large areas of blue/white at the top) ---
-    top_quarter = pixels[:64, :, :]
-    tr, tg, tb = top_quarter[:, :, 0], top_quarter[:, :, 1], top_quarter[:, :, 2]
-    # Sky pixels: blue-dominant OR very bright (white sky)
-    sky_blue = (tb > 150) & (tb > tr) & (tb > tg)
-    sky_white = (tr > 200) & (tg > 200) & (tb > 200)
-    sky_ratio = float(np.sum(sky_blue | sky_white)) / (64 * 256)
-    if sky_ratio > 0.50:
-        return False, "Image appears to contain sky/landscape — likely a full tree or outdoor scene, not a close-up leaf."
-
-    # --- 2. Bright non-green flower detection ---
-    # Flower pixels: high red or high yellow with low green-dominance
-    red_dominant = (r > 150) & (r > g * 1.3) & (r > b * 1.3)
-    yellow_pixels = (r > 150) & (g > 120) & (b < 100)
-    orange_pixels = (r > 160) & (g > 80) & (g < 160) & (b < 80)
-    flower_pixels = red_dominant | yellow_pixels | orange_pixels
-    flower_ratio = float(np.sum(flower_pixels)) / (256 * 256)
-    if flower_ratio > 0.12:
-        return False, "Image appears to contain a flower (bright petals detected), not a medicinal plant leaf."
-
-    # --- 3. Green dominance check ---
-    # Medicinal plant leaf images should have significant green areas
-    green_dominant = (g_ratio > 0.38) & (g > 60) & (g > r) & (g > b)
-    green_ratio = float(np.sum(green_dominant)) / (256 * 256)
-    if green_ratio < 0.10:
-        return False, "Image has very little green — unlikely to be a close-up of a plant leaf."
-
-    # --- 4. Brown trunk / bark detection (tree trunks) ---
-    brown = (r > 80) & (r < 200) & (g > 50) & (g < 160) & (b > 20) & (b < 120) & (r > g) & (g > b)
-    brown_ratio = float(np.sum(brown)) / (256 * 256)
-    # Combined: lots of sky + significant brown = full tree photo
-    if sky_ratio > 0.25 and brown_ratio > 0.10:
-        return False, "Image appears to show a full tree (sky + trunk detected). Please use a close-up of a leaf."
-
-    return True, ""
-
-
 def preprocess_image(image_source: Union[str, bytes, Path, Image.Image]) -> Image.Image:
     """
     Preprocess image from various sources
@@ -119,20 +61,6 @@ def identify_plant(
     try:
         # Preprocess image
         image = preprocess_image(image_source)
-        
-        # Pre-filter: reject obvious non-leaf images (flowers, full trees, etc.)
-        is_leaf_like, reject_reason = check_leaf_like_image(image)
-        if not is_leaf_like:
-            return {
-                "success": True,
-                "is_plant": False,
-                "plantName": "Not Recognized",
-                "scientificName": "",
-                "confidence": 0,
-                "predictions": [],
-                "totalClasses": len(model_wrapper.class_names) if model_wrapper.class_names else 0,
-                "message": reject_reason
-            }
         
         # Check if it's a plant image (optional)
         is_plant, plant_confidence = model_wrapper.is_plant_image(image)

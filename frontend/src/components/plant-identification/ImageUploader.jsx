@@ -30,14 +30,7 @@ const ImageUploader = ({ onImageSelect }) => {
       
       img.onload = () => {
         URL.revokeObjectURL(url);
-        
-        // Minimum dimensions for quality
-        if (img.width < 300 || img.height < 300) {
-          setValidationError('Image resolution too low. Minimum 300x300 pixels required for accurate identification');
-          resolve(false);
-        } else {
-          resolve(true);
-        }
+        resolve(true);
       };
       
       img.onerror = () => {
@@ -111,7 +104,7 @@ const ImageUploader = ({ onImageSelect }) => {
         <h3 className="text-green-800 text-2xl font-semibold mb-2">Upload Plant Image</h3>
         <p className="text-gray-600 mb-2">Drag and drop an image here, or click to select</p>
         <span className="block text-gray-400 text-sm mt-2">Supports: JPG, PNG, JPEG</span>
-        <span className="block text-gray-400 text-xs mt-1">Minimum 300x300 pixels, Max 10MB</span>
+        <span className="block text-gray-400 text-xs mt-1">Max 10MB</span>
         
         {validationError && (
           <div className="mt-4 p-3 bg-red-50 border border-red-200 rounded-lg">
