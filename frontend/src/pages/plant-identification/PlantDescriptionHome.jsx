@@ -68,7 +68,7 @@ const PlantDescriptionHome = () => {
           ayurvedicProperties: { rasa: 'Varies by plant', guna: 'Varies by plant', virya: 'Varies by plant', vipaka: 'Varies by plant' },
           warnings: ['Consult healthcare provider before use', 'Not recommended during pregnancy without guidance']
         },
-        image: null,
+        image: plant.image || null,
         healthData: null
       }
     });
