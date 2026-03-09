@@ -14,64 +14,6 @@ from typing import Dict, List, Optional, Tuple, Union
 from .model_loader import get_model
 
 
-def check_leaf_like_image(image: Image.Image) -> Tuple[bool, str]:
-    """
-    Pre-filter images to reject obvious non-leaf photos (flowers, full trees,
-    landscapes, etc.) before running the classifier. Uses basic color and
-    composition heuristics.
-
-    Returns (is_acceptable, reason).
-    """
-    img = image.copy()
-    # Resize for fast analysis
-    img = img.resize((256, 256))
-    pixels = np.array(img, dtype=np.float32)  # (256,256,3) RGB
-
-    r, g, b = pixels[:, :, 0], pixels[:, :, 1], pixels[:, :, 2]
-    total = r + g + b + 1e-6  # avoid division by zero
-
-    # Normalised channels
-    r_ratio = r / total
-    g_ratio = g / total
-    b_ratio = b / total
-
-    # --- 1. Sky detection (large areas of blue/white at the top) ---
-    top_quarter = pixels[:64, :, :]
-    tr, tg, tb = top_quarter[:, :, 0], top_quarter[:, :, 1], top_quarter[:, :, 2]
-    # Sky pixels: blue-dominant OR very bright (white sky)
-    sky_blue = (tb > 150) & (tb > tr) & (tb > tg)
-    sky_white = (tr > 200) & (tg > 200) & (tb > 200)
-    sky_ratio = float(np.sum(sky_blue | sky_white)) / (64 * 256)
-    if sky_ratio > 0.50:
-        return False, "Image appears to contain sky/landscape — likely a full tree or outdoor scene, not a close-up leaf."
-
-    # --- 2. Bright non-green flower detection ---
-    # Flower pixels: high red or high yellow with low green-dominance
-    red_dominant = (r > 150) & (r > g * 1.3) & (r > b * 1.3)
-    yellow_pixels = (r > 150) & (g > 120) & (b < 100)
-    orange_pixels = (r > 160) & (g > 80) & (g < 160) & (b < 80)
-    flower_pixels = red_dominant | yellow_pixels | orange_pixels
-    flower_ratio = float(np.sum(flower_pixels)) / (256 * 256)
-    if flower_ratio > 0.12:
-        return False, "Image appears to contain a flower (bright petals detected), not a medicinal plant leaf."
-
-    # --- 3. Green dominance check ---
-    # Medicinal plant leaf images should have significant green areas
-    green_dominant = (g_ratio > 0.38) & (g > 60) & (g > r) & (g > b)
-    green_ratio = float(np.sum(green_dominant)) / (256 * 256)
-    if green_ratio < 0.10:
-        return False, "Image has very little green — unlikely to be a close-up of a plant leaf."
-
-    # --- 4. Brown trunk / bark detection (tree trunks) ---
-    brown = (r > 80) & (r < 200) & (g > 50) & (g < 160) & (b > 20) & (b < 120) & (r > g) & (g > b)
-    brown_ratio = float(np.sum(brown)) / (256 * 256)
-    # Combined: lots of sky + significant brown = full tree photo
-    if sky_ratio > 0.25 and brown_ratio > 0.10:
-        return False, "Image appears to show a full tree (sky + trunk detected). Please use a close-up of a leaf."
-
-    return True, ""
-
-
 def preprocess_image(image_source: Union[str, bytes, Path, Image.Image]) -> Image.Image:
     """
     Preprocess image from various sources
@@ -120,9 +62,58 @@ def identify_plant(
         # Preprocess image
         image = preprocess_image(image_source)
         
-        # Pre-filter: reject obvious non-leaf images (flowers, full trees, etc.)
-        is_leaf_like, reject_reason = check_leaf_like_image(image)
-        if not is_leaf_like:
+        # --- Pre-check: Image-level heuristics to reject non-leaf images ---
+        # Medicinal plant leaf images are typically close-up shots dominated by green.
+        # Big trees (lots of sky), colorful flowers, etc. have very different profiles.
+        img_array = np.array(image.resize((128, 128)))
+        r_mean, g_mean, b_mean = img_array[:,:,0].mean(), img_array[:,:,1].mean(), img_array[:,:,2].mean()
+        total_brightness = (r_mean + g_mean + b_mean) / 3
+
+        # Check upper third for sky (high blue or high brightness = sky/clouds)
+        upper_third = img_array[:img_array.shape[0]//3, :, :]
+        upper_b = upper_third[:,:,2].mean()
+        upper_brightness = upper_third.mean()
+
+        # Check for flower-like images: high saturation non-green colors
+        # Convert to a simple saturation measure
+        img_float = img_array.astype(np.float32) / 255.0
+        c_max = img_float.max(axis=2)
+        c_min = img_float.min(axis=2)
+        saturation = np.where(c_max > 0, (c_max - c_min) / c_max, 0)
+        mean_saturation = saturation.mean()
+
+        # Red+yellow dominance (flowers)
+        red_dominant = np.sum((img_array[:,:,0] > img_array[:,:,1] + 30) & (img_array[:,:,0] > 100))
+        total_pixels = img_array.shape[0] * img_array.shape[1]
+        red_ratio = red_dominant / total_pixels
+
+        # Green ratio: for leaves, green channel should be notable
+        green_dominant = np.sum((img_array[:,:,1] > img_array[:,:,0]) & (img_array[:,:,1] > img_array[:,:,2]))
+        green_ratio = green_dominant / total_pixels
+
+        image_rejected = False
+        rejection_reason = ""
+
+        # Debug logging for threshold tuning
+        print(f"[IMG HEURISTIC] brightness={total_brightness:.1f}, upper_brightness={upper_brightness:.1f}, "
+              f"green_ratio={green_ratio:.3f}, red_ratio={red_ratio:.3f}, mean_sat={mean_saturation:.3f}")
+
+        # Big tree / landscape: upper third is bright (sky), overall image has low green dominance
+        if upper_brightness > 180 and green_ratio < 0.45:
+            image_rejected = True
+            rejection_reason = "Image appears to be a landscape or full tree photo, not a close-up plant leaf."
+
+        # Flower: high saturation + strong red/yellow dominance
+        if red_ratio > 0.15 and mean_saturation > 0.4:
+            image_rejected = True
+            rejection_reason = "Image appears to contain a flower rather than a medicinal plant leaf."
+
+        # Very bright/washed out images (sky, white background)
+        if total_brightness > 200:
+            image_rejected = True
+            rejection_reason = "Image is too bright. Please use a close-up image of a plant leaf."
+
+        if image_rejected:
             return {
                 "success": True,
                 "is_plant": False,
@@ -130,10 +121,15 @@ def identify_plant(
                 "scientificName": "",
                 "confidence": 0,
                 "predictions": [],
-                "totalClasses": len(model_wrapper.class_names) if model_wrapper.class_names else 0,
-                "message": reject_reason
+                "totalClasses": len(model_wrapper.class_names),
+                "message": (
+                    f"{rejection_reason} "
+                    "Our model identifies specific medicinal plants (Aloe Vera, Cinnamon, "
+                    "Hathawariya, Papaya, Turmeric). Please upload a clear, close-up image "
+                    "of a medicinal plant leaf."
+                )
             }
-        
+
         # Check if it's a plant image (optional)
         is_plant, plant_confidence = model_wrapper.is_plant_image(image)
         if not is_plant:
@@ -192,16 +188,20 @@ def identify_plant(
         #    Low max logit = the model isn't strongly activated
         max_logit = float(np.max(raw_logits))
 
+        # Debug logging for model-level rejection
+        print(f"[MODEL CHECK] top_conf={top_confidence:.2f}%, entropy_ratio={entropy_ratio:.3f}, "
+              f"margin={margin:.3f}, max_logit={max_logit:.3f}")
+
         # Reject if any of these indicate the image isn't a known medicinal plant:
-        #  - Top confidence ≤ 70%
-        #  - Entropy ratio > 0.75 (close to uniform, model guessing)
-        #  - Margin < 0.15 (top two predictions too close)
-        #  - Max logit < 2.0 (model isn't strongly activated by any class)
+        #  - Top confidence ≤ 85%
+        #  - Entropy ratio > 0.55 (model spreading confidence = guessing)
+        #  - Margin < 0.25 (top two predictions too close)
+        #  - Max logit < 4.0 (model isn't strongly activated by any class)
         is_rejected = (
-            top_confidence <= 70
-            or entropy_ratio > 0.75
-            or margin < 0.15
-            or max_logit < 2.0
+            top_confidence <= 85
+            or entropy_ratio > 0.55
+            or margin < 0.25
+            or max_logit < 4.0
         )
 
         if is_rejected:
@@ -231,6 +231,8 @@ def identify_plant(
         }
         
     except Exception as e:
+        import traceback
+        traceback.print_exc()
         return {
             "success": False,
             "error": str(e),
