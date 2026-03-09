@@ -30,11 +30,11 @@ const questions = [
 const questionHints = [
   "thin | medium | heavy",
   "high | moderate | low | variable appetite — regular | irregular | sometimes",
- `Spicy food: very low → very high
-Oily food: very low → very high
-Sweet food: very low → very high`,
-  `Caffeine: very low → very high
-Processed food: very low → very high
+ `Spicy food: very low → low → moderate → high → very high
+Oily food: very low → low → moderate → high → very high
+Sweet food: very low → low → moderate → high → very high`,
+  `Caffeine: very low → low → moderate → high → very high
+Processed food: very low → low → moderate → high → very high
 Diet type: vegetarian | eggetarian | non-vegetarian`,
   "clear | pale yellow | yellow | dark yellow",
   "Stress: very low | low | moderate | high | very high",

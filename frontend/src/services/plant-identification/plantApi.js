@@ -1,7 +1,7 @@
 import axios from '../../api/axios';
 
-// Base endpoint for plant identification API
-const PLANT_API_BASE = '/api/plant-identification';
+// Base endpoint for plant identification API (without /api prefix since axios baseURL already includes it)
+const PLANT_API_BASE = '/plant-identification';
 
 /**
  * Identify a plant from an image with optional health data for personalized analysis
@@ -247,6 +247,26 @@ export const dismissAlert = async (alertId) => {
 };
 
 /**
+ * Check personalized risks for a plant based on health data
+ * @param {Object} data - Plant and health data
+ * @param {string} data.plantName - The name of the plant
+ * @param {string} data.plantPart - The part of the plant being used
+ * @param {Object} data.healthData - User's health information
+ * @returns {Promise} - Personalized risk alerts
+ */
+export const checkPersonalizedRisks = async (data) => {
+  try {
+    const response = await axios.post(`${PLANT_API_BASE}/risk-alerts/personalized`, data);
+    return response.data;
+  } catch (error) {
+    console.error('Error checking personalized risks:', error);
+    throw new Error(
+      error.response?.data?.message || 'Failed to check personalized risks.'
+    );
+  }
+};
+
+/**
  * Get comprehensive safety information for a specific plant
  * @param {string} plantId - The plant ID
  * @returns {Promise} - Detailed safety information
@@ -314,6 +334,7 @@ export default {
   getSimilarPlants,
   getRiskAlerts,
   dismissAlert,
+  checkPersonalizedRisks,
   getPlantSafetyInfo,
   getPlantWarnings,
   checkDrugInteractions,
