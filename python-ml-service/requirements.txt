@@ -1,16 +1,22 @@
 fastapi
-uvicorn
+uvicorn[standard]
 pydantic
 python-multipart
 
 numpy
 pandas
-scikit-learn
+scikit-learn==1.6.1
 joblib
 
 Pillow
 opencv-python
 torch
 torchvision
+torchaudio
+xgboost
 
 mediapipe
+
+# Additional for plant identification
+timm
+albumentations

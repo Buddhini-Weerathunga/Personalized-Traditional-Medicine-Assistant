@@ -2,6 +2,7 @@ const mongoose = require("mongoose");
 
 const PatientInputSchema = new mongoose.Schema(
   {
+    /* ================= USER ================= */
     userId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "User",
@@ -9,67 +10,84 @@ const PatientInputSchema = new mongoose.Schema(
       index: true
     },
 
-    /* ---------------- BASIC BODY & EATING ---------------- */
+    /* ================= BASIC BODY & EATING ================= */
 
     body_frame: {
       type: String,
-      enum: ["Thin", "Medium", "Heavy"]
+      enum: ["thin", "medium", "heavy"],
+      default: "medium"
     },
 
     appetite_level: {
       type: String,
-      enum: ["High", "Moderate", "Low", "Variable"]
+      enum: ["Low", "Moderate", "High", "Variable"],
+      default: "Moderate"
     },
 
     meal_regular: {
       type: String,
-      enum: ["Yes", "No", "Sometimes"]
+      enum: ["Yes", "No", "Sometime"],
+      default: "Yes"
     },
 
-    /* ---------------- FOOD INTAKE (1–5) ---------------- */
+    /* ================= FOOD INTAKE (1–5 SCALE) ================= */
 
-    spicy_food_frequency: { type: Number, min: 1, max: 5 },
-    oily_food_frequency: { type: Number, min: 1, max: 5 },
-    sweet_food_frequency: { type: Number, min: 1, max: 5 },
-    caffeine_intake: { type: Number, min: 1, max: 5 },
-    processed_food_intake: { type: Number, min: 1, max: 5 },
-    fruits_intake: { type: Number, min: 1, max: 5 },
-    vegetables_intake: { type: Number, min: 1, max: 5 },
+    spicy_food_frequency: { type: Number, min: 1, max: 5, default: 3 },
+    oily_food_frequency: { type: Number, min: 1, max: 5, default: 3 },
+    sweet_food_frequency: { type: Number, min: 1, max: 5, default: 3 },
+    caffeine_intake: { type: Number, min: 1, max: 5, default: 2 },
+    processed_food_intake: { type: Number, min: 1, max: 5, default: 2 },
 
     veg_nonveg: {
       type: String,
-      enum: ["Vegetarian", "Eggetarian", "Non-Vegetarian"]
+      enum: ["Vegetarian", "Eggetarian", "Non-Vegetarian"],
+      default: "Vegetarian"
     },
 
-    /* ---------------- URINE ---------------- */
+    /* ================= URINE ================= */
 
     urine_color: {
       type: String,
-      enum: ["Clear", "Pale Yellow", "Yellow", "Dark Yellow"]
+      enum: ["clear", "Pale Yellow", "Yellow", "Dark Yellow"],
+      default: "Yellow"
     },
 
-    /* ---------------- MENTAL ---------------- */
+    /* ================= MENTAL ================= */
 
-    stress_level: { type: Number, min: 1, max: 5 },
-    focus_level: { type: Number, min: 1, max: 5 },
+    stress_level: { type: Number, min: 1, max: 5, default: 3 },
 
-    /* ---------------- SLEEP ---------------- */
+    /* ================= SLEEP ================= */
+    /* ML expects POSITIVE quality (higher = better) */
 
-    sleep_issues: { type: Number, min: 1, max: 5 },
+    sleep_quality: { type: Number, min: 1, max: 5, default: 3 },
 
-    /* ---------------- PAIN ---------------- */
+    /* ================= PAIN ================= */
 
-    headaches: { type: Number, min: 1, max: 5 },
-    joint_pain: { type: Number, min: 1, max: 5 },
+    headache_severity: { type: Number, min: 1, max: 5, default: 3 },
+    joint_pain_severity: { type: Number, min: 1, max: 5, default: 3 },
 
-    /* ---------------- ENVIRONMENT ---------------- */
+    /* ================= ENVIRONMENT ================= */
+    /* MUST MATCH ORDINAL ENCODER */
 
-    living_environment: {
+    environment_temperature: {
       type: String,
-      enum: ["Hot", "Cool", "Moderate"]
+      enum: ["cold", "Moderate", "hot"],
+      default: "Moderate"
     },
 
-    /* ---------------- FAMILY HISTORY ---------------- */
+    environment_humidity: {
+      type: String,
+      enum: ["cold", "Moderate", "hot"],
+      default: "Moderate"
+    },
+
+    environment_wind: {
+      type: String,
+      enum: ["cold", "Moderate", "hot"],
+      default: "Moderate"
+    },
+
+    /* ================= FAMILY HISTORY ================= */
 
     family_diabetes: { type: String, enum: ["Yes", "No"], default: "No" },
     family_thyroid: { type: String, enum: ["Yes", "No"], default: "No" },
@@ -79,12 +97,14 @@ const PatientInputSchema = new mongoose.Schema(
     family_heart_disease: { type: String, enum: ["Yes", "No"], default: "No" },
     family_mental_health: { type: String, enum: ["Yes", "No"], default: "No" },
 
-    /* ---------------- DEMOGRAPHIC ---------------- */
+    /* ================= DEMOGRAPHIC ================= */
 
-    age: { type: Number },
+    age: { type: Number, min: 1, max: 120, default: null },
+
     gender: {
       type: String,
-      enum: ["Male", "Female", "Other"]
+      enum: ["Male", "Female", "Other"],
+      default: "Other"
     }
   },
   { timestamps: true }
