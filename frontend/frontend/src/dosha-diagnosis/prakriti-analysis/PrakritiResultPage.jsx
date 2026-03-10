@@ -28,18 +28,6 @@ export default function PrakritiResultPage() {
         return;
       }
 
-      // Format recommendations from AI-generated data
-      const formattedRecommendations = aiRecommendations ? {
-        physical_characteristics: aiRecommendations.physical_characteristics || [],
-        diet_recommendations: aiRecommendations.diet_recommendations || [],
-        foods_to_avoid: aiRecommendations.foods_to_avoid || [],
-        lifestyle_recommendations: aiRecommendations.lifestyle_recommendations || [],
-        herbal_remedies: aiRecommendations.herbal_remedies || [],
-        practical_applications: aiRecommendations.practical_applications || []
-      } : {
-        lifestyle: ["Warm meals", "Regular sleep", "Light yoga"]
-      };
-
       await API.post(
         "/prakritiReports/reports", // -> http://localhost:5000/api/prakritiReports/reports
         {
@@ -47,7 +35,9 @@ export default function PrakritiResultPage() {
           pittaScore: summary.pitta,
           kaphaScore: summary.kapha,
           dominantDosha: summary.dominant,
-          recommendations: formattedRecommendations,
+          recommendations: {
+            lifestyle: ["Warm meals", "Regular sleep", "Light yoga"],
+          },
           capturedRegions: results,
         },
         {
@@ -89,7 +79,7 @@ export default function PrakritiResultPage() {
       // Using Groq API with llama3-8b-8192 (free tier)
       const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
-      const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -113,14 +103,14 @@ export default function PrakritiResultPage() {
         }),
       });
 
-      if (!groqRes.ok) {
-        const errBody = await groqRes.json().catch(() => ({}));
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
         console.error("Groq API error:", errBody);
         setAiRecommendations(null);
         return;
       }
 
-      const data = await groqRes.json();
+      const data = await response.json();
       const aiText = data?.choices?.[0]?.message?.content;
 
       if (!aiText) {

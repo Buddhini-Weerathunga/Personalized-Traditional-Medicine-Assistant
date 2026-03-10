@@ -38,7 +38,14 @@ const WELCOME_MESSAGE = {
 };
 
 export default function ChatbotPage() {
-  const [messages, setMessages] = useState([WELCOME_MESSAGE]);
+  const [messages, setMessages] = useState(() => {
+    try {
+      const saved = localStorage.getItem("ayurveda_chat_history");
+      return saved ? JSON.parse(saved) : [WELCOME_MESSAGE];
+    } catch {
+      return [WELCOME_MESSAGE];
+    }
+  });
   const [input, setInput] = useState("");
   const [sending, setSending] = useState(false);
   const bottomRef = useRef(null);
@@ -46,6 +53,14 @@ export default function ChatbotPage() {
   useEffect(() => {
     bottomRef.current?.scrollIntoView({ behavior: "smooth" });
   }, [messages, sending]);
+
+  useEffect(() => {
+    try {
+      localStorage.setItem("ayurveda_chat_history", JSON.stringify(messages));
+    } catch {
+      // ignore storage errors (e.g. private mode quota exceeded)
+    }
+  }, [messages]);
 
   const isAyurvedaRelated = (text) => {
     const lower = text.toLowerCase();
@@ -59,7 +74,7 @@ export default function ChatbotPage() {
 
     setInput("");
 
-    const userMsg = { _id: `user-${Date.now()}`, role: "user", content: text };
+    const userMsg = { _id: `user-${Date.now()}`, role: "user", content: text, timestamp: new Date().toISOString() };
     setMessages((prev) => [...prev, userMsg]);
 
     // Client-side keyword guard for obvious off-topic messages
@@ -71,6 +86,7 @@ export default function ChatbotPage() {
           role: "assistant",
           content:
             "🙏 I appreciate your question! However, I specialize exclusively in Ayurvedic medicine and wellness.\n\nI can help you with:\n• Dosha analysis (Vata, Pitta, Kapha)\n• Ayurvedic diet and nutrition\n• Herbal remedies and natural treatments\n• Yoga, meditation, and lifestyle practices\n• Traditional Ayurvedic therapies\n\nPlease feel free to ask me anything related to Ayurveda! 🌿",
+          timestamp: new Date().toISOString(),
         },
       ]);
       return;
@@ -117,6 +133,7 @@ export default function ChatbotPage() {
           _id: `bot-${Date.now()}`,
           role: "assistant",
           content: reply || "I'm sorry, I couldn't generate a response. Please try again.",
+          timestamp: new Date().toISOString(),
         },
       ]);
     } catch (error) {
@@ -127,11 +144,17 @@ export default function ChatbotPage() {
           _id: `err-${Date.now()}`,
           role: "assistant",
           content: "⚠️ I'm having trouble connecting right now. Please try again in a moment.",
+          timestamp: new Date().toISOString(),
         },
       ]);
     } finally {
       setSending(false);
     }
+  };
+
+  const handleClearHistory = () => {
+    setMessages([WELCOME_MESSAGE]);
+    localStorage.removeItem("ayurveda_chat_history");
   };
 
   return (
@@ -147,10 +170,20 @@ export default function ChatbotPage() {
         <section className="relative max-w-4xl mx-auto px-4 py-10">
           {/* Page Header */}
           <div className="mb-6">
-            <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
-              <span>🤖 AI-Powered Chat</span>
-              <span className="h-4 w-px bg-green-300" />
-              <span>Ayurveda Assistant</span>
+            <div className="flex items-center justify-between flex-wrap gap-2">
+              <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full bg-green-100 text-green-700 text-xs font-semibold">
+                <span>🤖 AI-Powered Chat</span>
+                <span className="h-4 w-px bg-green-300" />
+                <span>Ayurveda Assistant</span>
+              </div>
+              {messages.length > 1 && (
+                <button
+                  onClick={handleClearHistory}
+                  className="text-xs px-3 py-1.5 rounded-full border border-red-200 text-red-500 hover:bg-red-50 transition-all"
+                >
+                  Clear History
+                </button>
+              )}
             </div>
             <h1 className="mt-4 text-3xl md:text-4xl font-bold text-gray-900">
               Your{" "}
@@ -193,6 +226,11 @@ export default function ChatbotPage() {
                     <p className="text-sm whitespace-pre-wrap leading-relaxed">
                       {msg.content}
                     </p>
+                    {msg.timestamp && (
+                      <p className={`text-[10px] mt-1 ${msg.role === "user" ? "text-green-100" : "text-gray-400"}`}>
+                        {new Date(msg.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" })}
+                      </p>
+                    )}
                   </div>
                 </div>
               ))}
@@ -273,3 +311,4 @@ export default function ChatbotPage() {
     </>
   );
 }
+
