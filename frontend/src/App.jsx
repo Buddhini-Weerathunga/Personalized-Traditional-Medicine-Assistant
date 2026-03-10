@@ -36,7 +36,8 @@ import HealthProfiles from "./pages/health-profile-analysis/HealthProfile/multiP
 // ✅ Dosha Diagnosis pages
 import HomePage from "./dosha-diagnosis/home/HomePage.jsx";
 import ChatbotPage from "./dosha-diagnosis/chat/ChatbotPage.jsx";
-
+import SharedChatPage from "./dosha-diagnosis/chat/SharedChatPage.jsx";
+import PrakritiFormPage from "./dosha-diagnosis/prakriti-analysis/PrakritiFormPage.jsx";
 import PrakritiAnalysisPage from "./dosha-diagnosis/prakriti-analysis/PrakritiAnalysisPage.jsx";
 import CaptureFacePage from "./dosha-diagnosis/prakriti-analysis/CaptureFacePage.jsx";
 import CaptureEyesPage from "./dosha-diagnosis/prakriti-analysis/CaptureEyesPage.jsx";
@@ -45,7 +46,6 @@ import CaptureSkinPage from "./dosha-diagnosis/prakriti-analysis/CaptureSkinPage
 import CaptureProfilePage from "./dosha-diagnosis/prakriti-analysis/CaptureProfilePage.jsx";
 import PrakritiResultPage from "./dosha-diagnosis/prakriti-analysis/PrakritiResultPage.jsx";
 import ShareResultsPage from "./dosha-diagnosis/prakriti-analysis/ShareResultsPage.jsx";
-
 import PrescriptionPage from "./dosha-diagnosis/prescription/PrescriptionPage.jsx";
 import PrescriptionDetailPage from "./dosha-diagnosis/prescription/PrescriptionDetailPage.jsx";
 import AboutPage from "./dosha-diagnosis/about/AboutPage.jsx";
@@ -71,9 +71,13 @@ function App() {
 
           {/* Other pages */}
           <Route path="/chat" element={<ChatbotPage />} />
+          <Route path="/shared-chat" element={<SharedChatPage />} />
           <Route path="/prescription" element={<PrescriptionPage />} />
+          <Route path="/prescription/:id" element={<PrescriptionDetailPage />} />
           <Route path="/about" element={<AboutPage />} />
-          <Route path="/prescription/:id" element={<PrescriptionDetailPage />} /> {/* NEW */}
+
+          <Route path="/prakritiform" element={<PrakritiFormPage />} />
+           {/* NEW */}
           {/* ---------------------------------------------- */}
         {/* ✅ WRAP ONLY DOSHA DIAGNOSIS ROUTES */}
         {/* ---------------------------------------------- */}
