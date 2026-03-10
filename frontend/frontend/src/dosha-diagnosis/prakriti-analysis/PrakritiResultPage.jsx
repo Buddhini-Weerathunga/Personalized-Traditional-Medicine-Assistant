@@ -2,8 +2,6 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../../api/axios";
-import axios from "axios";
-import { GoogleGenerativeAI } from "@google/generative-ai";
 
 import Navbar from "../../components/layout/Navbar.jsx";
 import { usePrakritiResults } from "./PrakritiResultContext.jsx";
@@ -78,28 +76,45 @@ export default function PrakritiResultPage() {
     try {
       const prompt = preparePrompt();
 
-      // Using Google Gemini Flash API
-      const GEMINI_API_KEY = "AIzaSyDtMmHX0kdpoJ2-JapCuICmlecxZaGb_rw";
-      const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      // Using Groq API with llama3-8b-8192 (free tier)
+      const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
-      const response = await model.generateContent(
-        `You are an expert Ayurvedic practitioner with deep knowledge of traditional medicine. Based on the user's dosha analysis (both facial and questionnaire), provide specific, practical, and actionable recommendations.
+      const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${GROQ_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "llama-3.1-8b-instant",
+          messages: [
+            {
+              role: "system",
+              content:
+                "You are an expert Ayurvedic practitioner with deep knowledge of traditional medicine. You MUST respond with ONLY a valid JSON object (no markdown, no code blocks, no extra text). The JSON must have exactly these 6 keys: physical_characteristics, diet_recommendations, foods_to_avoid, lifestyle_recommendations, herbal_remedies, practical_applications. Each key should contain an array of 4-6 detailed recommendations specific to their dosha balance.",
+            },
+            {
+              role: "user",
+              content: `Based on the user's dosha analysis (both facial and questionnaire), provide specific, practical, and actionable recommendations.\n\nHere is the user's data:\n${prompt}\n\nRemember: Respond ONLY with the JSON object, nothing else.`,
+            },
+          ],
+          temperature: 0.7,
+          max_tokens: 1024,
+        }),
+      });
 
-IMPORTANT: You MUST respond with ONLY a valid JSON object (no markdown, no code blocks, no extra text). The JSON must have exactly these 6 keys: physical_characteristics, diet_recommendations, foods_to_avoid, lifestyle_recommendations, herbal_remedies, practical_applications. Each key should contain an array of 4-6 detailed recommendations specific to their dosha balance.
+      if (!response.ok) {
+        const errBody = await response.json().catch(() => ({}));
+        console.error("Groq API error:", errBody);
+        setAiRecommendations(null);
+        return;
+      }
 
-Here is the user's data:
-${prompt}
+      const data = await response.json();
+      const aiText = data?.choices?.[0]?.message?.content;
 
-Remember: Respond ONLY with the JSON object, nothing else.`
-      );
-
-      // Extract text from Gemini response
-      const geminiResponse = response.response;
-      const aiText = geminiResponse?.candidates?.[0]?.content?.parts?.[0]?.text;
-      
       if (!aiText) {
-        console.error("No response from Gemini");
+        console.error("No response from Groq");
         setAiRecommendations(null);
         return;
       }
@@ -113,7 +128,7 @@ Remember: Respond ONLY with the JSON object, nothing else.`
         const parsed = JSON.parse(jsonString);
         setAiRecommendations(parsed);
       } catch (parseError) {
-        console.error("Failed to parse Gemini response:", parseError);
+        console.error("Failed to parse Groq response:", parseError);
         console.log("Raw response:", aiText);
         setAiRecommendations(null);
       }

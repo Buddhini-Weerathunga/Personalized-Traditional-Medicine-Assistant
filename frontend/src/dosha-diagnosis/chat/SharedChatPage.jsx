@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar.jsx";
-import { GoogleGenerativeAI } from "@google/generative-ai";
+
 
 export default function SharedChatPage() {
   const location = useLocation();
@@ -31,9 +31,7 @@ export default function SharedChatPage() {
     const generateInitialMessage = async () => {
       setLoading(true);
       try {
-        const GEMINI_API_KEY = "AIzaSyCAvvhH7bgJqazPQ5r_R-9_ITWd3bwQEWw";
-        const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-        const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+        const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
         const promptText = `Based on your Ayurvedic analysis, your primary Dosha is ${dominantDosha} with the following scores:
 - Vata: ${Math.round(vataScore * 100)}%
@@ -50,9 +48,24 @@ Give explanation under these details:
 
 Provide detailed, specific, and actionable advice for someone with ${dominantDosha} as their dominant dosha.`;
 
-        const response = await model.generateContent(promptText);
-        const geminiResponse = response.response;
-        const aiText = geminiResponse?.candidates?.[0]?.content?.parts?.[0]?.text;
+        const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            "Authorization": `Bearer ${GROQ_API_KEY}`,
+          },
+          body: JSON.stringify({
+            model: "llama-3.1-8b-instant",
+            messages: [
+              { role: "system", content: "You are an expert Ayurvedic practitioner with deep knowledge of traditional medicine." },
+              { role: "user", content: promptText },
+            ],
+            temperature: 0.7,
+            max_tokens: 1024,
+          }),
+        });
+        const groqData = await groqRes.json();
+        const aiText = groqData?.choices?.[0]?.message?.content;
 
         if (aiText) {
           // Add user message and AI response
@@ -257,9 +270,7 @@ ${getPracticalApplications(dominantDosha)}
     // Generate AI response for Ayurvedic questions
     setSending(true);
     try {
-      const GEMINI_API_KEY = "AIzaSyDtMmHX0kdpoJ2-JapCuICmlecxZaGb_rw";
-      const genAI = new GoogleGenerativeAI(GEMINI_API_KEY);
-      const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+      const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
 
       const contextPrompt = `You are an expert Ayurvedic practitioner. The user has ${dominantDosha} as their dominant dosha with scores: Vata ${Math.round(vataScore * 100)}%, Pitta ${Math.round(pittaScore * 100)}%, Kapha ${Math.round(kaphaScore * 100)}%. 
 
@@ -267,9 +278,23 @@ User question: ${userMessage}
 
 Provide a helpful, concise, and practical Ayurvedic response considering their dosha balance. Focus on traditional Ayurvedic wisdom and holistic approaches.`;
 
-      const response = await model.generateContent(contextPrompt);
-      const geminiResponse = response.response;
-      const aiText = geminiResponse?.candidates?.[0]?.content?.parts?.[0]?.text;
+      const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          "Authorization": `Bearer ${GROQ_API_KEY}`,
+        },
+        body: JSON.stringify({
+          model: "llama-3.1-8b-instant",
+          messages: [
+            { role: "user", content: contextPrompt },
+          ],
+          temperature: 0.7,
+          max_tokens: 1024,
+        }),
+      });
+      const groqData = await groqRes.json();
+      const aiText = groqData?.choices?.[0]?.message?.content;
 
       const botMsg = {
         _id: `bot-${Date.now()}`,
