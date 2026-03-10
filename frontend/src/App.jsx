@@ -51,6 +51,7 @@ import PrescriptionDetailPage from "./dosha-diagnosis/prescription/PrescriptionD
 import AboutPage from "./dosha-diagnosis/about/AboutPage.jsx";
 
 import YogaConsultation from './pages/YogaConsultation';
+import YogaProgress from './pages/YogaProgress';
 
 function App() {
   return (
@@ -112,6 +113,7 @@ function App() {
           />
 
           <Route path="/yoga-consultation" element={<YogaConsultation />} />
+            <Route path="/yoga-progress" element={<YogaProgress />} />
 
           {/* ---------------------------------------------- */}
           {/* Plant Identification Routes */}

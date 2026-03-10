@@ -15,7 +15,7 @@ exports.getYogaPoses = async (req, res) => {
     console.error('Error in getYogaPoses:', error.message);
     res.status(200).json({
       success: true,
-      poses: [] // Return empty array on error
+      poses: []
     });
   }
 };
@@ -70,7 +70,6 @@ exports.startSession = async (req, res) => {
     
   } catch (error) {
     console.error('Error starting session:', error.message);
-    // Still return a session ID for testing
     res.json({
       success: true,
       sessionId: 'test-session-' + Date.now(),
@@ -79,16 +78,11 @@ exports.startSession = async (req, res) => {
   }
 };
 
-// Analyze pose and return real corrections - FIXED VERSION
+// Analyze pose and return real corrections
 exports.analyzePose = async (req, res) => {
   try {
     const { sessionId, jointAngles } = req.body;
     
-    console.log('🔍 ANALYZE POSE CALLED');
-    console.log('Session ID:', sessionId);
-    console.log('Joint angles received:', Object.keys(jointAngles || {}).length);
-    
-    // If no joint angles, return default
     if (!jointAngles || Object.keys(jointAngles).length === 0) {
       return res.json({
         success: true,
@@ -103,12 +97,25 @@ exports.analyzePose = async (req, res) => {
       });
     }
     
-    // Generate corrections based on joint angles
+    const session = await YogaSession.findById(sessionId).populate('poseId');
+    if (!session) {
+      return res.json({
+        success: true,
+        corrections: [],
+        feedback: {
+          postureAccuracy: 50,
+          alignmentScore: 50,
+          suggestions: ['Continuing...'],
+          validJointsCount: 5
+        },
+        score: 50
+      });
+    }
+    
     const corrections = [];
     let totalAccuracy = 0;
     let validJointsCount = 0;
     
-    // Define ideal angles for Mountain Pose
     const idealDefaults = {
       left_shoulder: { min: 160, max: 200, ideal: 180 },
       right_shoulder: { min: 160, max: 200, ideal: 180 },
@@ -120,7 +127,6 @@ exports.analyzePose = async (req, res) => {
       right_knee: { min: 170, max: 190, ideal: 180 }
     };
     
-    // Check each joint
     for (const [joint, currentAngle] of Object.entries(jointAngles)) {
       if (currentAngle && !isNaN(currentAngle) && currentAngle > 0 && currentAngle < 180) {
         const idealData = idealDefaults[joint];
@@ -130,7 +136,6 @@ exports.analyzePose = async (req, res) => {
           const min = idealData.min;
           const max = idealData.max;
           
-          // Calculate accuracy (100% if within range)
           let accuracy;
           if (currentAngle >= min && currentAngle <= max) {
             accuracy = 100;
@@ -145,7 +150,6 @@ exports.analyzePose = async (req, res) => {
           totalAccuracy += accuracy;
           validJointsCount++;
           
-          // Create correction if needed (more than 15 degrees off)
           const deviation = Math.abs(currentAngle - ideal);
           if (deviation > 20) {
             let message = '';
@@ -170,7 +174,6 @@ exports.analyzePose = async (req, res) => {
       }
     }
     
-    // Calculate final scores
     const postureAccuracy = validJointsCount > 0 
       ? Math.round(totalAccuracy / validJointsCount)
       : 0;
@@ -179,28 +182,28 @@ exports.analyzePose = async (req, res) => {
       ? Math.max(0, 100 - (corrections.length * (100 / validJointsCount)))
       : 0;
     
-    console.log('Sending response:', {
-      corrections: corrections.length,
+    // Update session with real-time data
+    session.corrections = corrections;
+    session.feedback = {
       postureAccuracy,
       alignmentScore,
+      suggestions: corrections.length === 0 ? ['Perfect form!'] : ['Adjust your pose'],
       validJointsCount
-    });
+    };
+    session.score = Math.round((postureAccuracy + alignmentScore) / 2);
+    session.jointAngles = jointAngles;
+    
+    await session.save();
     
     res.json({
       success: true,
       corrections,
-      feedback: {
-        postureAccuracy,
-        alignmentScore,
-        suggestions: corrections.length === 0 ? ['Perfect form!'] : ['Adjust your pose'],
-        validJointsCount
-      },
-      score: Math.round((postureAccuracy + alignmentScore) / 2)
+      feedback: session.feedback,
+      score: session.score
     });
     
   } catch (error) {
     console.error('❌ Error in analyzePose:', error.message);
-    // Always return a valid response
     res.json({
       success: true,
       corrections: [],
@@ -215,12 +218,13 @@ exports.analyzePose = async (req, res) => {
   }
 };
 
-// End yoga session
+// End yoga session and update progress
 exports.endSession = async (req, res) => {
   try {
     const { sessionId } = req.body;
+    const userId = req.user?.id || 'test-user-id';
     
-    const session = await YogaSession.findById(sessionId);
+    const session = await YogaSession.findById(sessionId).populate('poseId');
     if (!session) {
       return res.json({
         success: true,
@@ -230,10 +234,21 @@ exports.endSession = async (req, res) => {
       });
     }
     
+    // Calculate session duration
     session.endTime = new Date();
     session.duration = Math.floor((session.endTime - session.startTime) / 1000);
     
+    // Calculate final score if not already set
+    if (!session.score) {
+      const postureAccuracy = session.feedback?.postureAccuracy || 0;
+      const alignmentScore = session.feedback?.alignmentScore || 0;
+      session.score = Math.round((postureAccuracy + alignmentScore) / 2);
+    }
+    
     await session.save();
+    
+    // Update user progress
+    await updateUserProgress(userId, session);
     
     res.json({
       success: true,
@@ -241,6 +256,7 @@ exports.endSession = async (req, res) => {
       duration: session.duration,
       finalScore: session.score || 0
     });
+    
   } catch (error) {
     console.error('Error ending session:', error.message);
     res.json({
@@ -252,22 +268,121 @@ exports.endSession = async (req, res) => {
   }
 };
 
+// Helper function to update user progress
+async function updateUserProgress(userId, session) {
+  try {
+    let userProgress = await UserProgress.findOne({ userId });
+    
+    if (!userProgress) {
+      userProgress = new UserProgress({ userId });
+    }
+    
+    const poseId = session.poseId?._id || session.poseId;
+    const sessionScore = session.score || 0;
+    const sessionDuration = session.duration || 0;
+    
+    // Update overall stats
+    userProgress.overallStats.totalSessions += 1;
+    userProgress.overallStats.totalDuration += sessionDuration;
+    
+    // Calculate new average score
+    const oldTotal = userProgress.overallStats.averageScore * (userProgress.overallStats.totalSessions - 1);
+    userProgress.overallStats.averageScore = Math.round(
+      (oldTotal + sessionScore) / userProgress.overallStats.totalSessions
+    );
+    
+    // Update streak
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+    
+    if (userProgress.lastSession) {
+      const lastSessionDate = new Date(userProgress.lastSession);
+      lastSessionDate.setHours(0, 0, 0, 0);
+      
+      const dayDiff = Math.floor((today - lastSessionDate) / (1000 * 60 * 60 * 24));
+      
+      if (dayDiff === 1) {
+        // Consecutive day
+        userProgress.streak.current += 1;
+      } else if (dayDiff > 1) {
+        // Streak broken
+        userProgress.streak.current = 1;
+      }
+      // If same day, streak doesn't change
+    } else {
+      // First session ever
+      userProgress.streak.current = 1;
+    }
+    
+    // Update longest streak
+    if (userProgress.streak.current > userProgress.streak.longest) {
+      userProgress.streak.longest = userProgress.streak.current;
+    }
+    
+    userProgress.lastSession = new Date();
+    
+    // Update pose proficiency
+    if (poseId) {
+      const poseIndex = userProgress.poseProficiency.findIndex(
+        p => p.poseId?.toString() === poseId.toString()
+      );
+      
+      if (poseIndex >= 0) {
+        // Update existing pose
+        userProgress.poseProficiency[poseIndex].attempts += 1;
+        userProgress.poseProficiency[poseIndex].lastPracticed = new Date();
+        
+        if (sessionScore > userProgress.poseProficiency[poseIndex].bestScore) {
+          userProgress.poseProficiency[poseIndex].bestScore = sessionScore;
+        }
+        
+        // Update average score for this pose
+        const oldAvg = userProgress.poseProficiency[poseIndex].averageScore;
+        const newAvg = Math.round(
+          (oldAvg * (userProgress.poseProficiency[poseIndex].attempts - 1) + sessionScore) / 
+          userProgress.poseProficiency[poseIndex].attempts
+        );
+        userProgress.poseProficiency[poseIndex].averageScore = newAvg;
+        
+      } else {
+        // Add new pose
+        userProgress.poseProficiency.push({
+          poseId,
+          attempts: 1,
+          bestScore: sessionScore,
+          averageScore: sessionScore,
+          lastPracticed: new Date()
+        });
+      }
+    }
+    
+    await userProgress.save();
+    console.log('✅ User progress updated for:', userId);
+    
+  } catch (error) {
+    console.error('Error updating user progress:', error.message);
+  }
+}
+
 // Get user progress
 exports.getUserProgress = async (req, res) => {
   try {
     const userId = req.user?.id || 'test-user-id';
     
-    let progress = await UserProgress.findOne({ userId });
+    let userProgress = await UserProgress.findOne({ userId })
+      .populate('poseProficiency.poseId', 'name sanskritName difficulty category');
     
-    if (!progress) {
-      progress = {
-        overallStats: { totalSessions: 0, totalDuration: 0, averageScore: 0 },
-        streak: { current: 0, longest: 0 },
-        poseProficiency: []
-      };
+    if (!userProgress) {
+      // Create default progress if none exists
+      userProgress = new UserProgress({ userId });
+      await userProgress.save();
     }
     
-    res.json({ success: true, progress });
+    res.json({ 
+      success: true, 
+      progress: userProgress 
+    });
+    
   } catch (error) {
     console.error('Error getting user progress:', error.message);
     res.json({
@@ -281,6 +396,73 @@ exports.getUserProgress = async (req, res) => {
   }
 };
 
+// Update personalization settings
 exports.updatePersonalization = async (req, res) => {
-  res.json({ success: true, message: 'Settings updated' });
+  try {
+    const userId = req.user?.id || 'test-user-id';
+    const { age, flexibilityLevel, mobilityRestrictions, preferredFeedback } = req.body;
+    
+    let userProgress = await UserProgress.findOne({ userId });
+    
+    if (!userProgress) {
+      userProgress = new UserProgress({ userId });
+    }
+    
+    userProgress.personalization = {
+      age: age || 30,
+      flexibilityLevel: flexibilityLevel || 'medium',
+      mobilityRestrictions: mobilityRestrictions || [],
+      preferredFeedback: preferredFeedback || 'both'
+    };
+    
+    await userProgress.save();
+    
+    res.json({ 
+      success: true, 
+      message: 'Settings updated successfully',
+      personalization: userProgress.personalization
+    });
+    
+  } catch (error) {
+    console.error('Error updating personalization:', error.message);
+    res.json({ 
+      success: true, 
+      message: 'Settings updated',
+      personalization: {
+        age: 30,
+        flexibilityLevel: 'medium',
+        mobilityRestrictions: [],
+        preferredFeedback: 'both'
+      }
+    });
+  }
+};
+
+// Get session history
+exports.getSessionHistory = async (req, res) => {
+  try {
+    const userId = req.user?.id || 'test-user-id';
+    const limit = parseInt(req.query.limit) || 10;
+    
+    const sessions = await YogaSession.find({ userId })
+      .populate('poseId', 'name sanskritName')
+      .sort({ startTime: -1 })
+      .limit(limit);
+    
+    res.json({
+      success: true,
+      sessions: sessions.map(s => ({
+        id: s._id,
+        poseName: s.poseId?.name || 'Unknown Pose',
+        date: s.startTime,
+        duration: s.duration,
+        score: s.score,
+        corrections: s.corrections?.length || 0
+      }))
+    });
+    
+  } catch (error) {
+    console.error('Error getting session history:', error.message);
+    res.json({ success: true, sessions: [] });
+  }
 };

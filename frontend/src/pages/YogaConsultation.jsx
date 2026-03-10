@@ -60,6 +60,9 @@ export default function YogaConsultation() {
   const [resetTimer, setResetTimer] = useState(false);
   const [holdAchieved, setHoldAchieved] = useState(false);
 
+  // ===== NEW STATE FOR AUDIO ANNOUNCEMENT =====
+  const [audioAnnounced, setAudioAnnounced] = useState(false);
+
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const cameraContainerRef = useRef(null);
@@ -156,34 +159,31 @@ export default function YogaConsultation() {
   };
 
   const loadUserProgress = async () => {
-  try {
-    // Don't require token for development
-    const response = await yogaApi.getUserProgress();
-    console.log('User progress response:', response.data);
-    
-    if (response.data.success) {
-      setUserProgress(response.data.progress);
-      if (response.data.progress?.personalization) {
-        setPersonalization(response.data.progress.personalization);
+    try {
+      const response = await yogaApi.getUserProgress();
+      console.log('User progress response:', response.data);
+      
+      if (response.data.success) {
+        setUserProgress(response.data.progress);
+        if (response.data.progress?.personalization) {
+          setPersonalization(response.data.progress.personalization);
+        }
+      } else {
+        setUserProgress({
+          overallStats: { totalSessions: 0, totalDuration: 0, averageScore: 0 },
+          streak: { current: 0, longest: 0 },
+          poseProficiency: []
+        });
       }
-    } else {
-      // Set default progress if none exists
+    } catch (error) {
+      console.error('Error loading user progress:', error);
       setUserProgress({
         overallStats: { totalSessions: 0, totalDuration: 0, averageScore: 0 },
         streak: { current: 0, longest: 0 },
         poseProficiency: []
       });
     }
-  } catch (error) {
-    console.error('Error loading user progress:', error);
-    // Set default progress on error
-    setUserProgress({
-      overallStats: { totalSessions: 0, totalDuration: 0, averageScore: 0 },
-      streak: { current: 0, longest: 0 },
-      poseProficiency: []
-    });
-  }
-};
+  };
 
   // Handle fullscreen
   useEffect(() => {
@@ -253,66 +253,64 @@ export default function YogaConsultation() {
   };
 
   // Handle pose detected
-const handlePoseDetected = async (jointAngles) => {
-  if (!currentSessionId || !isPracticing) return;
-  
-  // Log what we're sending
-  console.log('Sending joint angles to backend:', jointAngles);
-  setCurrentJointAngles(jointAngles);
+  const handlePoseDetected = async (jointAngles) => {
+    if (!currentSessionId || !isPracticing) return;
+    
+    console.log('Sending joint angles to backend:', jointAngles);
+    setCurrentJointAngles(jointAngles);
 
-  try {
-    const response = await yogaApi.analyzePose({
-      sessionId: currentSessionId,
-      jointAngles
-    });
+    try {
+      const response = await yogaApi.analyzePose({
+        sessionId: currentSessionId,
+        jointAngles
+      });
 
-    console.log('Backend response:', response.data);
+      console.log('Backend response:', response.data);
 
-    if (response.data.success) {
-      const newCorrections = response.data.corrections || [];
-      const newFeedback = response.data.feedback || {
-        postureAccuracy: 0,
-        alignmentScore: 0,
-        suggestions: []
-      };
-      
-      setCorrections(newCorrections);
-      setFeedback(newFeedback);
-      
-      console.log('New feedback received:', newFeedback);
+      if (response.data.success) {
+        const newCorrections = response.data.corrections || [];
+        const newFeedback = response.data.feedback || {
+          postureAccuracy: 0,
+          alignmentScore: 0,
+          suggestions: []
+        };
+        
+        setCorrections(newCorrections);
+        setFeedback(newFeedback);
+        
+        console.log('New feedback received:', newFeedback);
+      }
+    } catch (error) {
+      console.error('Error analyzing pose:', error);
     }
-  } catch (error) {
-    console.error('Error analyzing pose:', error);
-  }
-};
+  };
 
-// ===== FUNCTION TO CHECK IF POSE IS CORRECT (ACCURACY ≥ 80%) =====
-const isPoseCorrect = () => {
-  // Don't consider pose correct if we have no valid joints
-  if (detectionStatus.jointCount < 4) return false;
-  
-  // Pose is correct when accuracy is 80% or higher
-  // No need to check corrections count - accuracy already reflects overall form
-  return feedback?.postureAccuracy >= 80;
-};
+  // ===== FUNCTION TO CHECK IF POSE IS CORRECT (ACCURACY ≥ 80%) =====
+  const isPoseCorrect = () => {
+    if (detectionStatus.jointCount < 4) return false;
+    return feedback?.postureAccuracy >= 80;
+  };
+
+  // ===== CALLBACK WHEN AUDIO ANNOUNCES CORRECT POSE =====
+  const handlePoseCorrectAnnounced = () => {
+    console.log('🎯 Audio announced correct pose, timer can start');
+    setAudioAnnounced(true);
+  };
 
   // ===== TIMER HANDLER FUNCTIONS =====
   const handleTimeComplete = () => {
     setHoldAchieved(true);
     
-    // Calculate final score
     const finalScore = Math.round(
       (feedback?.postureAccuracy || 0) * 0.7 + 
       (feedback?.alignmentScore || 0) * 0.3
     );
     setSessionScore(finalScore);
     
-    // Show completion screen
     setShowCompletion(true);
     setIsPracticing(false);
     stopCamera();
     
-    // Speak completion
     if (isAudioEnabled && window.speechSynthesis) {
       const utterance = new SpeechSynthesisUtterance(
         `Great job! You've completed ${selectedPose?.name}. Well done!`
@@ -327,7 +325,7 @@ const isPoseCorrect = () => {
     setCorrections([]);
     setFeedback({ postureAccuracy: 0, alignmentScore: 0, suggestions: [] });
     setCurrentJointAngles({});
-    // Go back to library to select next pose
+    setAudioAnnounced(false);
     setCurrentView('library');
     setSelectedPose(null);
   };
@@ -338,8 +336,9 @@ const isPoseCorrect = () => {
     setCorrections([]);
     setFeedback({ postureAccuracy: 0, alignmentScore: 0, suggestions: [] });
     setCurrentJointAngles({});
-    setResetTimer(prev => !prev); // Toggle to reset timer
-    handleStartPractice(); // Restart practice
+    setAudioAnnounced(false);
+    setResetTimer(prev => !prev);
+    handleStartPractice();
   };
 
   // Start practice session
@@ -354,8 +353,8 @@ const isPoseCorrect = () => {
       setCorrections([]);
       setFeedback({ postureAccuracy: 0, alignmentScore: 0, suggestions: [] });
       setCurrentJointAngles({});
+      setAudioAnnounced(false);
       
-      // Start session on backend
       const response = await yogaApi.startYogaSession({
         poseId: selectedPose._id,
         difficultyLevel: selectedPose.difficulty
@@ -364,7 +363,6 @@ const isPoseCorrect = () => {
       if (response.data.success) {
         setCurrentSessionId(response.data.sessionId);
         
-        // Store ideal angles if available
         if (response.data.idealAngles) {
           setIdealAngles(response.data.idealAngles);
         }
@@ -398,7 +396,6 @@ const isPoseCorrect = () => {
       });
 
       if (response.data.success) {
-        // Calculate final score
         const finalScore = Math.round(
           (feedback?.postureAccuracy || 0) * 0.7 + 
           (feedback?.alignmentScore || 0) * 0.3
@@ -442,7 +439,8 @@ const isPoseCorrect = () => {
   // Render library view
   const renderLibraryView = () => (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl shadow-xl p-8 text-white">
+      {/* Blue banner - removed gradient */}
+      <div className="bg-blue-600 rounded-2xl shadow-xl p-8 text-white">
         <h1 className="text-3xl font-bold mb-4">Yoga Guidance System</h1>
         <p className="text-lg opacity-90">
           Select a pose to begin your practice with real-time guidance, timer, and audio feedback
@@ -507,7 +505,8 @@ const isPoseCorrect = () => {
               }}
               className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition cursor-pointer"
             >
-              <div className="h-40 bg-gradient-to-r from-blue-100 to-cyan-100 flex items-center justify-center">
+              {/* Lighter blue card header */}
+              <div className="h-40 bg-blue-50 flex items-center justify-center">
                 <div className="text-center">
                   <div className="w-20 h-20 mx-auto bg-white rounded-full flex items-center justify-center shadow-md">
                     <span className="text-3xl">🧘</span>
@@ -542,7 +541,8 @@ const isPoseCorrect = () => {
   // Render practice view
   const renderPracticeView = () => (
     <div className="space-y-6">
-      <div className="bg-gradient-to-r from-blue-600 to-purple-600 rounded-2xl shadow-xl p-6 text-white">
+      {/* Blue banner - removed gradient */}
+      <div className="bg-blue-600 rounded-2xl shadow-xl p-6 text-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
             <ArrowLeft 
@@ -602,7 +602,6 @@ const isPoseCorrect = () => {
                 isAudioEnabled={isAudioEnabled}
               />
               
-              {/* ===== UPDATED TIMER COMPONENT WITH CORRECT POSE DETECTION ===== */}
               <PoseTimer
                 pose={selectedPose}
                 isActive={isPracticing && !showCompletion}
@@ -611,6 +610,7 @@ const isPoseCorrect = () => {
                 reset={resetTimer}
                 isPoseCorrect={isPoseCorrect()}
                 corrections={corrections}
+                onPoseCorrectAnnounced={audioAnnounced ? null : handlePoseCorrectAnnounced}
               />
             </>
           )}
@@ -704,6 +704,37 @@ const isPoseCorrect = () => {
             ) : null}
           </div>
 
+          {/* Pose Guide Card - Moved after video canvas */}
+          {selectedPose && !isPracticing && !showCompletion && (
+            <div className="bg-white rounded-xl shadow-lg p-6">
+              <h3 className="text-lg font-bold text-gray-800 mb-4">Pose Guide: {selectedPose.name}</h3>
+              <div className="space-y-4">
+                <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
+                  <span>Step {currentStep + 1} of {selectedPose.instructions?.length || 1}</span>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
+                      disabled={currentStep === 0}
+                      className="px-2 py-1 bg-gray-100 rounded disabled:opacity-50"
+                    >
+                      Previous
+                    </button>
+                    <button
+                      onClick={() => setCurrentStep(Math.min((selectedPose.instructions?.length || 1) - 1, currentStep + 1))}
+                      disabled={currentStep === (selectedPose.instructions?.length || 1) - 1}
+                      className="px-2 py-1 bg-gray-100 rounded disabled:opacity-50"
+                    >
+                      Next
+                    </button>
+                  </div>
+                </div>
+                <p className="text-gray-700 text-lg">
+                  {selectedPose.instructions?.[currentStep] || "Follow the pose guide above"}
+                </p>
+              </div>
+            </div>
+          )}
+
           {selectedPose && isPracticing && !showCompletion && (
             <div className="bg-white rounded-xl shadow-lg p-4">
               <div className="flex items-center justify-between mb-2">
@@ -723,7 +754,7 @@ const isPoseCorrect = () => {
                 {corrections.length > 0 
                   ? corrections[0].message 
                   : isPoseCorrect()
-                    ? `✅ Perfect! Timer running - ${timeLeft}s remaining`
+                    ? `✅ Perfect! ${audioAnnounced ? 'Timer running' : 'Preparing timer...'} - ${timeLeft}s remaining`
                     : detectionStatus.jointCount < 4
                       ? "Please move into full camera view"
                       : "Adjust your pose to start timer"}
@@ -743,7 +774,8 @@ const isPoseCorrect = () => {
                 isAudioEnabled={isAudioEnabled}
                 onAudioToggle={() => setIsAudioEnabled(!isAudioEnabled)}
                 timeLeft={timeLeft}
-                isTimerRunning={isPracticing && !showCompletion && isPoseCorrect()}
+                isTimerRunning={isPracticing && !showCompletion && isPoseCorrect() && audioAnnounced}
+                onPoseCorrectAnnounced={handlePoseCorrectAnnounced}
               />
 
               <PoseDebugView 
@@ -761,42 +793,47 @@ const isPoseCorrect = () => {
           )}
 
           {isPracticing && !showCompletion && (
-  <div className="bg-white rounded-xl shadow-lg p-4">
-    <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
-      <TrendingUp className="w-4 h-4 text-blue-600" />
-      Session Stats
-    </h3>
-    <div className="grid grid-cols-2 gap-3">
-      <div className="bg-blue-50 p-3 rounded-lg text-center">
-        <p className="text-xs text-blue-600">Accuracy</p>
-        <p className={`text-xl font-bold ${
-          (feedback?.postureAccuracy || 0) >= 80 ? 'text-green-600' : 
-          (feedback?.postureAccuracy || 0) >= 60 ? 'text-yellow-600' : 'text-red-600'
-        }`}>
-          {Math.round(feedback?.postureAccuracy || 0)}%
-        </p>
-      </div>
-      <div className="bg-green-50 p-3 rounded-lg text-center">
-        <p className="text-xs text-green-600">Alignment</p>
-        <p className="text-xl font-bold text-green-700">{Math.round(feedback?.alignmentScore || 0)}%</p>
-      </div>
-    </div>
-    <div className="mt-3 pt-3 border-t border-gray-100">
-      <div className="flex justify-between text-sm">
-        <span className="text-gray-600">Status:</span>
-        <span className={`font-bold ${(feedback?.postureAccuracy || 0) >= 80 ? 'text-green-600' : 'text-yellow-600'}`}>
-          {(feedback?.postureAccuracy || 0) >= 80 ? '✅ Correct Pose' : '⏳ Adjusting'}
-        </span>
-      </div>
-      <div className="flex justify-between text-sm mt-1">
-        <span className="text-gray-600">Time Left:</span>
-        <span className={`font-bold ${timeLeft <= 5 ? 'text-red-600' : 'text-blue-600'}`}>
-          {timeLeft}s
-        </span>
-      </div>
-    </div>
-  </div>
-)}
+            <div className="bg-white rounded-xl shadow-lg p-4">
+              <h3 className="font-bold text-gray-800 mb-3 flex items-center gap-2">
+                <TrendingUp className="w-4 h-4 text-blue-600" />
+                Session Stats
+              </h3>
+              <div className="grid grid-cols-2 gap-3">
+                <div className="bg-blue-50 p-3 rounded-lg text-center">
+                  <p className="text-xs text-blue-600">Accuracy</p>
+                  <p className={`text-xl font-bold ${
+                    (feedback?.postureAccuracy || 0) >= 80 ? 'text-green-600' : 
+                    (feedback?.postureAccuracy || 0) >= 60 ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
+                    {Math.round(feedback?.postureAccuracy || 0)}%
+                  </p>
+                </div>
+                <div className="bg-green-50 p-3 rounded-lg text-center">
+                  <p className="text-xs text-green-600">Alignment</p>
+                  <p className="text-xl font-bold text-green-700">{Math.round(feedback?.alignmentScore || 0)}%</p>
+                </div>
+              </div>
+              <div className="mt-3 pt-3 border-t border-gray-100">
+                <div className="flex justify-between text-sm">
+                  <span className="text-gray-600">Status:</span>
+                  <span className={`font-bold ${(feedback?.postureAccuracy || 0) >= 80 ? 'text-green-600' : 'text-yellow-600'}`}>
+                    {(feedback?.postureAccuracy || 0) >= 80 ? '✅ Correct Pose' : '⏳ Adjusting'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm mt-1">
+                  <span className="text-gray-600">Time Left:</span>
+                  <span className={`font-bold ${timeLeft <= 5 ? 'text-red-600' : 'text-blue-600'}`}>
+                    {timeLeft}s
+                  </span>
+                </div>
+                {isPoseCorrect() && !audioAnnounced && (
+                  <div className="mt-2 text-xs text-purple-600 text-center">
+                    ⏳ Waiting for audio announcement...
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
 
           {!showCompletion && (
             <>
@@ -834,7 +871,7 @@ const isPoseCorrect = () => {
         </div>
       </div>
 
-      {/* ===== COMPLETION SCREEN MODAL ===== */}
+      {/* Completion Screen Modal */}
       {showCompletion && (
         <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50 p-4">
           <PoseCompletion

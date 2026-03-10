@@ -1,5 +1,5 @@
 import { useState, useEffect, useRef } from 'react';
-import { Clock, AlertCircle, Volume2, CheckCircle, Target, Loader } from 'lucide-react';
+import { Clock, AlertCircle, CheckCircle, Target, Loader } from 'lucide-react';
 
 const PoseTimer = ({ 
   pose, 
@@ -8,7 +8,8 @@ const PoseTimer = ({
   onTimeUpdate,
   reset,
   isPoseCorrect,
-  corrections
+  corrections,
+  onPoseCorrectAnnounced // New prop to know when audio has announced
 }) => {
   const [timeLeft, setTimeLeft] = useState(pose?.timerSettings?.defaultHoldTime || 30);
   const [isRunning, setIsRunning] = useState(false);
@@ -16,6 +17,7 @@ const PoseTimer = ({
   const [completed, setCompleted] = useState(false);
   const [waitingForPose, setWaitingForPose] = useState(true);
   const [waitingMessageIndex, setWaitingMessageIndex] = useState(0);
+  const [poseCorrectTime, setPoseCorrectTime] = useState(null);
   
   const timerRef = useRef(null);
   const warningPlayedRef = useRef(false);
@@ -33,7 +35,7 @@ const PoseTimer = ({
     speechSynthRef.current = window.speechSynthesis;
   }, []);
 
-  // Reset timer when pose changes or reset flag - MOVED TO USEFFECT
+  // Reset timer when pose changes
   useEffect(() => {
     if (pose) {
       const holdTime = pose.timerSettings?.defaultHoldTime || 30;
@@ -42,6 +44,7 @@ const PoseTimer = ({
       setCompleted(false);
       setShowWarning(false);
       setWaitingForPose(true);
+      setPoseCorrectTime(null);
       warningPlayedRef.current = false;
       setWaitingMessageIndex(0);
       
@@ -52,32 +55,41 @@ const PoseTimer = ({
     }
   }, [pose, reset]);
 
-// Monitor pose correctness - UPDATED
-useEffect(() => {
-  if (!isActive || completed) return;
-
-  const isCorrect = isPoseCorrect; // This now just checks if accuracy >= 80%
-  
-  if (isCorrect && waitingForPose) {
-    setWaitingForPose(false);
-    startTimer();
-    speak("Perfect! Hold the pose. Timer started.");
-  } else if (!isCorrect && !waitingForPose && isRunning) {
-    pauseTimer();
-    setWaitingForPose(true);
-    speak("Posture lost. Please correct your pose to resume timer.");
-  }
-}, [isPoseCorrect, isActive, waitingForPose, isRunning, completed]);
-
-  // Rotate waiting messages - MOVED TO USEFFECT
+  // Monitor pose correctness - UPDATED
   useEffect(() => {
-    if (waitingForPose && isActive && !completed) {
-      const interval = setInterval(() => {
-        setWaitingMessageIndex(prev => (prev + 1) % waitingMessages.length);
-      }, 3000);
-      return () => clearInterval(interval);
+    if (!isActive || completed) return;
+
+    const isCorrect = isPoseCorrect;
+    
+    if (isCorrect && waitingForPose) {
+      // Pose just became correct - record the time but DON'T start timer yet
+      setPoseCorrectTime(Date.now());
+      setWaitingForPose(false);
+      // Don't start timer yet - wait for audio announcement
+      console.log('Pose correct, waiting for audio announcement...');
+      
+    } else if (!isCorrect && !waitingForPose && isRunning) {
+      // Pose became incorrect during hold - pause timer
+      pauseTimer();
+      setWaitingForPose(true);
+      setPoseCorrectTime(null);
+      
+    } else if (!isCorrect && !waitingForPose && !isRunning) {
+      // Pose became incorrect before timer started
+      setWaitingForPose(true);
+      setPoseCorrectTime(null);
     }
-  }, [waitingForPose, isActive, completed]);
+  }, [isPoseCorrect, isActive, waitingForPose, isRunning, completed]);
+
+  // Listen for audio announcement to start timer
+  useEffect(() => {
+    // When audio announces the correct pose, it calls onPoseCorrectAnnounced
+    // This effect listens for that and starts the timer
+    if (onPoseCorrectAnnounced && !waitingForPose && !isRunning && !completed && poseCorrectTime) {
+      console.log('Audio announced correct pose, starting timer now');
+      startTimer();
+    }
+  }, [onPoseCorrectAnnounced, waitingForPose, isRunning, completed, poseCorrectTime]);
 
   const speak = (text) => {
     if (!speechSynthRef.current) return;
@@ -89,42 +101,46 @@ useEffect(() => {
   };
 
   const startTimer = () => {
-    if (timerRef.current || completed) return;
-    
-    setIsRunning(true);
-    
-    timerRef.current = setInterval(() => {
-      setTimeLeft(prev => {
-        const newTime = prev - 1;
-        
-        if (onTimeUpdate) {
-          onTimeUpdate(newTime);
+  if (timerRef.current || completed) return;
+  
+  console.log('Timer started!');
+  setIsRunning(true);
+  
+  // Clear any existing interval
+  if (timerRef.current) {
+    clearInterval(timerRef.current);
+  }
+  
+  timerRef.current = setInterval(() => {
+    setTimeLeft(prev => {
+      const newTime = prev - 1;
+      
+      if (onTimeUpdate) {
+        onTimeUpdate(newTime);
+      }
+      
+      if (newTime === 5 && !warningPlayedRef.current) {
+        setShowWarning(true);
+        // Don't speak here - let AudioFeedbackController handle it
+        warningPlayedRef.current = true;
+      }
+      
+      if (newTime <= 0) {
+        clearInterval(timerRef.current);
+        timerRef.current = null;
+        setCompleted(true);
+        setIsRunning(false);
+        // Don't speak here - let AudioFeedbackController handle it
+        if (onTimeComplete) {
+          onTimeComplete();
         }
-        
-        if (newTime === 5 && !warningPlayedRef.current) {
-          setShowWarning(true);
-          speak("5 seconds remaining");
-          warningPlayedRef.current = true;
-        }
-        
-        if (newTime <= 0) {
-          clearInterval(timerRef.current);
-          timerRef.current = null;
-          setCompleted(true);
-          setIsRunning(false);
-          speak("Perfect! Release the pose. Great job!");
-          
-          if (onTimeComplete) {
-            onTimeComplete();
-          }
-          
-          return 0;
-        }
-        
-        return newTime;
-      });
-    }, 1000);
-  };
+        return 0;
+      }
+      
+      return newTime;
+    });
+  }, 1000);
+};
 
   const pauseTimer = () => {
     if (timerRef.current) {
@@ -146,11 +162,8 @@ useEffect(() => {
     setCompleted(false);
     setShowWarning(false);
     setWaitingForPose(true);
+    setPoseCorrectTime(null);
     warningPlayedRef.current = false;
-  };
-
-  const addTime = (seconds) => {
-    setTimeLeft(prev => Math.min(prev + seconds, pose?.timerSettings?.maxHoldTime || 60));
   };
 
   const formatTime = (seconds) => {
@@ -176,12 +189,15 @@ useEffect(() => {
           <div className={`p-2 rounded-full ${
             waitingForPose ? 'bg-yellow-100' : 
             isRunning ? 'bg-blue-100' : 
-            completed ? 'bg-green-100' : 'bg-gray-100'
+            completed ? 'bg-green-100' : 
+            !waitingForPose && !isRunning ? 'bg-purple-100' : 'bg-gray-100'
           }`}>
             {waitingForPose ? (
               <Target className="w-6 h-6 text-yellow-600" />
             ) : completed ? (
               <CheckCircle className="w-6 h-6 text-green-600" />
+            ) : !isRunning ? (
+              <Loader className="w-6 h-6 text-purple-600 animate-pulse" />
             ) : (
               <Clock className={`w-6 h-6 ${getTimerColor()}`} />
             )}
@@ -190,6 +206,7 @@ useEffect(() => {
             <h3 className="font-bold text-gray-800">
               {waitingForPose ? 'Waiting for Correct Pose' : 
                completed ? 'Pose Completed!' : 
+               !isRunning ? 'Preparing Timer...' :
                'Hold Pose Timer'}
             </h3>
             <p className="text-sm text-gray-600">
@@ -197,29 +214,12 @@ useEffect(() => {
                 ? waitingMessages[waitingMessageIndex]
                 : completed 
                   ? '✅ Great job!' 
-                  : isRunning 
-                    ? 'Timer running - hold steady' 
-                    : 'Timer paused'}
+                  : !isRunning
+                    ? '⏳ Listening for audio announcement...'
+                    : 'Timer running - hold steady'}
             </p>
           </div>
         </div>
-        
-        {!waitingForPose && !completed && (
-          <div className="flex gap-2">
-            <button
-              onClick={resetTimer}
-              className="px-3 py-1 bg-gray-100 text-gray-700 rounded-lg hover:bg-gray-200 text-sm"
-            >
-              Reset
-            </button>
-            <button
-              onClick={() => addTime(10)}
-              className="px-3 py-1 bg-blue-100 text-blue-700 rounded-lg hover:bg-blue-200 text-sm"
-            >
-              +10s
-            </button>
-          </div>
-        )}
       </div>
 
       {/* Timer Display */}
@@ -236,7 +236,7 @@ useEffect(() => {
               <p className="text-sm text-yellow-700">
                 {corrections && corrections.length > 0 
                   ? `🔄 ${corrections[0].message}`
-                  : '🎯 Stand in the correct posture to start the timer'}
+                  : '🎯 Stand in the correct posture'}
               </p>
             </div>
           </div>
@@ -244,6 +244,18 @@ useEffect(() => {
           <div className="py-2">
             <CheckCircle className="w-16 h-16 text-green-500 mx-auto mb-2" />
             <p className="text-xl font-bold text-green-600">Pose Complete!</p>
+          </div>
+        ) : !isRunning ? (
+          <div className="py-4">
+            <div className="animate-pulse flex justify-center mb-4">
+              <Loader className="w-12 h-12 text-purple-500" />
+            </div>
+            <p className="text-lg text-purple-700 mb-2">
+              ✅ Correct pose achieved!
+            </p>
+            <p className="text-sm text-gray-600">
+              Listening for audio announcement...
+            </p>
           </div>
         ) : (
           <>
@@ -257,7 +269,7 @@ useEffect(() => {
         )}
       </div>
 
-      {!waitingForPose && !completed && (
+      {!waitingForPose && !completed && isRunning && (
         <div className="w-full h-3 bg-gray-200 rounded-full overflow-hidden mb-4">
           <div 
             className={`h-full transition-all duration-1000 ${
@@ -270,7 +282,7 @@ useEffect(() => {
         </div>
       )}
 
-      {showWarning && !completed && !waitingForPose && (
+      {showWarning && !completed && isRunning && (
         <div className="bg-red-50 border-2 border-red-200 rounded-lg p-3 mb-3 animate-pulse">
           <div className="flex items-center gap-2 text-red-700">
             <AlertCircle className="w-5 h-5" />
@@ -279,7 +291,15 @@ useEffect(() => {
         </div>
       )}
 
-      {isRunning && !waitingForPose && !completed && (
+      {!waitingForPose && !completed && !isRunning && (
+        <div className="mt-4 p-3 bg-purple-50 border border-purple-200 rounded-lg">
+          <p className="text-sm text-purple-700 text-center">
+            ⏳ Waiting for audio announcement before starting timer...
+          </p>
+        </div>
+      )}
+
+      {isRunning && (
         <div className="mt-4 p-3 bg-indigo-50 rounded-lg">
           <p className="text-sm text-indigo-700 font-medium mb-2">Breathing Guide:</p>
           <div className="flex justify-between text-xs">

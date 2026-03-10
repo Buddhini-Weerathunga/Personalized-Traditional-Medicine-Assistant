@@ -8,7 +8,6 @@ router.get('/poses/:id', yogaController.getYogaPose);
 
 // Protected routes (with dev bypass)
 router.post('/session/start', (req, res, next) => {
-  // Add test user
   req.user = { id: 'test-user-id' };
   next();
 }, yogaController.startSession);
@@ -27,6 +26,11 @@ router.get('/progress', (req, res, next) => {
   req.user = { id: 'test-user-id' };
   next();
 }, yogaController.getUserProgress);
+
+router.get('/sessions/history', (req, res, next) => {
+  req.user = { id: 'test-user-id' };
+  next();
+}, yogaController.getSessionHistory);
 
 router.put('/personalization', (req, res, next) => {
   req.user = { id: 'test-user-id' };
