@@ -1,6 +1,6 @@
 import { useEffect, useState } from "react";
 import { getProfile } from "../../services/api";
-import { Heart, User, TrendingUp, Utensils, Users } from "lucide-react";
+import { Heart, User, TrendingUp, Utensils } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 
 export default function AyurvedaDashboard() {
@@ -35,12 +35,13 @@ export default function AyurvedaDashboard() {
   const allFeatures = [
     {
       title: "Health Profile",
-      description: "Create and manage your complete health profile with the help of an AI voice assistant or by filling a guided manual form",
+      description:
+        "Create and manage your complete health profile with the help of an AI voice assistant or by filling a guided manual form",
       icon: User,
       color:
         "bg-white hover:bg-green-50 border border-green-200 hover:border-green-300",
       iconColor: "text-green-600",
-      path: "/health-profile/menu"
+      path: "/health-profile/menu",
     },
     {
       title: "Predict future health risks & get personalized Ayurvedic care",
@@ -50,26 +51,18 @@ export default function AyurvedaDashboard() {
       color:
         "bg-white hover:bg-green-50 border border-green-200 hover:border-green-300",
       iconColor: "text-green-600",
-      path: "/health-prediction"
-    },
-    {
-      title: "Multi-Profile Management",
-      description: "Manage multiple family health profiles, track wellness status, and view personalized health insights for each member",
-      icon: Users,
-      color:
-        "bg-white hover:bg-green-50 border border-green-200 hover:border-green-300",
-      iconColor: "text-green-600",
-      path: "/multi-profiles"
+      path: "/health-prediction",
     },
     {
       title: "Digital Diet Coach",
-      description: "Input your diet details and receive AI-based guidance on whether your meals match your health condition",
+      description:
+        "Input your diet details and receive AI-based guidance on whether your meals match your health condition",
       icon: Utensils,
       color:
         "bg-white hover:bg-green-50 border border-green-200 hover:border-green-300",
       iconColor: "text-green-600",
-      path: "/diets-predictions"
-    }
+      path: "/diets-predictions",
+    },
   ];
 
   return (
@@ -116,39 +109,44 @@ export default function AyurvedaDashboard() {
         </p>
 
         {/* FEATURES GRID */}
-       {/* FEATURES GRID */}
-<div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
-  {allFeatures.map((feature, i) => {
-    const Icon = feature.icon;
-    return (
-      <div
-        key={i}
-        onClick={() => handleNavigate(feature.path)}
-        className={`cursor-pointer ${feature.color}
-        rounded-2xl p-6 h-40
-        flex items-center
-        transition-all duration-300
-        hover:-translate-y-1 hover:shadow-lg`}
-      >
-        <div className="flex gap-4 items-start w-full">
-          <div className="p-3 bg-green-100 rounded-xl shrink-0">
-            <Icon className={`w-7 h-7 ${feature.iconColor}`} />
-          </div>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-8">
+          {allFeatures.map((feature, i) => {
+            const Icon = feature.icon;
+            const isLastOddCard =
+              allFeatures.length % 2 !== 0 && i === allFeatures.length - 1;
 
-          <div className="flex flex-col justify-center">
-            <h3 className="text-lg font-semibold text-gray-800 mb-1 leading-snug">
-              {feature.title}
-            </h3>
-            <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">
-              {feature.description}
-            </p>
-          </div>
+            return (
+              <div
+                key={i}
+                onClick={() => handleNavigate(feature.path)}
+                className={`
+                  cursor-pointer ${feature.color}
+                  rounded-2xl p-6 h-40
+                  flex items-center
+                  transition-all duration-300
+                  hover:-translate-y-1 hover:shadow-lg
+                  ${isLastOddCard ? "sm:col-span-2 sm:max-w-[50%] sm:mx-auto w-full" : ""}
+                `}
+              >
+                <div className="flex gap-4 items-start w-full">
+                  <div className="p-3 bg-green-100 rounded-xl shrink-0">
+                    <Icon className={`w-7 h-7 ${feature.iconColor}`} />
+                  </div>
+
+                  <div className="flex flex-col justify-center">
+                    <h3 className="text-lg font-semibold text-gray-800 mb-1 leading-snug">
+                      {feature.title}
+                    </h3>
+                    <p className="text-sm text-gray-600 leading-relaxed line-clamp-2">
+                      {feature.description}
+                    </p>
+                  </div>
+                </div>
+              </div>
+            );
+          })}
         </div>
-      </div>
-    );
-  })}
-</div>
-</main>
+      </main>
     </div>
   );
 }

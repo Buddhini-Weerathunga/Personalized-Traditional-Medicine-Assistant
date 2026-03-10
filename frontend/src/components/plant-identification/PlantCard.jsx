@@ -5,7 +5,6 @@ const PlantCard = ({ plant, onClick }) => {
     plantName,
     scientificName,
     image,
-    confidence,
     medicinalUses,
     commonNames
   } = plant;
@@ -26,11 +25,7 @@ const PlantCard = ({ plant, onClick }) => {
           </div>
         )}
         
-        {confidence && (
-          <div className="absolute top-2 right-2 bg-white/95 backdrop-blur px-3 py-1.5 rounded-full font-semibold text-sm text-green-800">
-            {confidence}%
-          </div>
-        )}
+
       </div>
 
       <div className="p-5 flex-1 flex flex-col">
