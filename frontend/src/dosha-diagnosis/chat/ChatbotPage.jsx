@@ -1,9 +1,10 @@
 // src/dosha-diagnosis/chat/ChatbotPage.jsx
 import React, { useState, useRef, useEffect } from "react";
 import Navbar from "../../components/layout/Navbar.jsx";
+import { env } from "../../config/env";
 
-const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
-const GROQ_MODEL = "llama-3.1-8b-instant";
+const GROQ_API_KEY = env.groqApiKey;
+const GROQ_MODEL = env.groqModel;
 
 const AYURVEDA_KEYWORDS = [
   "dosha", "vata", "pitta", "kapha", "ayurveda", "ayurvedic", "prakriti",

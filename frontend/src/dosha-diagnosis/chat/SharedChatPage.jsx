@@ -2,7 +2,7 @@
 import React, { useState, useRef, useEffect } from "react";
 import { useLocation, useNavigate } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar.jsx";
-
+import { env } from "../../config/env";
 
 export default function SharedChatPage() {
   const location = useLocation();
@@ -31,7 +31,8 @@ export default function SharedChatPage() {
     const generateInitialMessage = async () => {
       setLoading(true);
       try {
-        const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
+        const GROQ_API_KEY = env.groqApiKey;
+        const GROQ_MODEL = env.groqModel;
 
         const promptText = `Based on your Ayurvedic analysis, your primary Dosha is ${dominantDosha} with the following scores:
 - Vata: ${Math.round(vataScore * 100)}%
@@ -270,7 +271,9 @@ ${getPracticalApplications(dominantDosha)}
     // Generate AI response for Ayurvedic questions
     setSending(true);
     try {
-      const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
+      const GROQ_API_KEY = env.groqApiKey;
+      const GROQ_MODEL = env.groqModel;
+
 
       const contextPrompt = `You are an expert Ayurvedic practitioner. The user has ${dominantDosha} as their dominant dosha with scores: Vata ${Math.round(vataScore * 100)}%, Pitta ${Math.round(pittaScore * 100)}%, Kapha ${Math.round(kaphaScore * 100)}%. 
 
