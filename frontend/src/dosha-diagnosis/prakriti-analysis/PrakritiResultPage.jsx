@@ -2,6 +2,7 @@
 import React, { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
 import API from "../../api/axios";
+import { env } from "../../config/env";
 
 import Navbar from "../../components/layout/Navbar.jsx";
 import { usePrakritiResults } from "./PrakritiResultContext.jsx";
@@ -87,7 +88,8 @@ export default function PrakritiResultPage() {
       const prompt = preparePrompt();
 
       // Using Groq API with llama3-8b-8192 (free tier)
-      const GROQ_API_KEY = import.meta.env.VITE_GROQ_API_KEY;
+      const GROQ_API_KEY = env.groqApiKey;
+      const GROQ_MODEL = env.groqModel;
 
       const groqRes = await fetch("https://api.groq.com/openai/v1/chat/completions", {
         method: "POST",
