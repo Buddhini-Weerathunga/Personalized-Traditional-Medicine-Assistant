@@ -285,19 +285,19 @@ export default function YogaConsultation() {
     }
   };
 
-  // ===== FUNCTION TO CHECK IF POSE IS CORRECT (ACCURACY ≥ 80%) =====
+  //FUNCTION TO CHECK IF POSE IS CORRECT (ACCURACY ≥ 80%) 
   const isPoseCorrect = () => {
     if (detectionStatus.jointCount < 4) return false;
     return feedback?.postureAccuracy >= 80;
   };
 
-  // ===== CALLBACK WHEN AUDIO ANNOUNCES CORRECT POSE =====
+  //CALLBACK WHEN AUDIO ANNOUNCES CORRECT POSE
   const handlePoseCorrectAnnounced = () => {
-    console.log('🎯 Audio announced correct pose, timer can start');
+    console.log(' Audio announced correct pose, timer can start');
     setAudioAnnounced(true);
   };
 
-  // ===== TIMER HANDLER FUNCTIONS =====
+  //TIMER HANDLER FUNCTIONS
   const handleTimeComplete = () => {
     setHoldAchieved(true);
     
