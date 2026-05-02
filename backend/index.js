@@ -37,10 +37,11 @@ const app = express();
 // ---------- MIDDLEWARE ----------
 app.use(
   cors({
-    origin: "http://localhost:3000",
+    origin: /localhost:3000|127\.0\.0\.1:3000/,
     credentials: true,
   })
 );
+
 app.use(express.json({ limit: "10mb" }));
 app.use(express.urlencoded({ extended: true }));
 app.use(morgan("dev"));

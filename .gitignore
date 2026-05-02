@@ -1,1 +1,15 @@
+# Frontend
 frontend/package-lock.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+
+# Virtual environments
+venv/
+python-ml-service/venv/
+
+# Node
+node_modules/
