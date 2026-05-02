@@ -2,12 +2,15 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PlantNavbar from '../../components/plant-identification/PlantNavbar';
+import { getGroqPlantDescription } from '../../services/plant-identification/plantApi';
 
 const PlantDescriptionHome = () => {
   const navigate = useNavigate();
   const [searchQuery, setSearchQuery] = useState('');
   const [activeCategory, setActiveCategory] = useState('All Plants');
   const [recentPlants, setRecentPlants] = useState([]);
+  const [groqLoading, setGroqLoading] = useState(false);
+  const [groqError, setGroqError] = useState('');
 
   const allPlants = [
     { plantId: 'gotu-kola', plantName: 'Gotu Kola (ගොටුකොළ)', scientificName: 'Centella asiatica', category: 'Brain & Memory', description: 'Known for cognitive enhancement and wound healing', image: '/images/plants/gotu-kola.jpg' },
@@ -51,8 +54,60 @@ const PlantDescriptionHome = () => {
     if (stored) setRecentPlants(JSON.parse(stored));
   }, []);
 
-  const handleSearch = (e) => {
+  const handleSearch = async (e) => {
     e.preventDefault();
+    const query = searchQuery.trim();
+    if (!query) return;
+    setGroqError('');
+
+    // First check if query matches any plant in the static list
+    const localMatch = allPlants.find(
+      p =>
+        p.plantName.toLowerCase().includes(query.toLowerCase()) ||
+        p.scientificName.toLowerCase().includes(query.toLowerCase()) ||
+        p.plantId.toLowerCase().includes(query.toLowerCase())
+    );
+
+    if (localMatch) {
+      handlePlantClick(localMatch);
+      return;
+    }
+
+    // Not in static list — call Groq AI
+    setGroqLoading(true);
+    try {
+      const response = await getGroqPlantDescription(query);
+      if (!response.success || !response.data?.found) {
+        setGroqError(`No information found for "${query}". Try a different plant name.`);
+        return;
+      }
+      const d = response.data;
+      navigate('/plant-description/detail', {
+        state: {
+          result: {
+            plantId: d.plantName.toLowerCase().replace(/\s+/g, '-') + '-ai',
+            plantName: d.plantName,
+            scientificName: d.scientificName,
+            confidence: 100,
+            description: d.description,
+            medicinalUses: d.medicinalUses || [],
+            ayurvedicProperties: d.ayurvedicProperties || {},
+            doshaEffect: d.doshaEffect || '',
+            partsUsed: d.partsUsed || [],
+            preparationMethods: d.preparationMethods || [],
+            warnings: d.warnings || [],
+            commonNames: d.commonNames || [],
+            aiGenerated: true,
+          },
+          image: null,
+          healthData: null
+        }
+      });
+    } catch (err) {
+      setGroqError('AI lookup failed. Please check your connection and try again.');
+    } finally {
+      setGroqLoading(false);
+    }
   };
 
   const handlePlantClick = (plant) => {
@@ -118,25 +173,49 @@ const PlantDescriptionHome = () => {
           </div>
 
           {/* Search */}
-          <form onSubmit={handleSearch} className="max-w-2xl mx-auto mb-10">
+          <form onSubmit={handleSearch} className="max-w-2xl mx-auto mb-3">
             <div className="bg-white rounded-2xl shadow-lg border border-gray-100 p-2 flex items-center gap-2">
               <div className="flex-1 flex items-center gap-3 px-4">
-                <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
-                  <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
-                </svg>
+                {groqLoading ? (
+                  <div className="w-5 h-5 border-2 border-emerald-500 border-t-transparent rounded-full animate-spin flex-shrink-0" />
+                ) : (
+                  <svg className="w-5 h-5 text-gray-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                    <path strokeLinecap="round" strokeLinejoin="round" d="M21 21l-5.197-5.197m0 0A7.5 7.5 0 105.196 5.196a7.5 7.5 0 0010.607 10.607z" />
+                  </svg>
+                )}
                 <input
                   type="text"
                   className="flex-1 bg-transparent outline-none py-3 text-sm md:text-base text-gray-800 placeholder:text-gray-400"
-                  placeholder="Search for a medicinal plant..."
+                  placeholder="Search any medicinal plant (AI-powered)..."
                   value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onChange={(e) => { setSearchQuery(e.target.value); setGroqError(''); }}
+                  disabled={groqLoading}
                 />
               </div>
-              <button type="submit" className="px-6 py-3 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-sm">
-                Search
+              <button
+                type="submit"
+                disabled={groqLoading}
+                className="px-6 py-3 rounded-xl bg-emerald-600 text-white text-sm font-semibold hover:bg-emerald-700 transition-colors shadow-sm disabled:opacity-60 disabled:cursor-not-allowed flex items-center gap-2"
+              >
+                {groqLoading ? 'Searching...' : 'Search'}
               </button>
             </div>
           </form>
+
+          {/* AI hint & error */}
+          <div className="max-w-2xl mx-auto mb-8">
+            {groqError ? (
+              <div className="flex items-center gap-2 px-4 py-2.5 bg-red-50 border border-red-100 rounded-xl text-xs text-red-600">
+                <svg className="w-4 h-4 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 9v3.75m9-.75a9 9 0 11-18 0 9 9 0 0118 0zm-9 3.75h.008v.008H12v-.008z" /></svg>
+                {groqError}
+              </div>
+            ) : (
+              <p className="text-center text-xs text-gray-400 flex items-center justify-center gap-1.5">
+                <svg className="w-3.5 h-3.5 text-emerald-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
+                Search any plant — AI will find it even if it&apos;s not in our database
+              </p>
+            )}
+          </div>
 
           {/* Category Tabs */}
           <div className="flex gap-1 p-1 bg-gray-100 rounded-xl mb-10 max-w-4xl mx-auto overflow-x-auto">

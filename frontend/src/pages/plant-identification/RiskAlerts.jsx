@@ -1,4 +1,4 @@
-﻿import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback } from 'react';
 import { useNavigate } from 'react-router-dom';
 import PlantNavbar from '../../components/plant-identification/PlantNavbar';
 import { getRiskAlerts, dismissAlert, checkPersonalizedRisks, getPlantParts, updateRiskAlert, deleteRiskAlert } from '../../services/plant-identification/plantApi';
@@ -129,9 +129,13 @@ const RiskAlerts = () => {
           setAlerts(prev => prev.map(a => a._id === editingAlert._id ? result.alert : a));
         }
       } else {
-        // Create new alert
+        // Create new alert via Groq-powered endpoint
         const result = await checkPersonalizedRisks({ ...plantData, healthData });
-        if (result?.alerts) setAlerts(prev => [...result.alerts, ...prev]);
+        if (result?.alerts) {
+          // Mark alerts as AI-powered if backend said so
+          const enriched = result.alerts.map(a => ({ ...a, _aiPowered: !!result.aiPowered }));
+          setAlerts(prev => [...enriched, ...prev]);
+        }
       }
       resetForm();
     } catch (error) {
@@ -181,8 +185,14 @@ const RiskAlerts = () => {
             <p className="inline-block text-xs font-semibold tracking-widest uppercase text-amber-600 bg-amber-50 px-4 py-1.5 rounded-full mb-4">Safety Information</p>
             <h1 className="text-3xl sm:text-4xl md:text-5xl font-extrabold text-gray-900 leading-tight">Safety Alerts</h1>
             <p className="mt-3 text-base sm:text-lg text-gray-500 max-w-xl mx-auto">Personalized safety information about medicinal plants</p>
+            <div className="flex justify-center mt-3">
+              <span className="inline-flex items-center gap-1.5 px-3 py-1 bg-purple-50 text-purple-700 rounded-full text-xs font-semibold border border-purple-100">
+                <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
+                AI Powered by Groq
+              </span>
+            </div>
             <button onClick={() => { resetForm(); setShowHealthForm(true); }}
-              className="mt-6 inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors">
+              className="mt-5 inline-flex items-center gap-2 px-5 py-2.5 text-sm font-semibold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors">
               <svg className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 4.5v15m7.5-7.5h-15" /></svg>
               Check Personalized Risks
             </button>
@@ -379,6 +389,12 @@ const RiskAlerts = () => {
                 {/* Modal Footer */}
                 <div className="p-5 border-t border-gray-100 bg-gray-50 rounded-b-2xl">
                   {errors.submit && <p className="text-xs text-red-500 mb-3 text-center">{errors.submit}</p>}
+                  {analyzing && (
+                    <div className="flex items-center justify-center gap-2 mb-3 text-xs text-purple-600">
+                      <svg className="w-3.5 h-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
+                      Analyzing with Groq AI...
+                    </div>
+                  )}
                   <div className="flex gap-3">
                     {activeTab === 'plant' ? (
                       <button onClick={() => { if (plantData.plantName && plantData.plantPart && plantData.purpose) setActiveTab('health'); else validateForm(); }}
@@ -390,7 +406,7 @@ const RiskAlerts = () => {
                         <button onClick={() => setActiveTab('plant')} className="px-5 py-2.5 text-sm font-semibold text-gray-600 bg-gray-200 rounded-xl hover:bg-gray-300 transition-colors">Back</button>
                         <button onClick={handleAnalyzeRisks} disabled={analyzing}
                           className="flex-1 px-5 py-2.5 text-sm font-semibold text-white bg-emerald-600 rounded-xl hover:bg-emerald-700 transition-colors disabled:opacity-60 disabled:cursor-not-allowed">
-                          {analyzing ? 'Analyzing...' : editingAlert ? 'Update Risk Assessment' : 'Analyze Risks'}
+                          {analyzing ? 'AI Analyzing...' : editingAlert ? 'Update Risk Assessment' : 'Analyze Risks'}
                         </button>
                       </>
                     )}
@@ -479,8 +495,14 @@ const RiskAlerts = () => {
                             <h3 className="text-sm font-bold text-gray-900">{alert.title}</h3>
                             <div className="flex items-center gap-2 mt-1.5 flex-wrap">
                               <span className={`inline-block px-2.5 py-0.5 rounded-full text-[11px] font-bold ${style.badge}`}>{alert.riskLevel?.toUpperCase()} RISK</span>
+                              {alert._aiPowered && (
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-100">
+                                  <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M9.813 15.904L9 18.75l-.813-2.846a4.5 4.5 0 00-3.09-3.09L2.25 12l2.846-.813a4.5 4.5 0 003.09-3.09L9 5.25l.813 2.846a4.5 4.5 0 003.09 3.09L15.75 12l-2.846.813a4.5 4.5 0 00-3.09 3.09z" /></svg>
+                                  AI
+                                </span>
+                              )}
                               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-emerald-50 text-emerald-700 border border-emerald-100">
-                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0018 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
+                                <svg className="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}><path strokeLinecap="round" strokeLinejoin="round" d="M12 6.042A8.967 8.967 0 006 3.75c-1.052 0-2.062.18-3 .512v14.25A8.987 8.987 0 016 18c2.305 0 4.408.867 6 2.292m0-14.25a8.966 8.966 0 016-2.292c1.052 0 2.062.18 3 .512v14.25A8.987 8.987 0 0118 18a8.967 8.967 0 00-6 2.292m0-14.25v14.25" /></svg>
                                 {alert.plantName}
                               </span>
                               <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[11px] font-semibold bg-purple-50 text-purple-700 border border-purple-100">

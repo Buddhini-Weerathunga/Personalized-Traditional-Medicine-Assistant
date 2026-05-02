@@ -1,6 +1,8 @@
 // backend/index.js
 const express = require("express");
 const dotenv = require("dotenv");
+// Load environment variables early so modules loaded below can access them
+dotenv.config();
 const cors = require("cors");
 const helmet = require("helmet");
 const morgan = require("morgan");
@@ -30,7 +32,6 @@ const {
   errorHandler,
 } = require("./src/dosha-diagnosis/middleware/errorHandler");
 
-dotenv.config();
 
 const app = express();
 

@@ -9,6 +9,20 @@ const multer = require('multer');
 const axios = require('axios');
 const FormData = require('form-data');
 const RiskAlert = require('../../models/plant-identification/RiskAlert');
+const Groq = require('groq-sdk');
+
+// Initialize Groq client only if API key is provided to avoid startup crash
+let groq = null;
+if (process.env.GROQ_API_KEY && process.env.GROQ_API_KEY.trim() !== '') {
+  try {
+    groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+  } catch (err) {
+    console.warn('Failed to initialize Groq client:', err.message);
+    groq = null;
+  }
+} else {
+  console.warn('GROQ_API_KEY not set — Groq client disabled.');
+}
 
 // In-memory storage for plant history (replace with database in production)
 let plantHistory = [];
@@ -529,21 +543,76 @@ router.post('/risk-alerts/personalized', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Plant name and plant part are required' });
     }
 
-    const riskLevel = calculateRiskLevel(plantName, plantPart, healthData);
-    const description = generateRiskDescription(plantName, plantPart, riskLevel, healthData);
-    const warnings = generateWarnings(plantName, plantPart, healthData);
-    const recommendations = generateRecommendations(plantName, plantPart, riskLevel);
+    // Build a detailed health profile summary for Groq
+    const healthSummary = [];
+    if (healthData?.age) healthSummary.push(`Age: ${healthData.age}`);
+    if (healthData?.isPregnant) healthSummary.push('Currently pregnant');
+    if (healthData?.isBreastfeeding) healthSummary.push('Currently breastfeeding');
+    if (healthData?.medications?.length > 0) healthSummary.push(`Medications: ${healthData.medications.join(', ')}`);
+    if (healthData?.allergies?.length > 0) healthSummary.push(`Known allergies: ${healthData.allergies.join(', ')}`);
+    if (healthData?.conditions?.length > 0) healthSummary.push(`Health conditions: ${healthData.conditions.join(', ')}`);
+    if (healthData?.otherHealthInfo) healthSummary.push(`Additional info: ${healthData.otherHealthInfo}`);
 
-    // Get how-to-use info
+    const healthProfileText = healthSummary.length > 0
+      ? healthSummary.join('. ')
+      : 'No specific health conditions or medications reported.';
+
+    const purposeText = purpose ? ` for the purpose of "${purpose}"` : '';
+
+    // Get usage info from local map as context for Groq
     const usageMap = findInUsageMap(plantName);
-    const howToUse = usageMap?.[plantPart] || `Use ${plantPart} of ${plantName} as directed by a qualified Ayurvedic practitioner. Start with small doses and observe your body's response.`;
+    const localHowToUse = usageMap?.[plantPart] || null;
+
+    let groqRiskData = null;
+
+    try {
+      const prompt = `You are an expert Ayurvedic medicine safety analyst. A user wants to use the ${plantPart} part of ${plantName}${purposeText}.
+
+User health profile: ${healthProfileText}
+
+Provide a comprehensive, personalized safety risk assessment. Respond ONLY with a valid JSON object (no markdown, no code blocks) with this exact structure:
+{
+  "riskLevel": "high" or "medium" or "low",
+  "title": "brief descriptive title for this risk assessment",
+  "description": "2-3 sentence personalized risk description specifically addressing this user's health profile and why this plant/part combination carries this risk level for them",
+  "howToUse": "specific instructions on how to safely use ${plantPart} of ${plantName}${purposeText}, including preparation method, dosage, and timing",
+  "warnings": ["specific warning 1 personalized to user", "specific warning 2", "specific warning 3"],
+  "recommendations": ["actionable recommendation 1", "actionable recommendation 2", "actionable recommendation 3"]
+}
+
+IMPORTANT: Be specific to this user's health profile. If they have medications, mention potential interactions. If pregnant/breastfeeding, address those risks directly. Base the risk level on the combination of plant potency AND user health factors.`;
+
+      if (!groq) throw new Error('Groq client not initialized');
+
+      const completion = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        max_tokens: 800,
+      });
+
+      const rawContent = completion.choices[0]?.message?.content?.trim();
+      // Strip any markdown code fences if present
+      const cleaned = rawContent.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+      groqRiskData = JSON.parse(cleaned);
+    } catch (groqErr) {
+      console.warn('Groq API failed, falling back to rule-based logic:', groqErr.message);
+    }
+
+    // Use Groq result or fall back to rule-based logic
+    const riskLevel = groqRiskData?.riskLevel || calculateRiskLevel(plantName, plantPart, healthData);
+    const description = groqRiskData?.description || generateRiskDescription(plantName, plantPart, riskLevel, healthData);
+    const warnings = groqRiskData?.warnings || generateWarnings(plantName, plantPart, healthData);
+    const recommendations = groqRiskData?.recommendations || generateRecommendations(plantName, plantPart, riskLevel);
+    const howToUse = groqRiskData?.howToUse || localHowToUse || `Use ${plantPart} of ${plantName} as directed by a qualified Ayurvedic practitioner. Start with small doses and observe your body's response.`;
+    const title = groqRiskData?.title || `${plantName} — ${plantPart} Risk Assessment`;
 
     const riskAlert = new RiskAlert({
       plantName,
       plantPart,
       purpose: purpose || '',
       riskLevel,
-      title: `${plantName} — ${plantPart} Risk Assessment`,
+      title,
       description,
       howToUse,
       warnings,
@@ -553,11 +622,72 @@ router.post('/risk-alerts/personalized', async (req, res) => {
 
     await riskAlert.save();
 
-    res.json({ success: true, alerts: [riskAlert] });
+    res.json({ success: true, alerts: [riskAlert], aiPowered: !!groqRiskData });
   } catch (error) {
     console.error('Personalized risk check error:', error.message);
     console.error('Full error:', error);
     res.status(500).json({ success: false, message: 'Failed to check personalized risks' });
+  }
+});
+
+/**
+ * @route   POST /api/plant-identification/groq-description
+ * @desc    Get AI-generated plant description using Groq for any plant name
+ * @access  Public
+ */
+router.post('/groq-description', async (req, res) => {
+  try {
+    const { plantName } = req.body;
+    if (!plantName || !plantName.trim()) {
+      return res.status(400).json({ success: false, message: 'Plant name is required' });
+    }
+
+    const prompt = `You are an expert in Ayurvedic and traditional medicinal plants. Provide detailed information about the medicinal plant "${plantName}".
+
+Respond ONLY with a valid JSON object (no markdown, no code blocks) with this exact structure:
+{
+  "plantName": "common English name",
+  "scientificName": "Genus species (Latin)",
+  "description": "comprehensive 3-4 sentence description covering origin, history, cultural significance, key compounds, and primary uses in traditional medicine",
+  "medicinalUses": ["use 1", "use 2", "use 3", "use 4", "use 5", "use 6"],
+  "ayurvedicProperties": {
+    "rasa": "Taste description",
+    "guna": "Quality description",
+    "virya": "Potency description",
+    "vipaka": "Post-digestive effect"
+  },
+  "doshaEffect": "Which doshas this plant balances or affects",
+  "partsUsed": ["part1", "part2"],
+  "preparationMethods": ["method 1", "method 2", "method 3"],
+  "warnings": ["warning 1", "warning 2", "warning 3"],
+  "commonNames": ["name 1", "name 2", "name 3"],
+  "category": "one of: Brain & Memory, Immunity & Stress, Digestive, Skin & Hair, Anti-inflammatory, Heart Health, Respiratory, or General Wellness",
+  "found": true
+}
+
+If "${plantName}" is not a known medicinal plant, respond with: {"found": false, "message": "Plant not found"}
+
+IMPORTANT: Return ONLY the JSON object. No preamble, no explanation.`;
+
+    if (!groq) {
+      return res.status(503).json({ success: false, message: 'AI service not configured' });
+    }
+
+    const completion = await groq.chat.completions.create({
+      model: 'llama-3.3-70b-versatile',
+      messages: [{ role: 'user', content: prompt }],
+      temperature: 0.2,
+      max_tokens: 1000,
+    });
+
+    const rawContent = completion.choices[0]?.message?.content?.trim();
+    const cleaned = rawContent.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+    const plantData = JSON.parse(cleaned);
+
+    res.json({ success: true, data: plantData });
+  } catch (error) {
+    console.error('Groq description error:', error.message);
+    res.status(500).json({ success: false, message: 'Failed to get plant description from AI' });
   }
 });
 
@@ -575,20 +705,51 @@ router.put('/risk-alerts/:alertId', async (req, res) => {
       return res.status(400).json({ success: false, message: 'Plant name and plant part are required' });
     }
 
-    const riskLevel = calculateRiskLevel(plantName, plantPart, healthData);
-    const description = generateRiskDescription(plantName, plantPart, riskLevel, healthData);
-    const warningsArr = generateWarnings(plantName, plantPart, healthData);
-    const recommendations = generateRecommendations(plantName, plantPart, riskLevel);
+    // Build health profile for Groq
+    const healthSummary = [];
+    if (healthData?.age) healthSummary.push(`Age: ${healthData.age}`);
+    if (healthData?.isPregnant) healthSummary.push('Currently pregnant');
+    if (healthData?.isBreastfeeding) healthSummary.push('Currently breastfeeding');
+    if (healthData?.medications?.length > 0) healthSummary.push(`Medications: ${healthData.medications.join(', ')}`);
+    if (healthData?.allergies?.length > 0) healthSummary.push(`Known allergies: ${healthData.allergies.join(', ')}`);
+    if (healthData?.conditions?.length > 0) healthSummary.push(`Health conditions: ${healthData.conditions.join(', ')}`);
+    if (healthData?.otherHealthInfo) healthSummary.push(`Additional info: ${healthData.otherHealthInfo}`);
+    const healthProfileText = healthSummary.length > 0 ? healthSummary.join('. ') : 'No specific health conditions reported.';
+    const purposeText = purpose ? ` for the purpose of "${purpose}"` : '';
 
+    let groqRiskData = null;
+    try {
+      const prompt = `You are an expert Ayurvedic medicine safety analyst. A user wants to use the ${plantPart} part of ${plantName}${purposeText}.\nUser health profile: ${healthProfileText}\nProvide a comprehensive, personalized safety risk assessment. Respond ONLY with a valid JSON object (no markdown) with this exact structure:\n{"riskLevel":"high or medium or low","title":"brief descriptive title","description":"2-3 sentence personalized risk description","howToUse":"specific instructions","warnings":["warning 1","warning 2","warning 3"],"recommendations":["rec 1","rec 2","rec 3"]}`;
+
+      if (!groq) throw new Error('Groq client not initialized');
+
+      const completion = await groq.chat.completions.create({
+        model: 'llama-3.3-70b-versatile',
+        messages: [{ role: 'user', content: prompt }],
+        temperature: 0.3,
+        max_tokens: 700,
+      });
+      const raw = completion.choices[0]?.message?.content?.trim();
+      const cleanedRaw = raw.replace(/^```(?:json)?\s*/i, '').replace(/\s*```$/i, '').trim();
+      groqRiskData = JSON.parse(cleanedRaw);
+    } catch (groqErr) {
+      console.warn('Groq failed on update, using fallback:', groqErr.message);
+    }
+
+    const riskLevel = groqRiskData?.riskLevel || calculateRiskLevel(plantName, plantPart, healthData);
+    const description = groqRiskData?.description || generateRiskDescription(plantName, plantPart, riskLevel, healthData);
+    const warningsArr = groqRiskData?.warnings || generateWarnings(plantName, plantPart, healthData);
+    const recommendations = groqRiskData?.recommendations || generateRecommendations(plantName, plantPart, riskLevel);
     const usageMap = findInUsageMap(plantName);
-    const howToUse = usageMap?.[plantPart] || `Use ${plantPart} of ${plantName} as directed by a qualified Ayurvedic practitioner.`;
+    const howToUse = groqRiskData?.howToUse || usageMap?.[plantPart] || `Use ${plantPart} of ${plantName} as directed by a qualified Ayurvedic practitioner.`;
+    const title = groqRiskData?.title || `${plantName} — ${plantPart} Risk Assessment`;
 
     const updated = await RiskAlert.findByIdAndUpdate(alertId, {
       plantName,
       plantPart,
       purpose: purpose || '',
       riskLevel,
-      title: `${plantName} — ${plantPart} Risk Assessment`,
+      title,
       description,
       howToUse,
       warnings: warningsArr,
