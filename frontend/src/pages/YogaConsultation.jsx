@@ -16,21 +16,25 @@ import AudioFeedbackController from '../components/Yoga/AudioFeedbackController'
 import PoseDebugView from '../components/Yoga/PoseDebugView';
 import PoseTimer from '../components/Yoga/PoseTimer';
 import PoseCompletion from '../components/Yoga/PoseCompletion';
+import PoseReferenceImage from '../components/Yoga/PoseReferenceImage';
+import PrePracticeInstructions from '../components/Yoga/PrePracticeInstructions';
+import PositionGuide from '../components/Yoga/PositionGuide';
 
 export default function YogaConsultation() {
   const [currentView, setCurrentView] = useState('library');
   const [selectedPose, setSelectedPose] = useState(null);
   const [isPracticing, setIsPracticing] = useState(false);
   const [corrections, setCorrections] = useState([]);
-  const [feedback, setFeedback] = useState({ postureAccuracy: 0, alignmentScore: 0, suggestions: [] });
+  const [feedback, setFeedback] = useState({ 
+    postureAccuracy: 0, 
+    alignmentScore: 0, 
+    suggestions: [],
+    wrongJointsCount: 99,
+    validJointsCount: 0,
+    canStartTimer: false
+  });
   const [poses, setPoses] = useState([]);
   const [userProgress, setUserProgress] = useState(null);
-  const [personalization, setPersonalization] = useState({
-    age: 30,
-    flexibilityLevel: 'medium',
-    mobilityRestrictions: [],
-    preferredFeedback: 'both'
-  });
   const [searchTerm, setSearchTerm] = useState('');
   const [selectedDifficulty, setSelectedDifficulty] = useState('all');
   const [selectedCategory, setSelectedCategory] = useState('all');
@@ -49,9 +53,7 @@ export default function YogaConsultation() {
     error: null
   });
 
-  const [currentStep, setCurrentStep] = useState(0);
-
-  // ===== STATES FOR TIMER AND COMPLETION =====
+  // States for timer and completion
   const [currentJointAngles, setCurrentJointAngles] = useState({});
   const [idealAngles, setIdealAngles] = useState({});
   const [timeLeft, setTimeLeft] = useState(0);
@@ -60,13 +62,30 @@ export default function YogaConsultation() {
   const [resetTimer, setResetTimer] = useState(false);
   const [holdAchieved, setHoldAchieved] = useState(false);
 
-  // ===== NEW STATE FOR AUDIO ANNOUNCEMENT =====
+  // Audio announcement state
   const [audioAnnounced, setAudioAnnounced] = useState(false);
+  const [showPrePractice, setShowPrePractice] = useState(false);
+  
+  // Position status for distance and centering guidance
+  const [positionStatus, setPositionStatus] = useState(null);
+  const [positionFixedAnnounced, setPositionFixedAnnounced] = useState(false);
 
   const videoRef = useRef(null);
   const canvasRef = useRef(null);
   const cameraContainerRef = useRef(null);
   const navigate = useNavigate();
+
+  //Timer starts when wrong joints ≤ 2 AND good detection
+const shouldStartTimer = () => {
+  const accuracy = feedback?.postureAccuracy || 0;
+  const canStart = accuracy >= 80;
+  
+  console.log(`🎯 Timer Check: Accuracy=${accuracy}%, CanStart=${canStart} (need 80%)`);
+  
+  return canStart;
+};
+
+const poseCorrect = shouldStartTimer();
 
   // Load voices for speech synthesis
   useEffect(() => {
@@ -81,107 +100,160 @@ export default function YogaConsultation() {
     loadUserProgress();
   }, []);
 
-  const loadPoses = async () => {
-    try {
-      setIsLoading(true);
-      const response = await yogaApi.getYogaPoses();
-      console.log('API Response:', response.data);
-      
-      if (response.data.success && response.data.poses.length > 0) {
-        setPoses(response.data.poses);
-      } else {
-        // Fallback data with timer settings
-        setPoses([
-          {
-            _id: '1',
-            name: "Mountain Pose",
-            sanskritName: "Tadasana",
-            difficulty: "beginner",
-            category: "standing",
-            description: "Foundation pose that improves posture",
-            instructions: [
-              "Stand with feet together, weight balanced evenly",
-              "Engage your thigh muscles and lift your kneecaps",
-              "Lengthen your tailbone toward the floor",
-              "Roll your shoulders back and down"
-            ],
-            benefits: ["Improves posture", "Strengthens thighs"],
-            precautions: ["Avoid if low blood pressure"],
-            timerSettings: {
-              defaultHoldTime: 30,
-              minHoldTime: 15,
-              maxHoldTime: 60,
-              restTimeBetweenPoses: 10,
-              breathingCycles: 5,
-              holdTimeByLevel: {
-                beginner: 20,
-                intermediate: 30,
-                advanced: 45
-              }
-            }
-          },
-          {
-            _id: '2',
-            name: "Warrior II",
-            sanskritName: "Virabhadrasana II",
-            difficulty: "intermediate",
-            category: "standing",
-            description: "Powerful standing pose that builds strength",
-            instructions: [
-              "Stand with feet 3-4 feet apart",
-              "Turn right foot out 90°, left foot in slightly",
-              "Bend right knee directly over ankle",
-              "Keep left leg straight and strong",
-              "Extend arms parallel to floor"
-            ],
-            benefits: ["Strengthens legs", "Stretches hips"],
-            precautions: ["Avoid if knee injuries"],
-            timerSettings: {
-              defaultHoldTime: 30,
-              minHoldTime: 15,
-              maxHoldTime: 60,
-              restTimeBetweenPoses: 10,
-              breathingCycles: 5,
-              holdTimeByLevel: {
-                beginner: 20,
-                intermediate: 30,
-                advanced: 45
-              }
-            }
-          }
-        ]);
-      }
-    } catch (error) {
-      console.error('Error loading poses:', error);
-    } finally {
-      setIsLoading(false);
+// Only the fallback data part
+
+const loadPoses = async () => {
+  try {
+    setIsLoading(true);
+    const response = await yogaApi.getYogaPoses();
+    
+    if (response.data.success && response.data.poses.length > 0) {
+      setPoses(response.data.poses);
+    } else {
+      // Fallback data with all 10 poses
+      setPoses([
+        {
+          _id: '1',
+          name: "Mountain Pose",
+          sanskritName: "Tadasana",
+          difficulty: "beginner",
+          category: "standing",
+          description: "Foundation pose that improves posture",
+          instructions: ["Stand with feet together", "Engage your thighs", "Roll shoulders back"],
+          benefits: ["Improves posture", "Strengthens thighs"],
+          precautions: ["Avoid if low blood pressure"],
+          timerSettings: { defaultHoldTime: 30 }
+        },
+        {
+          _id: '2',
+          name: "Raised Arms Pose",
+          sanskritName: "Urdhva Hastasana",
+          difficulty: "beginner",
+          category: "standing",
+          description: "Hands to Sky - Arms extended straight up",
+          instructions: ["Start in Mountain Pose", "Inhale arms straight up", "Keep arms straight"],
+          benefits: ["Stretches shoulders", "Improves digestion"],
+          precautions: ["Avoid if shoulder injury"],
+          timerSettings: { defaultHoldTime: 30 }
+        },
+        // {
+        //   _id: '3',
+        //   name: "Chair Pose",
+        //   sanskritName: "Utkatasana",
+        //   difficulty: "beginner",
+        //   category: "standing",
+        //   description: "Sitting pose that builds leg strength",
+        //   instructions: ["Stand with feet together", "Bend knees like sitting", "Raise arms overhead"],
+        //   benefits: ["Strengthens legs", "Tones glutes"],
+        //   precautions: ["Avoid if knee injuries"],
+        //   timerSettings: { defaultHoldTime: 30 }
+        // },
+        // {
+        //   _id: '4',
+        //   name: "Warrior II",
+        //   sanskritName: "Virabhadrasana II",
+        //   difficulty: "intermediate",
+        //   category: "standing",
+        //   description: "Powerful standing pose",
+        //   instructions: ["Stand with feet wide", "Bend front knee", "Arms out to sides"],
+        //   benefits: ["Strengthens legs", "Stretches hips"],
+        //   precautions: ["Avoid if knee injuries"],
+        //   timerSettings: { defaultHoldTime: 30 }
+        // },
+        {
+          _id: '5',
+          name: "Goddess Pose",
+          sanskritName: "Deviasana",
+          difficulty: "beginner",
+          category: "standing",
+          description: "Wide squat that opens hips",
+          instructions: [
+            "Stand with feet wide apart",
+            "Turn toes outward",
+            "Bend knees deeply",
+            "Arms bent at 90 degrees"
+          ],
+          benefits: ["Strengthens legs", "Opens hips", "Tones core"],
+          precautions: ["Avoid if knee injuries"],
+          timerSettings: { defaultHoldTime: 30 }
+        },
+        // {
+        //   _id: '6',
+        //   name: "Tree Pose",
+        //   sanskritName: "Vrikshasana",
+        //   difficulty: "intermediate",
+        //   category: "balance",
+        //   description: "Balancing pose",
+        //   instructions: ["Stand on one leg", "Place foot on thigh", "Hands at heart"],
+        //   benefits: ["Improves balance", "Strengthens legs"],
+        //   precautions: ["Use wall for support"],
+        //   timerSettings: { defaultHoldTime: 25 }
+        // },
+        {
+          _id: '7',
+          name: "Star Pose",
+          sanskritName: "Utthita Tadasana",
+          difficulty: "beginner",
+          category: "standing",
+          description: "Wide stance like a star",
+          instructions: ["Stand with feet wide", "Arms out to sides", "Palms forward"],
+          benefits: ["Stretches whole body", "Opens chest"],
+          precautions: ["None"],
+          timerSettings: { defaultHoldTime: 30 }
+        },
+        {
+          _id: '8',
+          name: "Standing Forward Fold",
+          sanskritName: "Uttanasana",
+          difficulty: "beginner",
+          category: "standing",
+          description: "Forward bend stretch",
+          instructions: ["Stand with feet together", "Fold forward from hips", "Bend knees if needed"],
+          benefits: ["Stretches hamstrings", "Calms mind"],
+          precautions: ["Avoid if back injury"],
+          timerSettings: { defaultHoldTime: 30 }
+        },
+        {
+          _id: '9',
+          name: "Eagle Arms Pose",
+          sanskritName: "Garudasana",
+          difficulty: "beginner",
+          category: "standing",
+          description: "Arm wrapping pose",
+          instructions: ["Cross arms at elbows", "Wrap forearms", "Lift elbows"],
+          benefits: ["Stretches shoulders", "Opens upper back"],
+          precautions: ["Avoid if shoulder injury"],
+          timerSettings: { defaultHoldTime: 30 }
+        },
+        // {
+        //   _id: '10',
+        //   name: "Half Moon Pose",
+        //   sanskritName: "Ardha Chandrasana",
+        //   difficulty: "intermediate",
+        //   category: "balance",
+        //   description: "Side balance pose",
+        //   instructions: ["Lean forward", "Lift back leg", "Reach top arm up"],
+        //   benefits: ["Improves balance", "Strengthens legs"],
+        //   precautions: ["Use wall for support"],
+        //   timerSettings: { defaultHoldTime: 25 }
+        // }
+      ]);
     }
-  };
+  } catch (error) {
+    console.error('Error loading poses:', error);
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const loadUserProgress = async () => {
     try {
       const response = await yogaApi.getUserProgress();
-      console.log('User progress response:', response.data);
-      
       if (response.data.success) {
         setUserProgress(response.data.progress);
-        if (response.data.progress?.personalization) {
-          setPersonalization(response.data.progress.personalization);
-        }
-      } else {
-        setUserProgress({
-          overallStats: { totalSessions: 0, totalDuration: 0, averageScore: 0 },
-          streak: { current: 0, longest: 0 },
-          poseProficiency: []
-        });
       }
     } catch (error) {
       console.error('Error loading user progress:', error);
-      setUserProgress({
-        overallStats: { totalSessions: 0, totalDuration: 0, averageScore: 0 },
-        streak: { current: 0, longest: 0 },
-        poseProficiency: []
-      });
     }
   };
 
@@ -272,34 +344,25 @@ export default function YogaConsultation() {
         const newFeedback = response.data.feedback || {
           postureAccuracy: 0,
           alignmentScore: 0,
-          suggestions: []
+          suggestions: [],
+          wrongJointsCount: 99,
+          validJointsCount: 0,
+          canStartTimer: false
         };
         
         setCorrections(newCorrections);
         setFeedback(newFeedback);
         
-        console.log('New feedback received:', newFeedback);
+        console.log(`📊 Feedback: Wrong joints=${newFeedback.wrongJointsCount}, CanStartTimer=${newFeedback.canStartTimer}`);
       }
     } catch (error) {
       console.error('Error analyzing pose:', error);
     }
   };
 
-  //FUNCTION TO CHECK IF POSE IS CORRECT (ACCURACY ≥ 80%) 
-  const isPoseCorrect = () => {
-    if (detectionStatus.jointCount < 4) return false;
-    return feedback?.postureAccuracy >= 80;
-  };
-
-  //CALLBACK WHEN AUDIO ANNOUNCES CORRECT POSE
-  const handlePoseCorrectAnnounced = () => {
-    console.log(' Audio announced correct pose, timer can start');
-    setAudioAnnounced(true);
-  };
-
-  //TIMER HANDLER FUNCTIONS
-  const handleTimeComplete = () => {
-    setHoldAchieved(true);
+  // Timer handler functions
+  const handleTimeComplete = async () => {
+    console.log('🏁 Timer completed, saving session...');
     
     const finalScore = Math.round(
       (feedback?.postureAccuracy || 0) * 0.7 + 
@@ -307,14 +370,25 @@ export default function YogaConsultation() {
     );
     setSessionScore(finalScore);
     
+    if (currentSessionId) {
+      try {
+        await yogaApi.endYogaSession({ sessionId: currentSessionId });
+        console.log('✅ Session saved successfully');
+      } catch (error) {
+        console.error('Error saving session:', error);
+      }
+    }
+    
+    setHoldAchieved(true);
     setShowCompletion(true);
     setIsPracticing(false);
     stopCamera();
     
     if (isAudioEnabled && window.speechSynthesis) {
       const utterance = new SpeechSynthesisUtterance(
-        `Great job! You've completed ${selectedPose?.name}. Well done!`
+        `Excellent work! You held ${selectedPose?.name} for ${selectedPose?.timerSettings?.defaultHoldTime || 30} seconds. Great job!`
       );
+      utterance.rate = 0.9;
       window.speechSynthesis.speak(utterance);
     }
   };
@@ -323,9 +397,19 @@ export default function YogaConsultation() {
     setShowCompletion(false);
     setHoldAchieved(false);
     setCorrections([]);
-    setFeedback({ postureAccuracy: 0, alignmentScore: 0, suggestions: [] });
+    setFeedback({ 
+      postureAccuracy: 0, 
+      alignmentScore: 0, 
+      suggestions: [],
+      wrongJointsCount: 99,
+      validJointsCount: 0,
+      canStartTimer: false
+    });
     setCurrentJointAngles({});
     setAudioAnnounced(false);
+    setShowPrePractice(false);
+    setPositionStatus(null);
+    setPositionFixedAnnounced(false);
     setCurrentView('library');
     setSelectedPose(null);
   };
@@ -334,11 +418,27 @@ export default function YogaConsultation() {
     setShowCompletion(false);
     setHoldAchieved(false);
     setCorrections([]);
-    setFeedback({ postureAccuracy: 0, alignmentScore: 0, suggestions: [] });
+    setFeedback({ 
+      postureAccuracy: 0, 
+      alignmentScore: 0, 
+      suggestions: [],
+      wrongJointsCount: 99,
+      validJointsCount: 0,
+      canStartTimer: false
+    });
     setCurrentJointAngles({});
     setAudioAnnounced(false);
+    setPositionStatus(null);
+    setPositionFixedAnnounced(false);
+    setShowPrePractice(true);
     setResetTimer(prev => !prev);
     handleStartPractice();
+  };
+
+  // Callback when audio announces correct pose
+  const handlePoseCorrectAnnounced = () => {
+    console.log('🎯 Audio announced correct pose, timer can start');
+    setAudioAnnounced(true);
   };
 
   // Start practice session
@@ -351,9 +451,18 @@ export default function YogaConsultation() {
       setHoldAchieved(false);
       setShowCompletion(false);
       setCorrections([]);
-      setFeedback({ postureAccuracy: 0, alignmentScore: 0, suggestions: [] });
+      setFeedback({ 
+        postureAccuracy: 0, 
+        alignmentScore: 0, 
+        suggestions: [],
+        wrongJointsCount: 99,
+        validJointsCount: 0,
+        canStartTimer: false
+      });
       setCurrentJointAngles({});
       setAudioAnnounced(false);
+      setPositionStatus(null);
+      setPositionFixedAnnounced(false);
       
       const response = await yogaApi.startYogaSession({
         poseId: selectedPose._id,
@@ -439,11 +548,10 @@ export default function YogaConsultation() {
   // Render library view
   const renderLibraryView = () => (
     <div className="space-y-6">
-      {/* Blue banner - removed gradient */}
       <div className="bg-blue-600 rounded-2xl shadow-xl p-8 text-white">
         <h1 className="text-3xl font-bold mb-4">Yoga Guidance System</h1>
         <p className="text-lg opacity-90">
-          Select a pose to begin your practice with real-time guidance, timer, and audio feedback
+          Select a pose to begin your practice. Timer starts when only 0-2 joints need adjustment!
         </p>
       </div>
 
@@ -469,7 +577,6 @@ export default function YogaConsultation() {
               <option value="all">All Levels</option>
               <option value="beginner">Beginner</option>
               <option value="intermediate">Intermediate</option>
-              <option value="advanced">Advanced</option>
             </select>
           </div>
           <div>
@@ -481,9 +588,7 @@ export default function YogaConsultation() {
             >
               <option value="all">All Categories</option>
               <option value="standing">Standing</option>
-              <option value="seated">Seated</option>
               <option value="balance">Balance</option>
-              <option value="inversion">Inversion</option>
             </select>
           </div>
         </div>
@@ -496,7 +601,9 @@ export default function YogaConsultation() {
         </div>
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {filteredPoses.map((pose) => (
+          {filteredPoses.filter(pose =>
+            !['Warrior II', 'Tree Pose', 'Eagle Arms Pose', 'Half Moon Pose', 'Warrior I', 'Downward Dog', 'Plank Pose'].includes(pose.name)
+          ).map((pose) => (
             <div
               key={pose._id}
               onClick={() => {
@@ -505,7 +612,6 @@ export default function YogaConsultation() {
               }}
               className="bg-white rounded-xl shadow-lg overflow-hidden hover:shadow-xl transition cursor-pointer"
             >
-              {/* Lighter blue card header */}
               <div className="h-40 bg-blue-50 flex items-center justify-center">
                 <div className="text-center">
                   <div className="w-20 h-20 mx-auto bg-white rounded-full flex items-center justify-center shadow-md">
@@ -541,7 +647,6 @@ export default function YogaConsultation() {
   // Render practice view
   const renderPracticeView = () => (
     <div className="space-y-6">
-      {/* Blue banner - removed gradient */}
       <div className="bg-blue-600 rounded-2xl shadow-xl p-6 text-white">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">
@@ -554,6 +659,7 @@ export default function YogaConsultation() {
                   }
                 } else {
                   setCurrentView('library');
+                  setShowPrePractice(false);
                 }
               }}
             />
@@ -563,15 +669,17 @@ export default function YogaConsultation() {
             </div>
           </div>
           
-          {!isPracticing && !showCompletion ? (
+          {!isPracticing && !showCompletion && !showPrePractice && (
             <button
-              onClick={handleStartPractice}
+              onClick={() => setShowPrePractice(true)}
               className="px-6 py-3 bg-white text-blue-600 rounded-xl hover:bg-blue-50 transition font-bold flex items-center gap-2"
             >
               <Play className="w-5 h-5" />
-              Start Practice
+              Prepare & Start
             </button>
-          ) : isPracticing && !showCompletion ? (
+          )}
+          
+          {isPracticing && !showCompletion ? (
             <button
               onClick={handleEndPractice}
               className="px-6 py-3 bg-red-500 text-white rounded-xl hover:bg-red-600 transition font-bold flex items-center gap-2"
@@ -586,10 +694,26 @@ export default function YogaConsultation() {
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         <div className="lg:col-span-2 space-y-4">
           
-          {!isPracticing && !showCompletion && (
-            <>
-              <PoseVisualGuide pose={selectedPose} />
-            </>
+          {/* Pre-practice instructions */}
+          {!isPracticing && !showCompletion && showPrePractice && (
+            <PrePracticeInstructions 
+              pose={selectedPose}
+              onStart={() => {
+                setShowPrePractice(false);
+                handleStartPractice();
+              }}
+              onCameraReady={() => {}}
+            />
+          )}
+
+          {/* Position Guide */}
+          {isPracticing && !showCompletion && positionStatus && (
+            <PositionGuide positionStatus={positionStatus} />
+          )}
+
+          {/* Pose Reference Image */}
+          {!isPracticing && !showCompletion && selectedPose && !showPrePractice && (
+            <PoseReferenceImage pose={selectedPose} />
           )}
 
           {isPracticing && !showCompletion && (
@@ -608,9 +732,11 @@ export default function YogaConsultation() {
                 onTimeComplete={handleTimeComplete}
                 onTimeUpdate={setTimeLeft}
                 reset={resetTimer}
-                isPoseCorrect={isPoseCorrect()}
+                isPoseCorrect={shouldStartTimer()} 
                 corrections={corrections}
                 onPoseCorrectAnnounced={audioAnnounced ? null : handlePoseCorrectAnnounced}
+                detectionStatus={detectionStatus}
+                feedback={feedback}
               />
             </>
           )}
@@ -666,9 +792,7 @@ export default function YogaConsultation() {
                   <div className="flex items-center gap-2">
                     <div className={`w-2 h-2 rounded-full ${detectionStatus.isDetecting ? 'bg-green-500 animate-pulse' : 'bg-yellow-500'}`} />
                     <span>
-                      {detectionStatus.isDetecting 
-                        ? `Tracking ${detectionStatus.jointCount} joints (${detectionStatus.confidence}%)` 
-                        : 'Waiting for pose...'}
+                      {detectionStatus.jointCount} joints detected ({detectionStatus.confidence}% conf)
                     </span>
                     <span className="ml-2 flex items-center gap-1">
                       <Clock className="w-3 h-3" />
@@ -682,7 +806,6 @@ export default function YogaConsultation() {
                     <div className="text-center text-white">
                       <div className="animate-spin rounded-full h-12 w-12 border-4 border-white border-t-transparent mx-auto mb-4"></div>
                       <p className="text-lg">Loading pose detection...</p>
-                      <p className="text-sm opacity-75 mt-2">This may take a few seconds</p>
                     </div>
                   </div>
                 )}
@@ -693,47 +816,17 @@ export default function YogaConsultation() {
                   onPoseDetected={handlePoseDetected}
                   isActive={isPracticing && !isDetectorLoading}
                   onStatusChange={handleDetectionStatus}
+                  onPositionStatus={setPositionStatus}
                 />
               </>
             ) : !showCompletion ? (
               <div className="h-full flex flex-col items-center justify-center text-white">
                 <Camera className="w-16 h-16 text-gray-400 mb-4" />
-                <p className="text-white text-lg">Click "Start Practice" to begin</p>
-                <p className="text-gray-400 text-sm mt-2">Make sure your camera is connected</p>
+                <p className="text-white text-lg">Complete preparation to begin</p>
+                <p className="text-gray-400 text-sm mt-2">Follow the instructions above</p>
               </div>
             ) : null}
           </div>
-
-          {/* Pose Guide Card - Moved after video canvas */}
-          {selectedPose && !isPracticing && !showCompletion && (
-            <div className="bg-white rounded-xl shadow-lg p-6">
-              <h3 className="text-lg font-bold text-gray-800 mb-4">Pose Guide: {selectedPose.name}</h3>
-              <div className="space-y-4">
-                <div className="flex items-center justify-between text-sm text-gray-600 mb-2">
-                  <span>Step {currentStep + 1} of {selectedPose.instructions?.length || 1}</span>
-                  <div className="flex gap-2">
-                    <button
-                      onClick={() => setCurrentStep(Math.max(0, currentStep - 1))}
-                      disabled={currentStep === 0}
-                      className="px-2 py-1 bg-gray-100 rounded disabled:opacity-50"
-                    >
-                      Previous
-                    </button>
-                    <button
-                      onClick={() => setCurrentStep(Math.min((selectedPose.instructions?.length || 1) - 1, currentStep + 1))}
-                      disabled={currentStep === (selectedPose.instructions?.length || 1) - 1}
-                      className="px-2 py-1 bg-gray-100 rounded disabled:opacity-50"
-                    >
-                      Next
-                    </button>
-                  </div>
-                </div>
-                <p className="text-gray-700 text-lg">
-                  {selectedPose.instructions?.[currentStep] || "Follow the pose guide above"}
-                </p>
-              </div>
-            </div>
-          )}
 
           {selectedPose && isPracticing && !showCompletion && (
             <div className="bg-white rounded-xl shadow-lg p-4">
@@ -751,13 +844,11 @@ export default function YogaConsultation() {
                 </button>
               </div>
               <p className="text-sm text-gray-600">
-                {corrections.length > 0 
+                {corrections.length > 0 && (feedback?.wrongJointsCount || 0) > 2
                   ? corrections[0].message 
-                  : isPoseCorrect()
-                    ? `✅ Perfect! ${audioAnnounced ? 'Timer running' : 'Preparing timer...'} - ${timeLeft}s remaining`
-                    : detectionStatus.jointCount < 4
-                      ? "Please move into full camera view"
-                      : "Adjust your pose to start timer"}
+                  : (feedback?.wrongJointsCount || 99) <= 2
+                    ? `✅ Pose ready! ${feedback?.wrongJointsCount === 0 ? 'Perfect form!' : `${feedback?.wrongJointsCount} minor adjustment(s) needed`}. Timer will start soon.`
+                    : `🎯 ${feedback?.wrongJointsCount || 0} joints need adjustment. Follow audio guidance.`}
               </p>
             </div>
           )}
@@ -774,13 +865,20 @@ export default function YogaConsultation() {
                 isAudioEnabled={isAudioEnabled}
                 onAudioToggle={() => setIsAudioEnabled(!isAudioEnabled)}
                 timeLeft={timeLeft}
-                isTimerRunning={isPracticing && !showCompletion && isPoseCorrect() && audioAnnounced}
+                isTimerRunning={isPracticing && !showCompletion && shouldStartTimer() && audioAnnounced}
                 onPoseCorrectAnnounced={handlePoseCorrectAnnounced}
+                detectionStatus={detectionStatus}
+                positionStatus={positionStatus}
+                onTimerComplete={() => {
+                  console.log('Timer complete - audio finished');
+                  // Any additional cleanup if needed
+                }}
               />
 
-              <PoseDebugView 
+              <PoseDebugView
                 jointAngles={currentJointAngles} 
                 idealAngles={idealAngles}
+                feedback={feedback}
               />
             </>
           )}
@@ -800,24 +898,33 @@ export default function YogaConsultation() {
               </h3>
               <div className="grid grid-cols-2 gap-3">
                 <div className="bg-blue-50 p-3 rounded-lg text-center">
-                  <p className="text-xs text-blue-600">Accuracy</p>
-                  <p className={`text-xl font-bold ${
-                    (feedback?.postureAccuracy || 0) >= 80 ? 'text-green-600' : 
-                    (feedback?.postureAccuracy || 0) >= 60 ? 'text-yellow-600' : 'text-red-600'
-                  }`}>
-                    {Math.round(feedback?.postureAccuracy || 0)}%
-                  </p>
+                  <p className="text-xs text-blue-600">Joints</p>
+                  <p className="text-xl font-bold text-blue-700">{detectionStatus.jointCount}/17</p>
+                  <p className="text-xs text-gray-500">Detected</p>
                 </div>
                 <div className="bg-green-50 p-3 rounded-lg text-center">
-                  <p className="text-xs text-green-600">Alignment</p>
-                  <p className="text-xl font-bold text-green-700">{Math.round(feedback?.alignmentScore || 0)}%</p>
+                  <p className="text-xs text-green-600">Wrong Joints</p>
+                  <p className={`text-xl font-bold ${(feedback?.wrongJointsCount || 99) <= 2 ? 'text-green-600' : 'text-red-600'}`}>
+                    {feedback?.wrongJointsCount ?? '?'}
+                  </p>
+                  <p className="text-xs text-gray-500">Need ≤2 to start</p>
                 </div>
               </div>
               <div className="mt-3 pt-3 border-t border-gray-100">
                 <div className="flex justify-between text-sm">
-                  <span className="text-gray-600">Status:</span>
-                  <span className={`font-bold ${(feedback?.postureAccuracy || 0) >= 80 ? 'text-green-600' : 'text-yellow-600'}`}>
-                    {(feedback?.postureAccuracy || 0) >= 80 ? '✅ Correct Pose' : '⏳ Adjusting'}
+                  <span className="text-gray-600">Timer Ready:</span>
+                  <span className={`font-bold ${shouldStartTimer() ? 'text-green-600' : 'text-red-600'}`}>
+                    {shouldStartTimer() ? '✅ Yes' : '❌ No'}
+                  </span>
+                </div>
+                <div className="flex justify-between text-sm mt-1">
+                  <span className="text-gray-600">Pose Quality:</span>
+                  <span className={`font-bold ${
+                    (feedback?.wrongJointsCount || 99) === 0 ? 'text-green-600' :
+                    (feedback?.wrongJointsCount || 99) <= 2 ? 'text-yellow-600' : 'text-red-600'
+                  }`}>
+                    {(feedback?.wrongJointsCount || 99) === 0 ? 'Perfect' :
+                     (feedback?.wrongJointsCount || 99) <= 2 ? 'Good Enough' : 'Needs Work'}
                   </span>
                 </div>
                 <div className="flex justify-between text-sm mt-1">
@@ -826,9 +933,9 @@ export default function YogaConsultation() {
                     {timeLeft}s
                   </span>
                 </div>
-                {isPoseCorrect() && !audioAnnounced && (
-                  <div className="mt-2 text-xs text-purple-600 text-center">
-                    ⏳ Waiting for audio announcement...
+                {shouldStartTimer() && !audioAnnounced && (
+                  <div className="mt-2 text-xs text-purple-600 text-center animate-pulse">
+                    ⏳ Pose good! Waiting for audio announcement...
                   </div>
                 )}
               </div>
@@ -843,7 +950,7 @@ export default function YogaConsultation() {
                   Benefits
                 </h3>
                 <ul className="space-y-2">
-                  {selectedPose?.benefits?.map((benefit, index) => (
+                  {selectedPose?.benefits?.slice(0, 3).map((benefit, index) => (
                     <li key={index} className="flex items-center text-sm text-gray-700">
                       <CheckCircle className="w-4 h-4 text-green-500 mr-2 flex-shrink-0" />
                       {benefit}
@@ -858,7 +965,7 @@ export default function YogaConsultation() {
                   Precautions
                 </h3>
                 <ul className="space-y-2">
-                  {selectedPose?.precautions?.map((precaution, index) => (
+                  {selectedPose?.precautions?.slice(0, 3).map((precaution, index) => (
                     <li key={index} className="flex items-center text-sm text-gray-700">
                       <AlertCircle className="w-4 h-4 text-orange-500 mr-2 flex-shrink-0" />
                       {precaution}
