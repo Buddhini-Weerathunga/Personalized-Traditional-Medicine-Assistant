@@ -39,7 +39,7 @@ export default function Navbar() {
           </NavLink>
 
           <NavLink
-            to="/prakriti"
+            to="/prakritiform"
             className={({ isActive }) =>
               [navLinkBase, isActive ? navLinkActive : navLinkInactive].join(" ")
             }

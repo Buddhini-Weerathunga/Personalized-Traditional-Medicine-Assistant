@@ -1,0 +1,2 @@
+model,samples_used,samples_missing,accuracy,label_col_used,classes
+vision_cnn,59,1,0.5084745762711864,dominant_dosha,3

@@ -1,379 +1,429 @@
 """
 Plant Identification Predictor
-Handles plant identification from images
+Loads complete_model.pth (full model object) directly for exact predictions.
 """
 
+import io
+import sys
+import pickle
+from pathlib import Path
+from typing import Optional
+
+import numpy as np
 import torch
+import torch.nn as nn
 import torch.nn.functional as F
 from PIL import Image
-import io
-import numpy as np
-from pathlib import Path
-from typing import Dict, List, Optional, Tuple, Union
+import timm
+from torchvision import transforms
 
-from .model_loader import get_model
+# ─── Paths ────────────────────────────────────────────────────────────────────
+MODELS_DIR      = Path(__file__).resolve().parent / "models"
+COMPLETE_MODEL  = MODELS_DIR / "complete_model.pth"
+CLASS_NAMES_PATH = MODELS_DIR / "class_names.pkl"
+EMBEDDING_DB_PATH = MODELS_DIR / "embedding_database.pkl"
+
+# ─── Config ───────────────────────────────────────────────────────────────────
+IMAGE_SIZE = 380
+CROP_SIZE  = 320
+MEAN = [0.485, 0.456, 0.406]
+STD  = [0.229, 0.224, 0.225]
+ENTROPY_REJECT = 2.07   # ln(8) ≈ 2.08 — reject only truly uniform predictions
+
+_device = torch.device("cuda" if torch.cuda.is_available() else "cpu")
+
+_base_transform = transforms.Compose([
+    transforms.Resize(IMAGE_SIZE),
+    transforms.CenterCrop(CROP_SIZE),
+    transforms.ToTensor(),
+    transforms.Normalize(mean=MEAN, std=STD),
+])
+
+# TTA variants — different crops/flips to give BN real batch variance
+_tta_transforms = [
+    transforms.Compose([transforms.Resize(IMAGE_SIZE), transforms.CenterCrop(CROP_SIZE),  transforms.ToTensor(), transforms.Normalize(MEAN, STD)]),
+    transforms.Compose([transforms.Resize(IMAGE_SIZE), transforms.RandomCrop(CROP_SIZE),   transforms.ToTensor(), transforms.Normalize(MEAN, STD)]),
+    transforms.Compose([transforms.Resize(IMAGE_SIZE), transforms.CenterCrop(CROP_SIZE),  transforms.RandomHorizontalFlip(p=1.0), transforms.ToTensor(), transforms.Normalize(MEAN, STD)]),
+    transforms.Compose([transforms.Resize(IMAGE_SIZE), transforms.RandomCrop(CROP_SIZE),   transforms.RandomHorizontalFlip(p=1.0), transforms.ToTensor(), transforms.Normalize(MEAN, STD)]),
+    transforms.Compose([transforms.Resize(int(IMAGE_SIZE*1.1)), transforms.CenterCrop(CROP_SIZE), transforms.ToTensor(), transforms.Normalize(MEAN, STD)]),
+    transforms.Compose([transforms.Resize(int(IMAGE_SIZE*1.1)), transforms.RandomCrop(CROP_SIZE),  transforms.ToTensor(), transforms.Normalize(MEAN, STD)]),
+    transforms.Compose([transforms.Resize(int(IMAGE_SIZE*0.9)), transforms.CenterCrop(int(CROP_SIZE*0.85)), transforms.Resize(CROP_SIZE), transforms.ToTensor(), transforms.Normalize(MEAN, STD)]),
+    transforms.Compose([transforms.Resize(IMAGE_SIZE), transforms.CenterCrop(CROP_SIZE),  transforms.RandomVerticalFlip(p=1.0), transforms.ToTensor(), transforms.Normalize(MEAN, STD)]),
+]
+
+# ─── Stub classes so pickle can deserialize complete_model.pth ────────────────
+# The file was saved with torch.save(model) where model's class was defined in
+# the training script as __main__.SEBlock / __main__.PlantIdentifier.
+# We register matching classes in sys.modules['__main__'] before loading.
+
+class SEBlock(nn.Module):
+    def __init__(self, in_features):
+        super().__init__()
+        r = in_features // 16
+        self.fc = nn.Sequential(
+            nn.Linear(in_features, r, bias=False),
+            nn.ReLU(inplace=True),
+            nn.Linear(r, in_features, bias=False),
+            nn.Sigmoid(),
+        )
+    def forward(self, x):
+        return x * self.fc(x)
+
+class PlantIdentifier(nn.Module):
+    def __init__(self, num_classes=8, backbone_name='efficientnet_b4', pretrained=True):
+        super().__init__()
+        self.backbone = timm.create_model(backbone_name, pretrained=False,
+                                          num_classes=0, global_pool='avg')
+        feat_dim = self.backbone.num_features
+        self.se = SEBlock(feat_dim)
+        self.classifier = nn.Sequential(
+            nn.BatchNorm1d(feat_dim), nn.Dropout(0.45),
+            nn.Linear(feat_dim, 512), nn.GELU(),
+            nn.BatchNorm1d(512), nn.Dropout(0.36),
+            nn.Linear(512, 256), nn.GELU(),
+            nn.BatchNorm1d(256), nn.Dropout(0.18),
+            nn.Linear(256, num_classes),
+        )
+    def forward(self, x):
+        f = self.backbone(x)
+        f = self.se(f)
+        return self.classifier(f)
+    def get_embedding(self, x):
+        f = self.backbone(x)
+        f = self.se(f)
+        return F.normalize(f, dim=1)
+
+# Register in __main__ so pickle finds them
+_main = sys.modules.setdefault('__main__', sys.modules[__name__])
+_main.__dict__.setdefault('SEBlock', SEBlock)
+_main.__dict__.setdefault('PlantIdentifier', PlantIdentifier)
+
+# ─── Caches ───────────────────────────────────────────────────────────────────
+_model: Optional[nn.Module] = None
+_class_names: Optional[list] = None
+_embedding_db: Optional[dict] = None
 
 
-def preprocess_image(image_source: Union[str, bytes, Path, Image.Image]) -> Image.Image:
+def _load_model() -> nn.Module:
+    global _model
+    if _model is None:
+        print("[PlantID] Loading complete_model.pth …")
+        m = torch.load(COMPLETE_MODEL, map_location=_device, weights_only=False)
+        # Replace stale BatchNorm1d running stats with Identity — the Linear weights
+        # carry the classification signal; BN running stats are unreliable for single images.
+        for name, module in list(m.classifier.named_children()):
+            if isinstance(module, nn.BatchNorm1d):
+                setattr(m.classifier, name, nn.Identity())
+        m.eval().to(_device)
+        _model = m
+        print("[PlantID] Model loaded OK.")
+    return _model
+
+
+def _load_class_names() -> list:
+    global _class_names
+    if _class_names is None:
+        with open(CLASS_NAMES_PATH, "rb") as f:
+            _class_names = pickle.load(f)
+    return _class_names
+
+
+def _load_embedding_db() -> Optional[dict]:
+    global _embedding_db
+    if _embedding_db is None and EMBEDDING_DB_PATH.exists():
+        with open(EMBEDDING_DB_PATH, "rb") as f:
+            _embedding_db = pickle.load(f)
+    return _embedding_db
+
+
+def _preprocess(image_bytes: bytes) -> torch.Tensor:
+    img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+    return _base_transform(img).unsqueeze(0).to(_device)
+
+
+def _entropy(probs: np.ndarray) -> float:
+    p = np.clip(probs, 1e-9, 1.0)
+    return float(-np.sum(p * np.log(p)))
+
+
+def _fmt(name: str) -> str:
+    return name.replace("_", " ").title()
+
+
+# ─── Plant vs. non-plant pre-filter (color-based) ──────────────────────────────
+_PLANT_COLOR_THRESHOLD = 0.05   # fraction of plant-colored pixels required
+
+
+def _is_plant_image(image_bytes: bytes) -> bool:
     """
-    Preprocess image from various sources
-    
-    Args:
-        image_source: Can be file path, bytes, or PIL Image
-    
-    Returns:
-        PIL Image in RGB format
+    Fast color-based pre-filter.
+    Plants have significant green (leaves) or earthy-brown/tan (bark, stem).
+    Non-plants (cars, diagrams, faces) fail this check.
     """
-    if isinstance(image_source, Image.Image):
-        image = image_source
-    elif isinstance(image_source, bytes):
-        image = Image.open(io.BytesIO(image_source))
-    elif isinstance(image_source, (str, Path)):
-        image = Image.open(image_source)
-    else:
-        raise ValueError(f"Unsupported image source type: {type(image_source)}")
-    
-    # Convert to RGB if necessary
-    if image.mode != 'RGB':
-        image = image.convert('RGB')
-    
-    return image
-
-
-def identify_plant(
-    image_source: Union[str, bytes, Path, Image.Image],
-    top_k: int = 5,
-    confidence_threshold: float = 0.1
-) -> Dict:
-    """
-    Identify plant from image
-    
-    Args:
-        image_source: Image file path, bytes, or PIL Image
-        top_k: Number of top predictions to return
-        confidence_threshold: Minimum confidence to include in results
-    
-    Returns:
-        Dictionary with identification results
-    """
-    model_wrapper = get_model()
-    
     try:
-        # Preprocess image
-        image = preprocess_image(image_source)
-        
-        # --- Pre-check: Image-level heuristics to reject non-leaf images ---
-        # Medicinal plant leaf images are typically close-up shots dominated by green.
-        # Big trees (lots of sky), colorful flowers, etc. have very different profiles.
-        img_array = np.array(image.resize((128, 128)))
-        r_mean, g_mean, b_mean = img_array[:,:,0].mean(), img_array[:,:,1].mean(), img_array[:,:,2].mean()
-        total_brightness = (r_mean + g_mean + b_mean) / 3
+        img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        arr = np.array(img.resize((128, 128)), dtype=np.float32)
+        r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
 
-        # Check upper third for sky (high blue or high brightness = sky/clouds)
-        upper_third = img_array[:img_array.shape[0]//3, :, :]
-        upper_b = upper_third[:,:,2].mean()
-        upper_brightness = upper_third.mean()
+        # Near-white pixels (document/slide/diagram backgrounds)
+        near_white = (r > 210) & (g > 210) & (b > 210)
+        if float(near_white.mean()) > 0.40:
+            return False   # looks like a document or diagram
 
-        # Check for flower-like images: high saturation non-green colors
-        # Convert to a simple saturation measure
-        img_float = img_array.astype(np.float32) / 255.0
-        c_max = img_float.max(axis=2)
-        c_min = img_float.min(axis=2)
-        saturation = np.where(c_max > 0, (c_max - c_min) / c_max, 0)
-        mean_saturation = saturation.mean()
+        # Green pixels: green channel clearly dominant and not washed out
+        green = (g > 50) & (g > r * 1.08) & (g > b * 1.08)
 
-        # Red+yellow dominance (flowers)
-        red_dominant = np.sum((img_array[:,:,0] > img_array[:,:,1] + 30) & (img_array[:,:,0] > 100))
-        total_pixels = img_array.shape[0] * img_array.shape[1]
-        red_ratio = red_dominant / total_pixels
+        # Earthy brown/tan pixels: reddish-brown bark / woody stem
+        brown = (r > 80) & (r < 210) & (r > g * 1.15) & (r > b * 1.25) & (g > 40)
 
-        # Green ratio: for leaves, green channel should be notable
-        green_dominant = np.sum((img_array[:,:,1] > img_array[:,:,0]) & (img_array[:,:,1] > img_array[:,:,2]))
-        green_ratio = green_dominant / total_pixels
+        plant_ratio = float((green | brown).mean())
+        return plant_ratio >= _PLANT_COLOR_THRESHOLD
 
-        image_rejected = False
-        rejection_reason = ""
+    except Exception as e:
+        print(f"[PlantID] _is_plant_image error (allowing through): {e}")
+        return True   # on error, don't block
 
-        # Debug logging for threshold tuning
-        print(f"[IMG HEURISTIC] brightness={total_brightness:.1f}, upper_brightness={upper_brightness:.1f}, "
-              f"green_ratio={green_ratio:.3f}, red_ratio={red_ratio:.3f}, mean_sat={mean_saturation:.3f}")
 
-        # Big tree / landscape: upper third is bright (sky), overall image has low green dominance
-        if upper_brightness > 180 and green_ratio < 0.45:
-            image_rejected = True
-            rejection_reason = "Image appears to be a landscape or full tree photo, not a close-up plant leaf."
+# ─── Plant info DB ────────────────────────────────────────────────────────────
+_PLANT_INFO = {
+    "adathoda": {
+        "scientificName": "Justicia adhatoda",
+        "commonNames": ["Malabar nut", "Adathoda", "Vasaka"],
+        "description": "A widely used medicinal shrub in Ayurveda and Siddha medicine, known for its powerful bronchodilator and expectorant properties.",
+        "medicinalUses": ["Respiratory disorders", "Asthma & bronchitis", "Cough relief", "Anti-inflammatory", "Fever reduction", "Wound healing"],
+        "partsUsed": ["Leaves", "Flowers", "Roots", "Bark"],
+        "category": "Respiratory",
+        "ayurvedicProperties": {"rasa": "Bitter, Astringent", "guna": "Light, Dry", "virya": "Cooling", "vipaka": "Pungent"},
+        "doshaEffect": "Balances Kapha and Pitta",
+        "warnings": ["Avoid during pregnancy", "Not for prolonged use without guidance", "May lower blood pressure"],
+    },
+    "diyamiththa": {
+        "scientificName": "Glycyrrhiza glabra",
+        "commonNames": ["Licorice", "Diya Miththa", "Athimaduram"],
+        "description": "A well-known medicinal plant used for its sweet root in both Ayurvedic and Western herbalism, with potent anti-inflammatory and adaptogenic properties.",
+        "medicinalUses": ["Digestive health", "Respiratory support", "Anti-inflammatory", "Adrenal support", "Ulcer healing", "Sore throat relief"],
+        "partsUsed": ["Roots", "Oil/Extract"],
+        "category": "Digestive",
+        "ayurvedicProperties": {"rasa": "Sweet", "guna": "Heavy, Moist", "virya": "Cooling", "vipaka": "Sweet"},
+        "doshaEffect": "Balances Vata and Pitta, may increase Kapha",
+        "warnings": ["Long-term use can raise blood pressure", "Avoid if hypertensive", "Can lower potassium levels"],
+    },
+    "garudaraja": {
+        "scientificName": "Aristolochia indica",
+        "commonNames": ["Garudaraja", "Indian Birthwort", "Ishwari"],
+        "description": "A climbing plant used in traditional Sri Lankan and Indian medicine, particularly for snakebite treatment and as an antidote for poisons.",
+        "medicinalUses": ["Snakebite antidote", "Fever reduction", "Anti-inflammatory", "Digestive stimulant", "Skin disorders", "Menstrual regulation"],
+        "partsUsed": ["Roots", "Leaves", "Stem"],
+        "category": "General Wellness",
+        "ayurvedicProperties": {"rasa": "Bitter, Pungent", "guna": "Light, Dry", "virya": "Heating", "vipaka": "Pungent"},
+        "doshaEffect": "Balances Kapha and Vata",
+        "warnings": ["Contains aristolochic acid — professional supervision only", "Avoid during pregnancy", "Do NOT self-medicate"],
+    },
+    "heen nidikumba": {
+        "scientificName": "Mimosa pudica",
+        "commonNames": ["Sensitive Plant", "Touch-me-not", "Heen Nidikumba"],
+        "description": "The famous 'sensitive plant' known for its ability to fold its leaves when touched. Widely used in traditional medicine for wound healing and nerve disorders.",
+        "medicinalUses": ["Wound healing", "Anti-inflammatory", "Anxiety & sleep", "Urinary disorders", "Hair loss treatment", "Antidepressant"],
+        "partsUsed": ["Whole Plant", "Leaves", "Roots"],
+        "category": "General Wellness",
+        "ayurvedicProperties": {"rasa": "Bitter, Astringent", "guna": "Light, Dry", "virya": "Cooling", "vipaka": "Pungent"},
+        "doshaEffect": "Balances Pitta and Kapha",
+        "warnings": ["Avoid high doses during pregnancy", "May interact with sedatives", "Consult a practitioner before use"],
+    },
+    "nika": {
+        "scientificName": "Vitex negundo",
+        "commonNames": ["Five-leaved Chaste Tree", "Nika", "Nirgundi"],
+        "description": "A large aromatic shrub used extensively in Ayurveda for its powerful anti-inflammatory and analgesic properties.",
+        "medicinalUses": ["Joint pain & arthritis", "Anti-inflammatory", "Fever reduction", "Respiratory support", "Headache relief", "Muscle spasms"],
+        "partsUsed": ["Leaves", "Roots", "Bark", "Seeds", "Flowers"],
+        "category": "Anti-inflammatory",
+        "ayurvedicProperties": {"rasa": "Bitter, Pungent, Astringent", "guna": "Light, Dry", "virya": "Heating", "vipaka": "Pungent"},
+        "doshaEffect": "Balances Kapha and Vata",
+        "warnings": ["Avoid during pregnancy", "Mild sedative effects possible", "Do not use with hormonal medications without guidance"],
+    },
+    "kaladuru": {
+        "scientificName": "Cinnamomum zeylanicum",
+        "commonNames": ["True Cinnamon", "Ceylon Cinnamon", "Kaladuru"],
+        "description": "Sri Lanka's native true cinnamon, considered the finest in the world. Used in Ayurveda for blood sugar regulation and digestive health.",
+        "medicinalUses": ["Blood sugar regulation", "Digestive support", "Anti-inflammatory", "Antimicrobial", "Heart health", "Warming tonic"],
+        "partsUsed": ["Bark", "Oil/Extract", "Leaves"],
+        "category": "Digestive",
+        "ayurvedicProperties": {"rasa": "Sweet, Pungent, Bitter", "guna": "Light, Dry", "virya": "Heating", "vipaka": "Sweet"},
+        "doshaEffect": "Balances Kapha and Vata, may slightly increase Pitta",
+        "warnings": ["Large doses may affect liver", "Ceylon cinnamon is safer for regular use", "Avoid in excess during pregnancy"],
+    },
+    "kothala himbutu": {
+        "scientificName": "Salacia reticulata",
+        "commonNames": ["Kothala Himbutu", "Salacia", "Ekanayakam"],
+        "description": "A woody climber endemic to Sri Lanka and India, renowned for its exceptional anti-diabetic properties.",
+        "medicinalUses": ["Diabetes management", "Blood sugar regulation", "Weight management", "Anti-obesity", "Digestive health", "Joint support"],
+        "partsUsed": ["Roots", "Bark", "Stem"],
+        "category": "General Wellness",
+        "ayurvedicProperties": {"rasa": "Astringent, Bitter", "guna": "Light, Dry", "virya": "Cooling", "vipaka": "Pungent"},
+        "doshaEffect": "Balances Kapha and Pitta",
+        "warnings": ["Monitor blood sugar with diabetes medications", "May cause hypoglycemia if overused", "Consult healthcare provider before combining with diabetes drugs"],
+    },
+    "pila": {
+        "scientificName": "Oldenlandia corymbosa",
+        "commonNames": ["Pila", "Oldenlandia corymbosa", "Diamond flower", "Pila (Sri Lankan usage)"],
+        "description": "A small creeping herb commonly linked to 'Pila' in Sri Lankan traditional usage. It typically grows close to the ground in moist or paddy-field environments and is used in cooling, urinary, and general cleansing preparations.",
+        "medicinalUses": ["Cooling support", "Urinary tract support", "Mild fever relief", "Traditional cleansing tonic"],
+        "partsUsed": ["Whole plant", "Leaves", "Stems"],
+        "category": "General Wellness",
+        "ayurvedicProperties": {"rasa": "Bitter, Astringent", "guna": "Light, Dry", "virya": "Cooling", "vipaka": "Pungent"},
+        "doshaEffect": "Balances Pitta and Kapha",
+        "warnings": [
+            "Use only with guidance from a qualified practitioner",
+            "Do not self-prescribe for persistent urinary or fever symptoms",
+        ],
+    },
+    "pila nili": {
+        "scientificName": "Tephrosia purpurea",
+        "commonNames": ["Pila nili", "Wild Indigo", "Bin Kohomba", "Purple Tephrosia"],
+        "description": "A small upright shrub in the Fabaceae family, distinct from 'Pila'. In traditional Sri Lankan usage it is linked to Pila nili or Wild Indigo and is valued for liver support, detoxification, and skin health.",
+        "medicinalUses": ["Liver support", "Detoxification", "Skin and inflammatory support", "Digestive wellness", "Traditional blood-cleansing use"],
+        "partsUsed": ["Whole plant", "Leaves", "Roots", "Seeds"],
+        "category": "Liver Support",
+        "ayurvedicProperties": {"rasa": "Bitter, Astringent", "guna": "Light, Dry", "virya": "Cooling", "vipaka": "Pungent"},
+        "doshaEffect": "Balances Kapha and Pitta",
+        "warnings": [
+            "Use under practitioner guidance for medicinal dosing",
+            "Avoid self-medication during pregnancy or if taking liver-related medications",
+        ],
+    },
+    "wild indigo": {
+        "scientificName": "Tephrosia purpurea",
+        "commonNames": ["Wild Indigo", "Pila nili", "Bin Kohomba", "Purple Tephrosia"],
+        "description": "A small upright shrub in the Fabaceae family, distinct from 'Pila'. In traditional Sri Lankan usage it is linked to Pila nili or Wild Indigo and is valued for liver support, detoxification, and skin health.",
+        "medicinalUses": ["Liver support", "Detoxification", "Skin and inflammatory support", "Digestive wellness", "Traditional blood-cleansing use"],
+        "partsUsed": ["Whole plant", "Leaves", "Roots", "Seeds"],
+        "category": "Liver Support",
+        "ayurvedicProperties": {"rasa": "Bitter, Astringent", "guna": "Light, Dry", "virya": "Cooling", "vipaka": "Pungent"},
+        "doshaEffect": "Balances Kapha and Pitta",
+        "warnings": [
+            "Use under practitioner guidance for medicinal dosing",
+            "Avoid self-medication during pregnancy or if taking liver-related medications",
+        ],
+    },
+    "tephrosia purpurea": {
+        "scientificName": "Tephrosia purpurea",
+        "commonNames": ["Tephrosia purpurea", "Pila nili", "Wild Indigo", "Bin Kohomba"],
+        "description": "A small upright shrub in the Fabaceae family, distinct from 'Pila'. In traditional Sri Lankan usage it is linked to Pila nili or Wild Indigo and is valued for liver support, detoxification, and skin health.",
+        "medicinalUses": ["Liver support", "Detoxification", "Skin and inflammatory support", "Digestive wellness", "Traditional blood-cleansing use"],
+        "partsUsed": ["Whole plant", "Leaves", "Roots", "Seeds"],
+        "category": "Liver Support",
+        "ayurvedicProperties": {"rasa": "Bitter, Astringent", "guna": "Light, Dry", "virya": "Cooling", "vipaka": "Pungent"},
+        "doshaEffect": "Balances Kapha and Pitta",
+        "warnings": [
+            "Use under practitioner guidance for medicinal dosing",
+            "Avoid self-medication during pregnancy or if taking liver-related medications",
+        ],
+    },
+}
 
-        # Flower: high saturation + strong red/yellow dominance
-        if red_ratio > 0.15 and mean_saturation > 0.4:
-            image_rejected = True
-            rejection_reason = "Image appears to contain a flower rather than a medicinal plant leaf."
 
-        # Very bright/washed out images (sky, white background)
-        if total_brightness > 200:
-            image_rejected = True
-            rejection_reason = "Image is too bright. Please use a close-up image of a plant leaf."
-
-        if image_rejected:
-            return {
-                "success": True,
-                "is_plant": False,
-                "plantName": "Not Recognized",
-                "scientificName": "",
-                "confidence": 0,
-                "predictions": [],
-                "totalClasses": len(model_wrapper.class_names),
-                "message": (
-                    f"{rejection_reason} "
-                    "Our model identifies specific medicinal plants (Aloe Vera, Cinnamon, "
-                    "Hathawariya, Papaya, Turmeric). Please upload a clear, close-up image "
-                    "of a medicinal plant leaf."
-                )
-            }
-
-        # Check if it's a plant image (optional)
-        is_plant, plant_confidence = model_wrapper.is_plant_image(image)
-        if not is_plant:
+# ─── Public API ───────────────────────────────────────────────────────────────
+def identify_plant(image_bytes: bytes, top_k: int = 5) -> dict:
+    try:
+        # ── Pre-filter: reject non-plant images before running the classifier ──
+        if not _is_plant_image(image_bytes):
             return {
                 "success": False,
-                "error": "Image does not appear to contain a plant",
-                "is_plant": False,
-                "plant_confidence": plant_confidence
+                "isPlant": False,
+                "error": "Not a recognized plant",
+                "message": "This image does not appear to contain a medicinal plant. Please upload a clear photo of a plant leaf or stem.",
             }
-        
-        # Apply transforms
-        input_tensor = model_wrapper.transform(image)
-        input_batch = input_tensor.unsqueeze(0).to(model_wrapper.device)
-        
-        # Run inference
+
+        model = _load_model()
+        class_names = _load_class_names()
+        tensor = _preprocess(image_bytes)
+
         with torch.no_grad():
-            outputs = model_wrapper.model(input_batch)
-            probabilities = F.softmax(outputs, dim=1)
-        
-        # Get top predictions
-        probs = probabilities[0].cpu().numpy()
-        raw_logits = outputs[0].cpu().numpy()
-        top_indices = np.argsort(probs)[::-1][:top_k]
-        
-        predictions = []
-        for idx in top_indices:
-            confidence = float(probs[idx])
-            if confidence >= confidence_threshold:
-                plant_name = model_wrapper.class_names[idx]
-                predictions.append({
-                    "class_index": int(idx),
-                    "plant_name": plant_name,
-                    "confidence": round(confidence * 100, 2),
-                    "scientific_name": get_scientific_name(plant_name)
-                })
-        
-        # Get the top prediction
-        top_prediction = predictions[0] if predictions else None
-        top_confidence = top_prediction["confidence"] if top_prediction else 0
-        
-        # --- Rejection checks for non-matching images (flowers, trees, etc.) ---
-        # With only a few classes, the model is forced to pick one even for
-        # unrelated images. These checks catch those cases:
+            logits = model(tensor)      # (1, num_classes)
+            probs = F.softmax(logits, dim=1).cpu().numpy()[0]
 
-        # 1) Entropy check: high entropy = model is spreading confidence evenly
-        #    For 5 classes, max entropy (uniform) = ln(5) ≈ 1.609
-        entropy = -float(np.sum(probs * np.log(probs + 1e-10)))
-        max_entropy = np.log(len(probs))
-        entropy_ratio = entropy / max_entropy  # 0 = certain, 1 = uniform
+        top_k_actual = min(top_k, len(probs))
+        top_indices = np.argsort(probs)[::-1][:top_k_actual]
+        top_idx = int(top_indices[0])
+        top_conf = float(probs[top_idx]) * 100.0
+        ent = _entropy(probs)
 
-        # 2) Margin check: gap between top-1 and top-2
-        sorted_probs = np.sort(probs)[::-1]
-        margin = float(sorted_probs[0] - sorted_probs[1]) if len(sorted_probs) > 1 else 1.0
+        predicted_class = class_names[top_idx] if top_idx < len(class_names) else f"class_{top_idx}"
+        display_name = _fmt(predicted_class)
 
-        # 3) Max logit check: raw output magnitude before softmax
-        #    Low max logit = the model isn't strongly activated
-        max_logit = float(np.max(raw_logits))
+        alternatives = [
+            {"name": _fmt(class_names[i] if i < len(class_names) else f"class_{i}"),
+             "confidence": round(float(probs[i]) * 100, 2)}
+            for i in top_indices[1:]
+        ]
 
-        # Debug logging for model-level rejection
-        print(f"[MODEL CHECK] top_conf={top_confidence:.2f}%, entropy_ratio={entropy_ratio:.3f}, "
-              f"margin={margin:.3f}, max_logit={max_logit:.3f}")
-
-        # Reject if any of these indicate the image isn't a known medicinal plant:
-        #  - Top confidence ≤ 85%
-        #  - Entropy ratio > 0.55 (model spreading confidence = guessing)
-        #  - Margin < 0.25 (top two predictions too close)
-        #  - Max logit < 4.0 (model isn't strongly activated by any class)
-        is_rejected = (
-            top_confidence <= 85
-            or entropy_ratio > 0.55
-            or margin < 0.25
-            or max_logit < 4.0
-        )
-
-        if is_rejected:
-            return {
-                "success": True,
-                "is_plant": False,
-                "plantName": "Not Recognized",
-                "scientificName": "",
-                "confidence": top_confidence,
-                "predictions": predictions,
-                "totalClasses": len(model_wrapper.class_names),
-                "message": (
-                    "Unable to identify this image as a known medicinal plant. "
-                    "This may be a flower, tree, or non-medicinal plant that is not in our database. "
-                    "Please try with a clear, close-up image of a medicinal plant leaf."
-                )
-            }
-        
         return {
             "success": True,
-            "is_plant": True,
-            "plantName": top_prediction["plant_name"] if top_prediction else "Unknown",
-            "scientificName": top_prediction.get("scientific_name", "") if top_prediction else "",
-            "confidence": top_confidence,
-            "predictions": predictions,
-            "totalClasses": len(model_wrapper.class_names)
+            "isPlant": True,
+            "plantName": display_name,
+            "confidence": round(top_conf, 2),
+            "alternatives": alternatives,
+            "allProbabilities": {
+                _fmt(class_names[i] if i < len(class_names) else f"class_{i}"): round(float(p) * 100, 2)
+                for i, p in enumerate(probs)
+            },
         }
-        
+
     except Exception as e:
-        import traceback
-        traceback.print_exc()
-        return {
-            "success": False,
-            "error": str(e),
-            "is_plant": None
-        }
+        return {"success": False, "isPlant": False, "error": str(e)}
 
 
-def get_scientific_name(common_name: str) -> str:
-    """
-    Get scientific name for a plant (placeholder - expand with actual data)
-    """
-    # This is a placeholder mapping - you should expand this
-    # or load from a database/file
-    scientific_names = {
-        "aloevera": "Aloe barbadensis miller",
-        "aloe vera": "Aloe barbadensis miller",
-        "cinnamon": "Cinnamomum verum",
-        "hathawariya": "Asparagus racemosus",
-        "papaya": "Carica papaya",
-        "turmeric": "Curcuma longa",
-        "tulsi": "Ocimum tenuiflorum",
-        "holy basil": "Ocimum tenuiflorum",
-        "neem": "Azadirachta indica",
-        "ginger": "Zingiber officinale",
-        "ashwagandha": "Withania somnifera",
-        "brahmi": "Bacopa monnieri",
-        "mint": "Mentha",
-        "peppermint": "Mentha piperita",
-        "moringa": "Moringa oleifera",
-        "amla": "Phyllanthus emblica",
-        "giloy": "Tinospora cordifolia",
-        "shatavari": "Asparagus racemosus",
-    }
-    
-    # Try to find a match (case-insensitive)
-    name_lower = common_name.lower().strip()
-    for key, value in scientific_names.items():
-        if key in name_lower or name_lower in key:
-            return value
-    
-    return ""
-
-
-def get_plant_info(plant_name: str) -> Dict:
-    """
-    Get detailed information about a plant
-    """
-    # Placeholder - you should expand this with actual plant data
-    plant_database = {
-        "aloevera": {
-            "description": "Aloe vera is a succulent plant species known for its medicinal properties in Ayurveda.",
-            "uses": ["Skin care", "Burns treatment", "Digestive health", "Wound healing"],
-            "parts_used": ["Gel", "Latex", "Leaves"],
-            "precautions": ["May cause skin irritation in some people", "Not recommended for internal use during pregnancy"],
-            "ayurvedic_properties": {
-                "rasa": "Bitter, Sweet",
-                "virya": "Cold",
-                "vipaka": "Sweet",
-                "dosha_effect": "Balances Pitta and Kapha"
-            }
-        },
-        "cinnamon": {
-            "description": "Cinnamon is a spice obtained from the inner bark of several tree species, widely used in traditional medicine.",
-            "uses": ["Blood sugar regulation", "Anti-inflammatory", "Digestive aid", "Respiratory health"],
-            "parts_used": ["Bark", "Leaves", "Essential oil"],
-            "precautions": ["May interact with diabetes medications", "Avoid excessive consumption during pregnancy"],
-            "ayurvedic_properties": {
-                "rasa": "Pungent, Sweet",
-                "virya": "Hot",
-                "vipaka": "Sweet",
-                "dosha_effect": "Balances Vata and Kapha"
-            }
-        },
-        "hathawariya": {
-            "description": "Hathawariya (Asparagus racemosus / Shatavari) is a highly valued Ayurvedic herb known as the 'Queen of Herbs'.",
-            "uses": ["Female reproductive health", "Immunity booster", "Digestive tonic", "Anti-aging"],
-            "parts_used": ["Roots", "Leaves"],
-            "precautions": ["Avoid if allergic to asparagus", "Consult doctor if on hormonal medications"],
-            "ayurvedic_properties": {
-                "rasa": "Sweet, Bitter",
-                "virya": "Cold",
-                "vipaka": "Sweet",
-                "dosha_effect": "Balances Vata and Pitta"
-            }
-        },
-        "papaya": {
-            "description": "Papaya is a tropical fruit plant with significant medicinal value in traditional medicine systems.",
-            "uses": ["Digestive enzyme source", "Wound healing", "Anti-parasitic", "Skin health"],
-            "parts_used": ["Fruit", "Leaves", "Seeds", "Latex"],
-            "precautions": ["Avoid unripe papaya during pregnancy", "May interact with blood-thinning medications"],
-            "ayurvedic_properties": {
-                "rasa": "Sweet, Bitter",
-                "virya": "Hot",
-                "vipaka": "Sweet",
-                "dosha_effect": "Balances Vata and Kapha"
-            }
-        },
-        "turmeric": {
-            "description": "Turmeric is a golden spice and one of the most important herbs in Ayurvedic medicine.",
-            "uses": ["Anti-inflammatory", "Antioxidant", "Wound healing", "Digestive health", "Skin care"],
-            "parts_used": ["Rhizome", "Powder"],
-            "precautions": ["May interact with blood-thinning medications", "Avoid excessive use during pregnancy"],
-            "ayurvedic_properties": {
-                "rasa": "Bitter, Pungent",
-                "virya": "Hot",
-                "vipaka": "Pungent",
-                "dosha_effect": "Balances all three doshas"
-            }
-        }
-    }
-    
-    name_lower = plant_name.lower().strip()
-    for key, info in plant_database.items():
-        if key in name_lower or name_lower in key:
-            return info
-    
+def get_plant_info(plant_name: str) -> dict:
+    key = plant_name.lower().strip()
+    if key in _PLANT_INFO:
+        return _PLANT_INFO[key]
+    for k, v in _PLANT_INFO.items():
+        if k in key or key in k:
+            return v
     return {
-        "description": f"Information about {plant_name}",
-        "uses": [],
-        "parts_used": [],
-        "precautions": [],
-        "ayurvedic_properties": {}
+        "scientificName": "Unknown",
+        "commonNames": [plant_name],
+        "description": f"{plant_name} is a traditional medicinal plant.",
+        "medicinalUses": ["Consult an Ayurvedic practitioner for specific uses"],
+        "partsUsed": ["Leaves", "Roots"],
+        "category": "General Wellness",
+        "ayurvedicProperties": {},
+        "doshaEffect": "Unknown",
+        "warnings": ["Always consult a qualified practitioner before use"],
     }
 
 
-def get_similar_plants(
-    image_source: Union[str, bytes, Path, Image.Image],
-    top_k: int = 5
-) -> List[Dict]:
-    """
-    Find similar plants using embedding similarity (if embedding database is available)
-    """
-    model_wrapper = get_model()
-    
-    if model_wrapper.embedding_database is None:
-        return []
-    
+def get_similar_plants(image_bytes: bytes, top_k: int = 5) -> list:
     try:
-        # This is a placeholder for embedding-based similarity
-        # Implement based on your embedding database structure
-        return []
+        db = _load_embedding_db()
+        if db is None:
+            return []
+
+        model = _load_model()
+        tensor = _preprocess(image_bytes)
+
+        with torch.no_grad():
+            img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+            single = _base_transform(img).unsqueeze(0).to(_device)
+            # Run backbone+se only (no classifier BN issue for embeddings)
+            f = model.backbone(single)
+            embedding = F.normalize(model.se(f), dim=1).cpu().numpy()[0]
+
+        db_embs  = db["embeddings"]
+        db_labels = db["labels"]
+        sims = db_embs @ embedding
+        top_n = np.argsort(sims)[::-1]
+
+        seen, results = set(), []
+        for i in top_n:
+            name = _fmt(str(db_labels[i]))
+            if name not in seen:
+                seen.add(name)
+                results.append({"name": name, "similarity": round(float(sims[i]), 4)})
+            if len(results) >= top_k:
+                break
+        return results
+
     except Exception as e:
-        print(f"Error finding similar plants: {e}")
+        print(f"[PlantID] get_similar_plants error: {e}")
         return []
