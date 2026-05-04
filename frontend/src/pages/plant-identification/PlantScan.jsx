@@ -5,203 +5,130 @@ import ImageUploader from '../../components/plant-identification/ImageUploader';
 import LoadingSpinner from '../../components/plant-identification/LoadingSpinner';
 import { identifyPlant, savePlantIdentification } from '../../services/plant-identification/plantApi';
 
-// Comprehensive plant database for the 5 identifiable plants
+// Database for the 8 trained plant classes — keys match model Title-Case output
 const PLANT_DATABASE = {
-  'Aloevera': {
-    plantName: 'Aloe Vera',
-    scientificName: 'Aloe barbadensis miller',
-    description: 'Aloe Vera is a succulent plant species from the genus Aloe, widely cultivated for its medicinal and agricultural uses. The gel inside its thick, fleshy leaves has been used for thousands of years in Ayurvedic and traditional medicine systems for skin care, wound healing, and digestive health.',
-    medicinalUses: [
-      'Soothes burns, sunburns, and skin irritations',
-      'Promotes wound healing and tissue repair',
-      'Supports digestive health and relieves constipation',
-      'Moisturizes and rejuvenates skin naturally',
-      'Helps manage blood sugar levels',
-      'Boosts immunity with antioxidant compounds',
-      'Reduces dental plaque and oral infections',
-      'Anti-inflammatory properties for joint pain relief'
-    ],
-    ayurvedicProperties: {
-      rasa: 'Bitter (Tikta), Sweet (Madhura)',
-      guna: 'Heavy (Guru), Unctuous (Snigdha)',
-      virya: 'Cooling (Sheeta)',
-      vipaka: 'Sweet (Madhura)'
-    },
-    doshaEffect: 'Balances Pitta and Kapha doshas',
-    partsUsed: ['Leaf gel', 'Leaf latex', 'Whole leaf'],
-    preparationMethods: [
-      'Fresh gel applied topically for skin conditions',
-      'Aloe juice for internal digestive support',
-      'Gel mixed with turmeric for wound healing',
-      'Aloe pulp blended into smoothies',
-      'Dried powder (Kumari Churna) for supplements'
-    ],
-    warnings: [
-      'Aloe latex may cause cramping and diarrhea',
-      'Not recommended internally during pregnancy',
-      'May interact with diabetes and heart medications',
-      'Topical use may cause sensitivity in some individuals',
-      'Avoid prolonged internal use without medical guidance'
-    ],
-    commonNames: ['Kumari', 'Ghritkumari', 'Kathalai', 'Komarika']
+  'Adathoda': {
+    plantName: 'Adathoda',
+    scientificName: 'Justicia adhatoda',
+    description: 'Adathoda (Malabar nut) is a widely used medicinal shrub in Ayurveda and Siddha medicine, celebrated for its powerful bronchodilator and expectorant properties. Its alkaloid vasicine has been scientifically validated for treating respiratory ailments and is the basis for the bronchodilator drug Bromhexine.',
+    medicinalUses: ['Treats asthma, bronchitis, and chronic cough', 'Powerful expectorant — clears mucus from airways', 'Reduces fever and inflammation', 'Wound healing and antiseptic properties', 'Relieves bleeding disorders and nasal bleeds', 'Supports treatment of tuberculosis symptoms'],
+    ayurvedicProperties: { rasa: 'Bitter, Astringent', guna: 'Light, Dry', virya: 'Cooling', vipaka: 'Pungent' },
+    doshaEffect: 'Balances Kapha and Pitta',
+    partsUsed: ['Leaves', 'Flowers', 'Roots', 'Bark'],
+    preparationMethods: ['Leaf decoction (kadha) for cough and asthma', 'Fresh leaf juice with honey for sore throat', 'Leaf paste applied topically for wounds', 'Vasaka churna (powder) with warm water', 'Steam inhalation of leaf infusion for congestion'],
+    warnings: ['Avoid during pregnancy', 'Not for prolonged use without guidance', 'May lower blood pressure'],
+    commonNames: ['Malabar Nut', 'Vasaka', 'Arusha', 'Adalodakam'],
   },
-  'Cinnamon': {
-    plantName: 'Cinnamon',
-    scientificName: 'Cinnamomum verum',
-    description: 'Cinnamon is a highly prized spice obtained from the inner bark of trees from the genus Cinnamomum. Known as "Tvak" in Ayurveda, it has been used for over 4,000 years as both a culinary spice and a powerful medicinal herb. Ceylon cinnamon (true cinnamon) is native to Sri Lanka and is considered superior in quality.',
-    medicinalUses: [
-      'Regulates blood sugar levels and improves insulin sensitivity',
-      'Powerful anti-inflammatory and antioxidant properties',
-      'Supports cardiovascular health and reduces cholesterol',
-      'Aids digestion and relieves bloating',
-      'Natural antimicrobial — fights bacterial and fungal infections',
-      'Improves brain function and cognitive performance',
-      'Helps relieve respiratory conditions and cold symptoms',
-      'Supports oral health and freshens breath'
-    ],
-    ayurvedicProperties: {
-      rasa: 'Pungent (Katu), Sweet (Madhura)',
-      guna: 'Light (Laghu), Dry (Ruksha), Sharp (Tikshna)',
-      virya: 'Heating (Ushna)',
-      vipaka: 'Sweet (Madhura)'
-    },
-    doshaEffect: 'Balances Vata and Kapha, may increase Pitta in excess',
-    partsUsed: ['Inner bark', 'Leaves', 'Essential oil', 'Bark powder'],
-    preparationMethods: [
-      'Cinnamon tea or decoction with honey',
-      'Powdered bark in warm milk (golden milk)',
-      'Essential oil for aromatherapy',
-      'Bark infusion for digestive remedy',
-      'Cinnamon water for blood sugar management'
-    ],
-    warnings: [
-      'Cassia cinnamon contains high coumarin — prefer Ceylon variety',
-      'May lower blood sugar excessively with diabetes medications',
-      'Avoid large medicinal doses during pregnancy',
-      'Can cause mouth sores or allergic reactions in sensitive individuals',
-      'May interact with blood-thinning and liver-processed medications'
-    ],
-    commonNames: ['Tvak', 'Dalchini', 'Pattai', 'Lavanga Pattai']
+  'Diyamiththa': {
+    plantName: 'Diyamiththa',
+    scientificName: 'Glycyrrhiza glabra',
+    description: 'Diyamiththa (Licorice) is one of the most widely used medicinal plants in both Eastern and Western herbal traditions. Its sweet-tasting root contains glycyrrhizin, a compound 50 times sweeter than sugar, with potent anti-inflammatory and adaptogenic properties used for thousands of years.',
+    medicinalUses: ['Soothes gastric ulcers and acid reflux', 'Powerful anti-inflammatory and antioxidant', 'Respiratory support — relieves cough and bronchitis', 'Adrenal fatigue and stress relief (adaptogen)', 'Supports liver health and detoxification', 'Antiviral — fights herpes and influenza viruses'],
+    ayurvedicProperties: { rasa: 'Sweet', guna: 'Heavy, Moist', virya: 'Cooling', vipaka: 'Sweet' },
+    doshaEffect: 'Balances Vata and Pitta, may increase Kapha',
+    partsUsed: ['Roots', 'Root extract', 'Dried root powder'],
+    preparationMethods: ['Licorice root tea for digestive complaints', 'Root decoction with ginger for respiratory issues', 'Yashtimadhu churna in warm milk at bedtime', 'Root powder mixed with honey for sore throat', 'DGL supplements for long-term use'],
+    warnings: ['Long-term use can raise blood pressure', 'Avoid if hypertensive or with kidney disease', 'Can lower potassium levels'],
+    commonNames: ['Licorice', 'Yashtimadhu', 'Athimaduram', 'Mulethi'],
   },
-  'Hathawariya': {
-    plantName: 'Hathawariya',
-    scientificName: 'Asparagus racemosus',
-    description: 'Hathawariya, also known as Shatavari, is one of the most important herbs in Ayurvedic medicine, revered as the "Queen of Herbs." This climbing plant with needle-like leaves and tuberous roots has been used for centuries in traditional Sri Lankan and Indian medicine. It is a powerful adaptogen and rejuvenative tonic, particularly valued for reproductive health.',
-    medicinalUses: [
-      'Premier female reproductive tonic — supports fertility and hormonal balance',
-      'Powerful adaptogen that helps the body cope with stress',
-      'Boosts immunity and strengthens the immune system',
-      'Improves digestive health and heals gastric ulcers',
-      'Galactagogue — promotes lactation in nursing mothers',
-      'Anti-aging and rejuvenative properties (Rasayana)',
-      'Supports urinary tract health',
-      'Nourishes and strengthens the nervous system'
-    ],
-    ayurvedicProperties: {
-      rasa: 'Sweet (Madhura), Bitter (Tikta)',
-      guna: 'Heavy (Guru), Unctuous (Snigdha)',
-      virya: 'Cooling (Sheeta)',
-      vipaka: 'Sweet (Madhura)'
-    },
-    doshaEffect: 'Balances Vata and Pitta doshas',
-    partsUsed: ['Tuberous roots', 'Leaves', 'Whole plant'],
-    preparationMethods: [
-      'Root powder mixed with warm milk and honey',
-      'Shatavari Ghrita (medicated ghee preparation)',
-      'Decoction of dried roots for digestive support',
-      'Root powder capsules as daily supplement',
-      'Fresh root juice for reproductive health'
-    ],
-    warnings: [
-      'Avoid if allergic to asparagus family plants',
-      'Consult a physician if on hormonal medications or therapies',
-      'May cause weight gain due to its nourishing (Guru) quality',
-      'Not recommended during active respiratory congestion',
-      'Pregnant women should use only under medical supervision'
-    ],
-    commonNames: ['Shatavari', 'Satamuli', 'Kilavari', 'Shatmuli']
+  'Garudaraja': {
+    plantName: 'Garudaraja',
+    scientificName: 'Aristolochia indica',
+    description: 'Garudaraja (Indian Birthwort) is a climbing plant deeply embedded in traditional Sri Lankan and Indian medicine, most renowned as a treatment for snakebite and poisoning. Its name derives from Garuda, the divine eagle said to neutralize serpent venom in Hindu mythology.',
+    medicinalUses: ['Traditional antidote for snakebite and poisoning', 'Anti-inflammatory and analgesic properties', 'Fever reduction and antimalarial use', 'Digestive stimulant and appetite enhancer', 'Skin disorders including eczema and psoriasis', 'Menstrual regulation (professional use only)'],
+    ayurvedicProperties: { rasa: 'Bitter, Pungent', guna: 'Light, Dry', virya: 'Heating', vipaka: 'Pungent' },
+    doshaEffect: 'Balances Kapha and Vata',
+    partsUsed: ['Roots', 'Leaves', 'Stem', 'Whole plant'],
+    preparationMethods: ['Root decoction under professional supervision only', 'Leaf paste for external skin conditions', 'Traditional formulations by Ayurvedic practitioners only', 'Root infusion for fever (professional use)'],
+    warnings: ['Contains aristolochic acid — can cause kidney failure', 'MUST be used only under qualified professional supervision', 'Avoid during pregnancy — strongly abortifacient', 'Do NOT self-medicate'],
+    commonNames: ['Indian Birthwort', 'Ishwari', 'Garudakkodi', 'Sapavisa'],
   },
-  'Papaya': {
-    plantName: 'Papaya',
-    scientificName: 'Carica papaya',
-    description: 'Papaya is a tropical fruit-bearing plant native to Central America, now cultivated worldwide for its nutritional and medicinal value. Every part of the papaya plant — fruit, leaves, seeds, and latex — has therapeutic applications in traditional medicine. The fruit is rich in papain, a powerful digestive enzyme, and is one of nature\'s best sources of Vitamin C and carotenoids.',
-    medicinalUses: [
-      'Increases platelet count — widely used in dengue treatment',
-      'Excellent digestive aid due to the enzyme papain',
-      'Rich in Vitamin C and antioxidants for immune support',
-      'Anti-inflammatory properties reduce swelling and pain',
-      'Promotes wound healing and skin health',
-      'Supports cardiovascular health and reduces cholesterol',
-      'Anti-parasitic — seeds help eliminate intestinal worms',
-      'Leaf extract supports liver health and detoxification'
-    ],
-    ayurvedicProperties: {
-      rasa: 'Sweet (Madhura), slightly Pungent (Katu)',
-      guna: 'Light (Laghu), Soft (Mridu)',
-      virya: 'Heating (Ushna)',
-      vipaka: 'Sweet (Madhura)'
-    },
-    doshaEffect: 'Balances Vata and Kapha, may slightly increase Pitta',
-    partsUsed: ['Ripe fruit', 'Unripe fruit', 'Leaves', 'Seeds', 'Latex'],
-    preparationMethods: [
-      'Fresh ripe fruit consumed directly for nutrition',
-      'Leaf juice extract for boosting platelet count',
-      'Papaya enzyme supplements for digestion',
-      'Seed powder as anti-parasitic remedy',
-      'Green papaya salad for digestive enzymes',
-      'Leaf tea for liver support'
-    ],
-    warnings: [
-      'Unripe papaya must be AVOIDED during pregnancy',
-      'Papaya latex can cause allergic reactions (latex allergy)',
-      'May interact with blood-thinning medications (Warfarin)',
-      'Seeds in high doses may affect male fertility',
-      'Excessive consumption may cause carotenemia (skin yellowing)'
-    ],
-    commonNames: ['Papita', 'Pappali', 'Boppayi', 'Erandakarkati', 'Gaslabu']
+  'Heen Nidikumba': {
+    plantName: 'Heen Nidikumba',
+    scientificName: 'Mimosa pudica',
+    description: 'Heen Nidikumba, the famous "Sensitive Plant", is known for its remarkable ability to fold its leaves when touched. Beyond this curiosity, it is a powerful medicinal plant in Ayurvedic and traditional Sri Lankan medicine with a broad range of therapeutic applications from wound healing to mental health.',
+    medicinalUses: ['Wound healing and hemostasis (stops bleeding)', 'Anti-inflammatory for arthritis and joint swelling', 'Anxiety, insomnia, and nervous system support', 'Urinary tract infections and kidney stones', 'Hair loss treatment and scalp health', 'Antidepressant and mood-elevating properties'],
+    ayurvedicProperties: { rasa: 'Bitter, Astringent', guna: 'Light, Dry', virya: 'Cooling', vipaka: 'Pungent' },
+    doshaEffect: 'Balances Pitta and Kapha',
+    partsUsed: ['Whole Plant', 'Leaves', 'Roots', 'Seeds'],
+    preparationMethods: ['Root paste applied to wounds for healing', 'Leaf decoction for urinary complaints', 'Root powder with milk for nervous disorders', 'Fresh plant juice for skin conditions', 'Seed powder for anti-inflammatory use'],
+    warnings: ['Avoid high doses during pregnancy', 'May interact with sedatives and CNS depressants', 'Consult a practitioner for prolonged use'],
+    commonNames: ['Touch-me-not', 'Sensitive Plant', 'Lajwanti', 'Thottavadi'],
   },
-  'Turmeric': {
-    plantName: 'Turmeric',
-    scientificName: 'Curcuma longa',
-    description: 'Turmeric is a golden-colored flowering plant of the ginger family, native to the Indian subcontinent. Its rhizome contains curcumin, one of the most extensively researched natural compounds in modern science. Known as "Haridra" in Ayurveda, turmeric has been a cornerstone of traditional medicine for over 4,000 years, valued for its powerful anti-inflammatory, antioxidant, and healing properties.',
-    medicinalUses: [
-      'Potent anti-inflammatory — helps manage arthritis and joint pain',
-      'Strong antioxidant — neutralizes free radicals and prevents cell damage',
-      'Supports brain health and may help prevent neurodegenerative diseases',
-      'Promotes cardiovascular health and improves blood vessel function',
-      'Aids wound healing when applied topically as a paste',
-      'Supports liver function and natural detoxification',
-      'Helps manage blood sugar levels',
-      'Enhances skin health — reduces acne, blemishes, and promotes glow',
-      'Boosts immunity and fights infections'
-    ],
-    ayurvedicProperties: {
-      rasa: 'Bitter (Tikta), Pungent (Katu)',
-      guna: 'Light (Laghu), Dry (Ruksha)',
-      virya: 'Heating (Ushna)',
-      vipaka: 'Pungent (Katu)'
-    },
-    doshaEffect: 'Balances all three doshas (Tridoshahara), especially Kapha',
-    partsUsed: ['Rhizome (fresh)', 'Dried rhizome powder', 'Leaves'],
-    preparationMethods: [
-      'Golden milk — turmeric with warm milk and black pepper',
-      'Turmeric paste for wounds and skin conditions',
-      'Turmeric tea with ginger and honey',
-      'Haldi water — warm water with turmeric on empty stomach',
-      'Curcumin extract capsules for concentrated benefits',
-      'Turmeric in daily cooking for consistent intake'
-    ],
-    warnings: [
-      'May increase bleeding risk — avoid with blood-thinning medications',
-      'High doses can cause stomach upset and nausea',
-      'May lower blood sugar — monitor if diabetic',
-      'Avoid medicinal doses during pregnancy',
-      'Can aggravate gallbladder conditions and gallstones',
-      'May interact with chemotherapy drugs — consult oncologist'
-    ],
-    commonNames: ['Haldi', 'Haridra', 'Manjal', 'Pasupu', 'Kaha']
-  }
+  'Nika': {
+    plantName: 'Nika',
+    scientificName: 'Vitex negundo',
+    description: 'Nika (Five-leaved Chaste Tree) is a large aromatic shrub revered in Ayurveda as "Nirgundi" — one of the most important anti-inflammatory herbs. Its distinctive five-leaflet compound leaves contain flavonoids and terpenoids with powerful analgesic effects scientifically comparable to pharmaceutical anti-inflammatories.',
+    medicinalUses: ['Arthritis, joint pain, and rheumatism relief', 'Powerful anti-inflammatory and analgesic', 'Fever reduction and antipyretic use', 'Respiratory support — asthma and bronchitis', 'Headache and migraine relief', 'Muscle spasms and nerve pain', 'Menstrual pain and hormonal balance'],
+    ayurvedicProperties: { rasa: 'Bitter, Pungent, Astringent', guna: 'Light, Dry', virya: 'Heating', vipaka: 'Pungent' },
+    doshaEffect: 'Balances Kapha and Vata',
+    partsUsed: ['Leaves', 'Roots', 'Bark', 'Seeds', 'Flowers'],
+    preparationMethods: ['Leaf decoction for arthritis and joint pain', 'Warm leaf poultice applied to swollen joints', 'Leaf oil for massage in muscular pain', 'Root bark powder for fever and infections', 'Nirgundi churna with warm water for inflammation'],
+    warnings: ['Avoid during pregnancy', 'Mild sedative effects — avoid with sedatives', 'Do not use with hormonal medications without guidance'],
+    commonNames: ['Five-leaved Chaste Tree', 'Nirgundi', 'Indrani', 'Sambhalu'],
+  },
+  'Kaladuru': {
+    plantName: 'Kaladuru',
+    scientificName: 'Cinnamomum zeylanicum',
+    description: 'Kaladuru is Ceylon Cinnamon — true cinnamon native to Sri Lanka, considered the finest and safest cinnamon in the world. Unlike Cassia cinnamon, Ceylon cinnamon contains very low levels of coumarin making it safe for regular medicinal use. It has been a prized spice and medicine for over 2,000 years.',
+    medicinalUses: ['Regulates blood sugar and improves insulin sensitivity', 'Powerful anti-inflammatory and antioxidant', 'Supports cardiovascular health and reduces bad cholesterol', 'Natural antimicrobial — fights bacteria and fungi', 'Aids digestion and relieves bloating and gas', 'Warming tonic for cold constitution and poor circulation'],
+    ayurvedicProperties: { rasa: 'Sweet, Pungent, Bitter', guna: 'Light, Dry', virya: 'Heating', vipaka: 'Sweet' },
+    doshaEffect: 'Balances Kapha and Vata, may slightly increase Pitta',
+    partsUsed: ['Inner bark', 'Bark powder', 'Essential oil', 'Leaves'],
+    preparationMethods: ['Cinnamon tea — bark steeped in hot water with honey', 'Cinnamon powder in warm milk (golden milk)', 'Cinnamon water infusion for blood sugar management', 'Bark oil applied topically for muscle pain', 'Daily culinary use in cooking for consistent intake'],
+    warnings: ['Prefer Ceylon variety over Cassia for regular use', 'Large doses may affect liver', 'Avoid in excess during pregnancy', 'May enhance effect of blood sugar medications'],
+    commonNames: ['Ceylon Cinnamon', 'True Cinnamon', 'Dalchini', 'Tvak', 'Kurundu'],
+  },
+  'Kothala Himbutu': {
+    plantName: 'Kothala Himbutu',
+    scientificName: 'Salacia reticulata',
+    description: 'Kothala Himbutu is a woody climbing plant endemic to Sri Lanka and southern India, revered as the premier anti-diabetic herb in traditional medicine. Modern science has validated its exceptional glucose-lowering properties through the compound salacinol, which inhibits intestinal alpha-glucosidase enzymes that break down carbohydrates.',
+    medicinalUses: ['Type 2 diabetes management — lowers blood glucose', 'Inhibits carbohydrate absorption (alpha-glucosidase inhibitor)', 'Weight management and anti-obesity properties', 'Joint pain and arthritis support', 'Digestive health and gut microbiome support', 'Anti-inflammatory and antioxidant properties'],
+    ayurvedicProperties: { rasa: 'Astringent, Bitter', guna: 'Light, Dry', virya: 'Cooling', vipaka: 'Pungent' },
+    doshaEffect: 'Balances Kapha and Pitta',
+    partsUsed: ['Roots', 'Stem bark', 'Woody stem'],
+    preparationMethods: ['Wood decoction — chunks soaked overnight and boiled', 'Stem bark powder capsules as supplement', 'Traditional "Kothala cup" — drink vessel carved from the wood', 'Water infused in wooden cup overnight (traditional method)', 'Standardized extract supplements for precise dosing'],
+    warnings: ['Monitor blood sugar closely when combining with diabetes medications', 'May cause hypoglycemia if overused', 'Consult healthcare provider before use with antidiabetic drugs'],
+    commonNames: ['Saptarangi', 'Ekanayakam', 'Ponkoranti', 'Salacia'],
+  },
+  'Pila': {
+    plantName: 'Pila',
+    scientificName: 'Oldenlandia corymbosa',
+    description: 'Pila is a small creeping herb commonly linked to the traditional Sri Lankan name Pila. It is usually associated with moist or paddy-field environments and is used in cooling, urinary, and cleansing preparations rather than as an upright shrub or toxic climber.',
+    medicinalUses: ['Cooling support', 'Urinary tract support', 'Mild fever relief', 'Traditional cleansing tonic', 'General wellness in classical folk use'],
+    ayurvedicProperties: { rasa: 'Bitter, Astringent', guna: 'Light, Dry', virya: 'Cooling', vipaka: 'Pungent' },
+    doshaEffect: 'Balances Pitta and Kapha',
+    partsUsed: ['Whole plant', 'Leaves', 'Stems'],
+    preparationMethods: ['Herbal decoction prepared by a qualified practitioner', 'Fresh whole-plant infusion in traditional use', 'Cooling support formulations in folk medicine'],
+    warnings: ['Use with guidance from a qualified practitioner', 'Do not self-treat persistent urinary or fever symptoms'],
+    commonNames: ['Pila', 'Oldenlandia corymbosa', 'Diamond flower'],
+  },
+  'Pila Nili': {
+    plantName: 'Pila Nili',
+    scientificName: 'Tephrosia purpurea',
+    description: 'Pila nili, also known as Wild Indigo, is a small upright shrub in the Fabaceae family. It is distinct from Pila and is traditionally associated with liver support, detoxification, and skin health in Sri Lankan and Ayurvedic medicine.',
+    medicinalUses: ['Liver support', 'Detoxification', 'Skin and inflammatory support', 'Digestive wellness', 'Traditional blood-cleansing use'],
+    ayurvedicProperties: { rasa: 'Bitter, Astringent', guna: 'Light, Dry', virya: 'Cooling', vipaka: 'Pungent' },
+    doshaEffect: 'Balances Kapha and Pitta',
+    partsUsed: ['Whole plant', 'Leaves', 'Roots', 'Seeds'],
+    preparationMethods: ['Herbal decoction under practitioner guidance', 'Traditional cleansing formulations', 'Supportive preparations for liver and skin wellness'],
+    warnings: ['Use under practitioner guidance for medicinal dosing', 'Avoid self-medication during pregnancy or with liver-related medications'],
+    commonNames: ['Wild Indigo', 'Bin Kohomba', 'Purple Tephrosia'],
+  },
+  'Wild Indigo': {
+    plantName: 'Wild Indigo',
+    scientificName: 'Tephrosia purpurea',
+    description: 'Wild Indigo, or Pila nili, is a small upright shrub in the Fabaceae family. It is distinct from Pila and is traditionally associated with liver support, detoxification, and skin health in Sri Lankan and Ayurvedic medicine.',
+    medicinalUses: ['Liver support', 'Detoxification', 'Skin and inflammatory support', 'Digestive wellness', 'Traditional blood-cleansing use'],
+    ayurvedicProperties: { rasa: 'Bitter, Astringent', guna: 'Light, Dry', virya: 'Cooling', vipaka: 'Pungent' },
+    doshaEffect: 'Balances Kapha and Pitta',
+    partsUsed: ['Whole plant', 'Leaves', 'Roots', 'Seeds'],
+    preparationMethods: ['Herbal decoction under practitioner guidance', 'Traditional cleansing formulations', 'Supportive preparations for liver and skin wellness'],
+    warnings: ['Use under practitioner guidance for medicinal dosing', 'Avoid self-medication during pregnancy or with liver-related medications'],
+    commonNames: ['Pila Nili', 'Bin Kohomba', 'Purple Tephrosia'],
+  },
 };
+
 
 const PlantScan = () => {
   const navigate = useNavigate();

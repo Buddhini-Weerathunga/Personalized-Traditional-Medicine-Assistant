@@ -20,6 +20,7 @@ export default function CaptureSkinPage() {
   const [loading, setLoading] = useState(false);
   const [analysisResult, setAnalysisResult] = useState(null);
   const [error, setError] = useState("");
+  const [webcamReady, setWebcamReady] = useState(false);
 
   const { setRegionResult } = usePrakritiResults();
   
@@ -28,7 +29,7 @@ export default function CaptureSkinPage() {
     if (!webcamRef.current) return;
     const imageSrc = webcamRef.current.getScreenshot();
     if (!imageSrc) {
-      setError("Could not capture image from webcam.");
+      setError("Camera is still loading. Please wait a moment and try again.");
       return;
     }
     setCapturedImage(imageSrc);
@@ -40,6 +41,7 @@ export default function CaptureSkinPage() {
     setCapturedImage(null);
     setAnalysisResult(null);
     setError("");
+    setWebcamReady(false);
   };
 
   const handleAnalyze = async () => {
@@ -117,6 +119,8 @@ export default function CaptureSkinPage() {
                     audio={false}
                     screenshotFormat="image/jpeg"
                     videoConstraints={VIDEO_CONSTRAINTS}
+                    onUserMedia={() => setWebcamReady(true)}
+                    onUserMediaError={() => setError('Unable to access camera. Please check permissions.')}
                     className="w-full h-full object-cover"
                   />
                 )}
@@ -144,7 +148,7 @@ export default function CaptureSkinPage() {
                 <button
                   onClick={handleCapture}
                   className="px-4 py-2 rounded-full bg-gradient-to-r from-green-500 to-emerald-500 text-white text-sm font-semibold shadow hover:from-green-600 hover:to-emerald-600 transition-all disabled:opacity-60"
-                  disabled={loading}
+                  disabled={loading || (!capturedImage && !webcamReady)}
                 >
                   {capturedImage ? "Retake" : "Capture"}
                 </button>

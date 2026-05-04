@@ -21,6 +21,7 @@ export default function PrescriptionPage() {
       // baseURL = http://localhost:5000/api
       const res = await API.get("/prakritiReports/reports");
       setReports(res.data.reports || []);
+      console.log("Fetched prescriptions:", res.data.reports);
     } catch (err) {
       console.error("Failed to fetch prescriptions:", err);
       alert("Failed to load prescription history");

@@ -1,0 +1,36 @@
+{
+  "model_name": "efficientnet_b4",
+  "num_classes": 8,
+  "image_size": 380,
+  "crop_size": 320,
+  "confidence_threshold": 35.0,
+  "entropy_threshold": 2.5,
+  "similarity_threshold": 0.3,
+  "top2_margin": 0.08,
+  "mean": [
+    0.485,
+    0.456,
+    0.406
+  ],
+  "std": [
+    0.229,
+    0.224,
+    0.225
+  ],
+  "class_names": [
+    "adathoda",
+    "diyamiththa",
+    "garudaraja",
+    "heen nidikumba",
+    "nika",
+    "kaladuru",
+    "kothala himbutu",
+    "pila"
+  ],
+  "temperature": 1.0,
+  "trained_at": "2026-05-04T09:40:16.931416",
+  "best_val_accuracy": 0.9923,
+  "best_val_f1": 0.9922,
+  "test_accuracy": 0.9847,
+  "test_f1_macro": 0.9846
+}
