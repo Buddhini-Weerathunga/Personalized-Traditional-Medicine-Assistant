@@ -150,6 +150,40 @@ def _fmt(name: str) -> str:
     return name.replace("_", " ").title()
 
 
+# ─── Plant vs. non-plant pre-filter (color-based) ──────────────────────────────
+_PLANT_COLOR_THRESHOLD = 0.05   # fraction of plant-colored pixels required
+
+
+def _is_plant_image(image_bytes: bytes) -> bool:
+    """
+    Fast color-based pre-filter.
+    Plants have significant green (leaves) or earthy-brown/tan (bark, stem).
+    Non-plants (cars, diagrams, faces) fail this check.
+    """
+    try:
+        img = Image.open(io.BytesIO(image_bytes)).convert("RGB")
+        arr = np.array(img.resize((128, 128)), dtype=np.float32)
+        r, g, b = arr[:, :, 0], arr[:, :, 1], arr[:, :, 2]
+
+        # Near-white pixels (document/slide/diagram backgrounds)
+        near_white = (r > 210) & (g > 210) & (b > 210)
+        if float(near_white.mean()) > 0.40:
+            return False   # looks like a document or diagram
+
+        # Green pixels: green channel clearly dominant and not washed out
+        green = (g > 50) & (g > r * 1.08) & (g > b * 1.08)
+
+        # Earthy brown/tan pixels: reddish-brown bark / woody stem
+        brown = (r > 80) & (r < 210) & (r > g * 1.15) & (r > b * 1.25) & (g > 40)
+
+        plant_ratio = float((green | brown).mean())
+        return plant_ratio >= _PLANT_COLOR_THRESHOLD
+
+    except Exception as e:
+        print(f"[PlantID] _is_plant_image error (allowing through): {e}")
+        return True   # on error, don't block
+
+
 # ─── Plant info DB ────────────────────────────────────────────────────────────
 _PLANT_INFO = {
     "adathoda": {
@@ -251,6 +285,15 @@ _PLANT_INFO = {
 # ─── Public API ───────────────────────────────────────────────────────────────
 def identify_plant(image_bytes: bytes, top_k: int = 5) -> dict:
     try:
+        # ── Pre-filter: reject non-plant images before running the classifier ──
+        if not _is_plant_image(image_bytes):
+            return {
+                "success": False,
+                "isPlant": False,
+                "error": "Not a recognized plant",
+                "message": "This image does not appear to contain a medicinal plant. Please upload a clear photo of a plant leaf or stem.",
+            }
+
         model = _load_model()
         class_names = _load_class_names()
         tensor = _preprocess(image_bytes)
