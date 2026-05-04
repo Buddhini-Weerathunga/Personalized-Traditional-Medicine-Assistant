@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import doshaImage from "../../assets/images/dosha.jpg";
 
 const questions = [
   {
@@ -204,7 +205,7 @@ export default function PrakritiFormPage() {
             <div className="order-1 md:order-2">
               <div className="relative overflow-hidden rounded-2xl border border-emerald-100 shadow-xl">
                 <img
-                  src="/images/ayurveda2.jpg"
+                  src={doshaImage}
                   alt="Ayurvedic herbs and natural wellness ingredients"
                   className="h-64 w-full object-cover sm:h-80 md:h-[420px]"
                 />

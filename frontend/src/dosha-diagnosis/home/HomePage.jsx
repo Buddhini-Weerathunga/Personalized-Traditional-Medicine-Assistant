@@ -2,6 +2,7 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import Navbar from "../../components/layout/Navbar.jsx";
+import doshaImage from "../../assets/images/dosha2.jpg";
 
 export default function HomePage() {
   const [query, setQuery] = useState("");
@@ -112,18 +113,12 @@ export default function HomePage() {
             {/* RIGHT ILLUSTRATION */}
             <div className="relative">
               <div className="relative bg-gradient-to-br from-green-100 to-emerald-100 rounded-3xl p-8 shadow-2xl border-2 border-white">
-                
-                <div className="text-center space-y-6">
-                  <div className="text-7xl md:text-8xl">🧘‍♀️</div>
-                  <div className="text-6xl">🧬</div>
-                  <div className="flex justify-center gap-4 text-4xl">
-                    <span>💊</span>
-                    <span>🔍</span>
-                  </div>
-
-                  <p className="text-sm md:text-base text-gray-600 max-w-xs mx-auto">
-                    Track your dosha balance and receive gentle Ayurvedic insights.
-                  </p>
+                <div className="overflow-hidden rounded-2xl shadow-lg">
+                  <img
+                    src={doshaImage}
+                    alt="Dosha wellness visual"
+                    className="h-72 w-full object-cover md:h-96"
+                  />
                 </div>
 
                 {/* Floating Decorations */}
