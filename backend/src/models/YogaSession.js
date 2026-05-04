@@ -18,7 +18,7 @@ const YogaSessionSchema = new mongoose.Schema({
   endTime: Date,
   duration: Number,
   jointAngles: {
-    type: mongoose.Schema.Types.Mixed,  // 🔥 CHANGE from Map to Mixed
+    type: mongoose.Schema.Types.Mixed,  
     default: {}
   },
   corrections: [{

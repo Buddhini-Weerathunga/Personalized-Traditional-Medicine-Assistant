@@ -156,16 +156,16 @@ right_knee: { min: 130, max: 170, ideal: 150 }
     
     // 6. Tree Pose
     'Tree Pose': {
-      left_shoulder: { min: 160, max: 180, ideal: 170 },  
-  right_shoulder: { min: 160, max: 180, ideal: 170 }, 
-  left_elbow: { min: 160, max: 180, ideal: 170 },
-  right_elbow: { min: 160, max: 180, ideal: 170 },
-  // Standing leg
-  left_hip: { min: 160, max: 180, ideal: 170 },
-  left_knee: { min: 165, max: 185, ideal: 175 },
-  // Bent leg (foot on thigh)
-  right_hip: { min: 75, max: 125, ideal: 90 },    
-  right_knee: { min: 45, max: 75, ideal: 60 } 
+      left_shoulder: { min: 160, max: 180, ideal: 170 },
+      right_shoulder: { min: 160, max: 180, ideal: 170 },
+      left_elbow: { min: 160, max: 180, ideal: 170 },
+      right_elbow: { min: 160, max: 180, ideal: 170 },
+      // Standing leg
+      left_hip: { min: 160, max: 180, ideal: 170 },
+      left_knee: { min: 165, max: 185, ideal: 175 },
+      // Bent leg (foot on thigh)
+      right_hip: { min: 75, max: 125, ideal: 90 },
+      right_knee: { min: 45, max: 75, ideal: 100 }
     },
     
     // 7. Star Pose 
@@ -202,22 +202,22 @@ right_knee: { min: 130, max: 170, ideal: 150 }
     
     // 8. Standing Forward Fold
     'Standing Forward Fold': {
-      left_shoulder: { min: 10, max: 50, ideal: 30 },
-      right_shoulder: { min: 10, max: 50, ideal: 30 },
+      left_shoulder: { min: 20, max: 60, ideal: 40 },
+      right_shoulder: { min: 20, max: 60, ideal: 40 },
       left_elbow: { min: 160, max: 180, ideal: 170 },
       right_elbow: { min: 160, max: 180, ideal: 170 },
-      left_hip: { min: 150, max: 180, ideal: 165 },
-      right_hip: { min: 150, max: 180, ideal: 165 },
+      left_hip: { min: 140, max: 170, ideal: 155 },
+      right_hip: { min: 140, max: 170, ideal: 155 },
       left_knee: { min: 160, max: 180, ideal: 170 },
       right_knee: { min: 160, max: 180, ideal: 170 }
     },
     'Uttanasana': {
-      left_shoulder: { min: 10, max: 50, ideal: 30 },
-      right_shoulder: { min: 10, max: 50, ideal: 30 },
+      left_shoulder: { min: 20, max: 60, ideal: 40 },
+      right_shoulder: { min: 20, max: 60, ideal: 40 },
       left_elbow: { min: 160, max: 180, ideal: 170 },
       right_elbow: { min: 160, max: 180, ideal: 170 },
-      left_hip: { min: 150, max: 180, ideal: 165 },
-      right_hip: { min: 150, max: 180, ideal: 165 },
+      left_hip: { min: 140, max: 170, ideal: 155 },
+      right_hip: { min: 140, max: 170, ideal: 155 },
       left_knee: { min: 160, max: 180, ideal: 170 },
       right_knee: { min: 160, max: 180, ideal: 170 }
     },
