@@ -464,7 +464,7 @@ export default function VoiceAssistant() {
               <div style={{ flex: 1, background: "#fff", borderRadius: 14, border: "1px solid #e5e7eb", padding: "14px 18px" }}>
                 <div style={{ display: "flex", alignItems: "center", gap: 8, marginBottom: 6 }}>
                   <span style={{ fontSize: 18 }}>💡</span>
-                  <span style={{ fontSize: 14, fontWeight: 700, color: "#1f2937" }}>Bello Keywords</span>
+                  <span style={{ fontSize: 14, fontWeight: 700, color: "#1f2937" }}>Bellow Keywords</span>
                 </div>
                 <p style={{ fontSize: 12, color: "#9ca3af", marginBottom: 12 }}>
                   These are important factors we'll consider in your health profile.
