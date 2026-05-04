@@ -1,6 +1,5 @@
 import API from "../api/axios";
 
-// Helper to get auth headers
 const getAuthHeaders = () => {
   const token = localStorage.getItem('accessToken');
   return {
@@ -20,7 +19,6 @@ export const getYogaPoses = async (params = {}) => {
     return response;
   } catch (error) {
     console.error('Error fetching poses:', error);
-    // Return mock data on error
     return {
       data: {
         success: true,
@@ -61,7 +59,6 @@ export const startYogaSession = async (data) => {
     return response;
   } catch (error) {
     console.error('Start session error:', error);
-    // Return mock session ID
     return {
       data: {
         success: true,
@@ -72,7 +69,7 @@ export const startYogaSession = async (data) => {
   }
 };
 
-// Analyze pose in real-time - FIXED VERSION
+// Analyze pose in real-time
 export const analyzePose = async (data) => {
   try {
     console.log('Sending analyze request with data:', data);
@@ -85,8 +82,6 @@ export const analyzePose = async (data) => {
   } catch (error) {
     console.error('Analyze pose error:', error);
     
-    // Return mock data on error so UI doesn't break
-    // Calculate mock accuracy based on joint angles
     const jointCount = Object.keys(data.jointAngles || {}).length;
     const mockAccuracy = Math.min(85, Math.max(30, jointCount * 10));
     
@@ -139,6 +134,22 @@ export const getUserProgress = async () => {
           streak: { current: 0, longest: 0 },
           poseProficiency: []
         }
+      }
+    };
+  }
+};
+
+// NEW: Get session history
+export const getSessionHistory = async (limit = 10) => {
+  try {
+    const response = await API.get(`/yoga/sessions/history?limit=${limit}`, getAuthHeaders());
+    return response;
+  } catch (error) {
+    console.error('Get session history error:', error);
+    return {
+      data: {
+        success: true,
+        sessions: []
       }
     };
   }

@@ -18,25 +18,27 @@ const YogaSessionSchema = new mongoose.Schema({
   endTime: Date,
   duration: Number,
   jointAngles: {
-    type: Map,
-    of: {
-      current: Number,
-      ideal: Number,
-      deviation: Number,
-      isCorrect: Boolean
-    }
+    type: mongoose.Schema.Types.Mixed,  // 🔥 CHANGE from Map to Mixed
+    default: {}
   },
   corrections: [{
     joint: String,
     message: String,
     timestamp: Date,
-    severity: String
+    severity: String,
+    currentAngle: Number,
+    idealAngle: Number,
+    deviation: Number
   }],
   score: Number,
   feedback: {
     postureAccuracy: Number,
     alignmentScore: Number,
-    suggestions: [String]
+    suggestions: [String],
+    validJointsCount: Number,
+    wrongJointsCount: Number,
+    correctJointsCount: Number,
+    canStartTimer: Boolean
   },
   difficultyLevel: String
 }, { timestamps: true });

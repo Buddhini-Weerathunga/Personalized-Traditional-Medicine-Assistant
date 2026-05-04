@@ -9,22 +9,54 @@ const AudioFeedbackController = ({
   onAudioToggle,
   isAudioEnabled,
   timeLeft,
-  isTimerRunning
+  isTimerRunning,
+  onPoseCorrectAnnounced,
+  detectionStatus,
+  positionStatus,
+  onTimerComplete
 }) => {
   const [lastSpokenTime, setLastSpokenTime] = useState({});
   const [isSpeaking, setIsSpeaking] = useState(false);
-  const [lastAccuracy, setLastAccuracy] = useState(0);
   const [correctPoseAnnounced, setCorrectPoseAnnounced] = useState(false);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [positionFixedAnnounced, setPositionFixedAnnounced] = useState(false);
+  const [completionPlayed, setCompletionPlayed] = useState(false);
+  const [waitingForAudioToFinish, setWaitingForAudioToFinish] = useState(false);
   const speechSynthRef = useRef(null);
 
   useEffect(() => {
     if (typeof window !== 'undefined') {
       speechSynthRef.current = window.speechSynthesis;
+      speechSynthRef.current.getVoices();
     }
+    
+    return () => {
+      if (speechSynthRef.current) {
+        speechSynthRef.current.cancel();
+      }
+    };
   }, []);
 
-  const speak = (text, priority = 'normal') => {
-    if (!speechSynthRef.current || !isAudioEnabled) return;
+  // Stop all audio when isPracticing becomes false
+  useEffect(() => {
+    if (!isPracticing && speechSynthRef.current) {
+      speechSynthRef.current.cancel();
+      setIsSpeaking(false);
+      setIsTransitioning(false);
+      setLastSpokenTime({});
+      setCorrectPoseAnnounced(false);
+      setPositionFixedAnnounced(false);
+      setCompletionPlayed(false);
+      setWaitingForAudioToFinish(false);
+    }
+  }, [isPracticing]);
+
+  const speak = (text, priority = 'normal', callback) => {
+    if (!speechSynthRef.current || !isAudioEnabled || !isPracticing) {
+      console.log('🔇 Cannot speak - audio disabled or not practicing');
+      if (callback) callback();
+      return;
+    }
 
     if (priority === 'high') {
       speechSynthRef.current.cancel();
@@ -34,8 +66,11 @@ const AudioFeedbackController = ({
     
     const voices = speechSynthRef.current.getVoices();
     const preferredVoice = voices.find(voice => 
-      voice.name.includes('Google UK') || 
+      voice.name.includes('Google UK Female') || 
       voice.name.includes('Samantha') ||
+      voice.name.includes('Google UK English Female') ||
+      (voice.name.includes('Google') && voice.name.includes('Female')) ||
+      voice.name.includes('Microsoft Zira') ||
       voice.name.includes('Female')
     ) || voices[0];
     
@@ -47,138 +82,253 @@ const AudioFeedbackController = ({
     utterance.pitch = 1.0;
     utterance.volume = 1.0;
 
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    utterance.onstart = () => {
+      setIsSpeaking(true);
+      console.log(`🔊 Speaking: ${text}`);
+    };
+    utterance.onend = () => {
+      setIsSpeaking(false);
+      console.log(`🔊 Finished: ${text}`);
+      if (callback && isPracticing) {
+        console.log('🔊 Audio finished, calling callback');
+        callback();
+      }
+    };
+    utterance.onerror = (e) => {
+      console.error('Speech error:', e);
+      setIsSpeaking(false);
+      if (callback && isPracticing) {
+        callback();
+      }
+    };
 
     speechSynthRef.current.speak(utterance);
-    console.log(`Speaking: ${text}`);
   };
 
   // Welcome message when starting
   useEffect(() => {
     if (isPracticing && poseName && !lastSpokenTime['welcome']) {
       setTimeout(() => {
-        speak(`Starting ${poseName}. I'll guide you with audio feedback.`, 'high');
+        speak(`Starting ${poseName}. Let me guide you into the correct position.`, 'high');
         setLastSpokenTime(prev => ({ ...prev, welcome: Date.now() }));
         setCorrectPoseAnnounced(false);
+        setPositionFixedAnnounced(false);
+        setIsTransitioning(false);
+        setCompletionPlayed(false);
+        setWaitingForAudioToFinish(false);
       }, 2000);
     }
   }, [isPracticing, poseName]);
 
-  // Monitor accuracy and announce when pose becomes correct (≥80%)
+  // ===== PRIORITY 1: POSITION GUIDANCE =====
   useEffect(() => {
-    if (!isPracticing || !isAudioEnabled || !feedback) return;
+    if (!isPracticing || !isAudioEnabled || isTimerRunning) return;
     
-    const currentAccuracy = feedback?.postureAccuracy || 0;
-    
-    // Check if accuracy just crossed the 80% threshold
-    if (currentAccuracy >= 80 && lastAccuracy < 80 && !correctPoseAnnounced) {
-      // Pose just became correct!
-      const messages = [
-        `Perfect! You've got the correct ${poseName} pose. Hold it steady.`,
-        `Excellent form! Your pose is correct. Keep breathing.`,
-        `Great alignment! You've achieved ${currentAccuracy}% accuracy. Hold the pose.`,
-        `Beautiful! Correct pose achieved. Now hold for the timer.`
-      ];
-      const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-      speak(randomMessage, 'high');
-      setCorrectPoseAnnounced(true);
+    const isPositionGood = positionStatus && 
+      positionStatus.personDetected &&
+      positionStatus.distance === 'good' &&
+      positionStatus.centering === 'centered' &&
+      positionStatus.bodyVisibility === 'full';
+
+    if (isPositionGood && !positionFixedAnnounced && !isTransitioning) {
+      setIsTransitioning(true);
       
-      // Also announce timer start if timer is running
-      if (isTimerRunning) {
-        setTimeout(() => {
-          speak(`Timer started. Hold for ${timeLeft} seconds.`, 'normal');
-        }, 2000);
+      if (speechSynthRef.current) {
+        speechSynthRef.current.cancel();
+      }
+      
+      setTimeout(() => {
+        const messages = [
+          "Perfect camera position! Now let's work on your pose alignment.",
+          "Great! Your position is perfect. Now focus on your posture.",
+          "Excellent camera view! Now I'll guide you into the correct pose."
+        ];
+        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
+        
+        speak(randomMessage, 'high', () => {
+          setIsTransitioning(false);
+          setPositionFixedAnnounced(true);
+        });
+      }, 300);
+      return;
+    }
+    
+    if (isPositionGood && positionFixedAnnounced) return;
+    
+    if (positionStatus && positionStatus.personDetected && !positionFixedAnnounced) {
+      const now = Date.now();
+      const lastPositionMessage = lastSpokenTime['positionMessage'] || 0;
+      
+      if (now - lastPositionMessage > 5000) {
+        let message = '';
+        
+        if (positionStatus.distance === 'too_far') {
+          message = "You are too far away. Please step closer to the camera.";
+        } else if (positionStatus.distance === 'too_close') {
+          message = "You are too close. Please step back so I can see your full body.";
+        } else if (positionStatus.bodyVisibility === 'feet_hidden') {
+          message = "Your feet are not visible. Please step back slightly.";
+        } else if (positionStatus.bodyVisibility === 'hands_hidden') {
+          message = "Your hands are not visible. Please step back slightly.";
+        } else if (positionStatus.bodyVisibility === 'partial') {
+          message = "I can't see your full body. Please step back.";
+        } else if (positionStatus.centering === 'left') {
+          message = "You are too far left. Please move to your right.";
+        } else if (positionStatus.centering === 'right') {
+          message = "You are too far right. Please move to your left.";
+        } else if (positionStatus.centering === 'off_center') {
+          message = "Please center yourself in the frame.";
+        }
+        
+        if (message) {
+          speak(message, 'high');
+          setLastSpokenTime(prev => ({ ...prev, positionMessage: now }));
+        }
+      }
+      return;
+    }
+    
+    if (!isPositionGood && positionFixedAnnounced) {
+      setPositionFixedAnnounced(false);
+      setCorrectPoseAnnounced(false);
+    }
+    
+  }, [positionStatus, isPracticing, isAudioEnabled, isTimerRunning, positionFixedAnnounced]);
+
+  // ===== PRIORITY 2: GIVE CORRECTIONS WHEN POSE IS WRONG =====
+  useEffect(() => {
+    if (!isPracticing || !isAudioEnabled) return;
+    if (!positionFixedAnnounced) return;
+    if (isTimerRunning) return;
+    if (waitingForAudioToFinish) return; // Don't interrupt while waiting for timer start audio
+    
+    const wrongJointsCount = feedback?.wrongJointsCount ?? 99;
+    const hasWrongJoints = wrongJointsCount > 0;
+    
+    // GIVE INSTRUCTIONS FOR WRONG JOINTS
+    if (hasWrongJoints && !isTimerRunning && corrections.length > 0 && !correctPoseAnnounced) {
+      const now = Date.now();
+      const lastGuidance = lastSpokenTime['guidance'] || 0;
+      
+      if (now - lastGuidance > 4000) {
+        const highSeverityCorrections = corrections.filter(c => c.severity === 'high');
+        const correctionToSpeak = highSeverityCorrections.length > 0 
+          ? highSeverityCorrections[0] 
+          : corrections[0];
+        
+        console.log(`🎯 Speaking correction: ${correctionToSpeak.message}`);
+        speak(correctionToSpeak.message, 'high');
+        setLastSpokenTime(prev => ({ ...prev, guidance: now }));
       }
     }
     
-    // If accuracy drops below 80% after being correct, reset announcement flag
-    if (currentAccuracy < 80 && lastAccuracy >= 80) {
-      setCorrectPoseAnnounced(false);
-      speak("Posture needs adjustment. Please correct your form.", 'high');
+    // When pose becomes perfect (0 wrong joints)
+    if (!hasWrongJoints && !correctPoseAnnounced && !isTimerRunning && positionFixedAnnounced && !waitingForAudioToFinish) {
+      console.log('🎯 Perfect pose! Announcing timer start...');
+      setWaitingForAudioToFinish(true); // 🔥 Block further corrections until audio finishes
+      setIsTransitioning(true);
+      
+      if (speechSynthRef.current) {
+        speechSynthRef.current.cancel();
+      }
+      
+      setTimeout(() => {
+        speak(`Perfect ${poseName}! Starting timer.`, 'high', () => {
+          console.log('🎯 Timer start audio FINISHED! Now starting timer...');
+          setIsTransitioning(false);
+          setWaitingForAudioToFinish(false);
+          // 🔥 ONLY NOW start the timer - after audio finishes
+          if (onPoseCorrectAnnounced && isPracticing) {
+            onPoseCorrectAnnounced();
+          }
+        });
+        setCorrectPoseAnnounced(true);
+      }, 300);
     }
     
-    setLastAccuracy(currentAccuracy);
-  }, [feedback, isPracticing, isAudioEnabled, poseName, correctPoseAnnounced, isTimerRunning, timeLeft]);
+    // Encouragement when close
+    if (wrongJointsCount === 1 && !lastSpokenTime['close'] && !isTimerRunning && !correctPoseAnnounced && !waitingForAudioToFinish) {
+      const now = Date.now();
+      if (now - (lastSpokenTime['close'] || 0) > 8000) {
+        speak("Almost perfect! Just one small adjustment.", 'normal');
+        setLastSpokenTime(prev => ({ ...prev, close: now }));
+      }
+    }
+    
+  }, [feedback, corrections, isPracticing, isAudioEnabled, poseName, correctPoseAnnounced, isTimerRunning, positionFixedAnnounced, onPoseCorrectAnnounced, waitingForAudioToFinish]);
 
   // Timer countdown announcements
   useEffect(() => {
-    if (!isPracticing || !isAudioEnabled || !isTimerRunning) return;
+    if (!isPracticing || !isAudioEnabled || !isTimerRunning || isTransitioning) return;
+    if (!correctPoseAnnounced) return;
+    if (waitingForAudioToFinish) return;
 
-    // Only announce timer if pose is correct (accuracy ≥80%)
-    if ((feedback?.postureAccuracy || 0) >= 80) {
-      // Announce at 30, 20, 10, 5 seconds
-      if (timeLeft === 30 && !lastSpokenTime['30s']) {
-        speak("30 seconds remaining");
-        setLastSpokenTime(prev => ({ ...prev, '30s': Date.now() }));
-      }
-      if (timeLeft === 20 && !lastSpokenTime['20s']) {
-        speak("20 seconds remaining");
-        setLastSpokenTime(prev => ({ ...prev, '20s': Date.now() }));
-      }
-      if (timeLeft === 10 && !lastSpokenTime['10s']) {
-        speak("10 seconds remaining");
-        setLastSpokenTime(prev => ({ ...prev, '10s': Date.now() }));
-      }
-      if (timeLeft === 5 && !lastSpokenTime['5s']) {
-        speak("5 seconds left, hold steady");
-        setLastSpokenTime(prev => ({ ...prev, '5s': Date.now() }));
-      }
+    const now = Date.now();
+    
+    if (timeLeft === 30 && !lastSpokenTime['30s']) {
+      speak("30 seconds remaining. Keep breathing.", 'normal');
+      setLastSpokenTime(prev => ({ ...prev, '30s': now }));
     }
-  }, [timeLeft, isPracticing, isAudioEnabled, isTimerRunning, feedback]);
+    else if (timeLeft === 20 && !lastSpokenTime['20s']) {
+      speak("20 seconds remaining. Stay focused.", 'normal');
+      setLastSpokenTime(prev => ({ ...prev, '20s': now }));
+    }
+    else if (timeLeft === 15 && !lastSpokenTime['15s']) {
+      speak("15 seconds remaining", 'normal');
+      setLastSpokenTime(prev => ({ ...prev, '15s': now }));
+    }
+    else if (timeLeft === 10 && !lastSpokenTime['10s']) {
+      speak("10 seconds remaining. Almost there!", 'normal');
+      setLastSpokenTime(prev => ({ ...prev, '10s': now }));
+    }
+    else if (timeLeft === 5 && !lastSpokenTime['5s']) {
+      speak("5 seconds left! Hold steady.", 'normal');
+      setLastSpokenTime(prev => ({ ...prev, '5s': now }));
+    }
+    else if (timeLeft === 3 && !lastSpokenTime['3s']) {
+      speak("3", 'normal');
+      setLastSpokenTime(prev => ({ ...prev, '3s': now }));
+    }
+    else if (timeLeft === 2 && !lastSpokenTime['2s']) {
+      speak("2", 'normal');
+      setLastSpokenTime(prev => ({ ...prev, '2s': now }));
+    }
+    else if (timeLeft === 1 && !lastSpokenTime['1s']) {
+      speak("1", 'normal');
+      setLastSpokenTime(prev => ({ ...prev, '1s': now }));
+    }
+  }, [timeLeft, isPracticing, isAudioEnabled, isTimerRunning, isTransitioning, correctPoseAnnounced, waitingForAudioToFinish]);
 
-  // Handle corrections - only speak if accuracy is below 80%
+  // Timer completion audio
   useEffect(() => {
-    if (!isPracticing || !isAudioEnabled || !corrections || corrections.length === 0) return;
-    
-    const currentAccuracy = feedback?.postureAccuracy || 0;
-    
-    // Only give correction audio if pose is not correct (accuracy < 80%)
-    if (currentAccuracy < 80) {
-      const now = Date.now();
+    if (isTimerRunning && timeLeft === 0 && !completionPlayed && correctPoseAnnounced) {
+      console.log('🎉 Timer completed! Playing completion audio...');
+      setCompletionPlayed(true);
+      setWaitingForAudioToFinish(true);
       
-      corrections.forEach((correction) => {
-        const lastSpoken = lastSpokenTime[correction.joint] || 0;
-        
-        if (now - lastSpoken > 8000) {
-          // Add timer context to corrections
-          let message = correction.message;
-          if (timeLeft <= 10 && isTimerRunning) {
-            message = `${correction.message}, ${timeLeft} seconds left`;
+      if (speechSynthRef.current) {
+        speechSynthRef.current.cancel();
+      }
+      
+      setTimeout(() => {
+        speak(`Excellent work! You held ${poseName} for 30 seconds. Great job!`, 'high', () => {
+          console.log('✅ Completion audio finished');
+          setWaitingForAudioToFinish(false);
+          if (onTimerComplete) {
+            onTimerComplete();
           }
-          
-          speak(message, 'high');
-          setLastSpokenTime(prev => ({ ...prev, [correction.joint]: now }));
-        }
-      });
+        });
+      }, 100);
     }
-  }, [corrections, isPracticing, isAudioEnabled, timeLeft, feedback]);
+  }, [isTimerRunning, timeLeft, completionPlayed, correctPoseAnnounced, poseName, onTimerComplete]);
 
-  // Give encouragement when holding correct pose
+  // Reset flags when new session starts
   useEffect(() => {
-    if (!isPracticing || !isAudioEnabled || !feedback) return;
-
-    const currentAccuracy = feedback?.postureAccuracy || 0;
-    
-    // Only give encouragement if pose is correct and timer is running
-    if (currentAccuracy >= 80 && isTimerRunning) {
-      const now = Date.now();
-      const lastEncouragement = lastSpokenTime['encouragement'] || 0;
-      
-      if (now - lastEncouragement > 15000) { // Every 15 seconds
-        const messages = [
-          `Perfect form! ${timeLeft} seconds left. Keep breathing.`,
-          `Excellent alignment! You're doing great.`,
-          `Hold steady. ${timeLeft} seconds remaining.`,
-          `Beautiful pose! Stay focused on your breath.`
-        ];
-        const randomMessage = messages[Math.floor(Math.random() * messages.length)];
-        speak(randomMessage, 'normal');
-        setLastSpokenTime(prev => ({ ...prev, encouragement: now }));
-      }
+    if (isPracticing && !isTimerRunning && timeLeft > 0) {
+      setCompletionPlayed(false);
+      setWaitingForAudioToFinish(false);
     }
-  }, [feedback, isPracticing, isAudioEnabled, timeLeft, isTimerRunning]);
+  }, [isPracticing, isTimerRunning, timeLeft]);
 
   return (
     <div className="bg-white rounded-xl shadow-lg p-4 mb-4">
@@ -198,19 +348,22 @@ const AudioFeedbackController = ({
               {isSpeaking ? 'Speaking...' : isAudioEnabled ? 'Audio Active' : 'Audio Muted'}
             </p>
             <div className="flex items-center gap-2 text-xs text-gray-500">
-              <span className={`font-medium ${(feedback?.postureAccuracy || 0) >= 80 ? 'text-green-600' : 'text-yellow-600'}`}>
-                {(feedback?.postureAccuracy || 0) >= 80 ? '✅ Correct Pose' : '⏳ Adjusting'}
+              <span className={`font-medium ${
+                !positionFixedAnnounced ? 'text-purple-600' :
+                correctPoseAnnounced && isTimerRunning ? 'text-green-600' :
+                waitingForAudioToFinish ? 'text-orange-600' :
+                (feedback?.wrongJointsCount ?? 99) === 0 ? 'text-green-500' : 'text-yellow-600'
+              }`}>
+                {!positionFixedAnnounced ? '📍 Positioning...' :
+                 correctPoseAnnounced && isTimerRunning ? '⏱️ Timer Running' :
+                 waitingForAudioToFinish ? '⏳ Waiting for audio...' :
+                 (feedback?.wrongJointsCount ?? 99) === 0 ? '🎯 Perfect!' : 
+                 '🎯 Adjusting Pose'}
               </span>
               <span>•</span>
               <span>{timeLeft}s</span>
               <span>•</span>
-              <span>
-                {corrections.length > 0 && (feedback?.postureAccuracy || 0) < 80
-                  ? `${corrections.length} correction${corrections.length > 1 ? 's' : ''}` 
-                  : (feedback?.postureAccuracy || 0) >= 80 
-                    ? 'Perfect form!' 
-                    : 'Analyzing...'}
-              </span>
+              <span>{detectionStatus?.jointCount || 0} joints</span>
             </div>
           </div>
         </div>
@@ -227,30 +380,40 @@ const AudioFeedbackController = ({
         </button>
       </div>
 
-      {/* Success message when pose is correct */}
-      {(feedback?.postureAccuracy || 0) >= 80 && (
+      {/* Waiting for audio indicator */}
+      {waitingForAudioToFinish && !isTimerRunning && correctPoseAnnounced && (
+        <div className="mt-3 p-3 bg-orange-50 border border-orange-200 rounded-lg animate-pulse">
+          <div className="flex items-center gap-2 text-orange-700">
+            <span>⏳</span>
+            <span className="font-medium">Waiting for audio to finish before starting timer...</span>
+          </div>
+        </div>
+      )}
+
+      {/* Timer Status */}
+      {correctPoseAnnounced && isTimerRunning && (
         <div className="mt-3 p-3 bg-green-50 border border-green-200 rounded-lg">
           <div className="flex items-center gap-2 text-green-700">
             <CheckCircle className="w-5 h-5" />
-            <span className="font-medium">✓ Correct Pose! Accuracy: {Math.round(feedback.postureAccuracy)}%</span>
+            <span className="font-medium">⏱️ Timer Running - {timeLeft}s remaining</span>
           </div>
-          {isTimerRunning && (
-            <p className="text-xs text-green-600 mt-1">Timer running - hold for {timeLeft} more seconds</p>
-          )}
         </div>
       )}
 
-      {/* Current instruction being spoken - only show if pose is not correct */}
-      {isSpeaking && corrections.length > 0 && (feedback?.postureAccuracy || 0) < 80 && (
+      {/* Current Instruction Being Spoken */}
+      {isSpeaking && !isTimerRunning && corrections.length > 0 && !waitingForAudioToFinish && (
         <div className="mt-3 p-3 bg-blue-50 rounded-lg text-sm text-blue-700 animate-pulse border border-blue-200">
-          <span className="font-medium">🔊 Now speaking:</span> {corrections[0].message}
+          <span className="font-medium">🔊 Instruction:</span> {corrections[0].message}
         </div>
       )}
 
-      {/* Timer warning - only if pose is correct */}
-      {timeLeft <= 5 && timeLeft > 0 && isTimerRunning && (feedback?.postureAccuracy || 0) >= 80 && (
-        <div className="mt-3 p-2 bg-red-50 rounded-lg text-sm text-red-700 animate-pulse border border-red-200">
-          ⏰ {timeLeft} seconds remaining! Hold steady.
+      {/* Perfect pose indicator */}
+      {(feedback?.wrongJointsCount ?? 99) === 0 && !correctPoseAnnounced && positionFixedAnnounced && !waitingForAudioToFinish && (
+        <div className="mt-3 p-3 bg-green-100 border border-green-300 rounded-lg">
+          <div className="flex items-center gap-2 text-green-700">
+            <CheckCircle className="w-5 h-5" />
+            <span className="font-medium">✓ Perfect Pose! Timer starting soon...</span>
+          </div>
         </div>
       )}
     </div>
