@@ -7,6 +7,7 @@ const PoseDetector = ({
   videoRef, 
   canvasRef, 
   onPoseDetected, 
+  onPositionStatus,
   isActive,
   onStatusChange 
 }) => {
@@ -52,7 +53,6 @@ const PoseDetector = ({
       console.log('MoveNet detector created');
       setIsLoading(false);
       
-      // Wait for video to be ready
       if (videoRef.current?.readyState >= 2) {
         startDetection();
       }
@@ -66,7 +66,6 @@ const PoseDetector = ({
   const startDetection = () => {
     if (!videoRef.current || !canvasRef.current || !detectorRef.current) return;
 
-    // Check if video has valid dimensions
     if (videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) {
       console.log('Waiting for video dimensions...');
       setTimeout(startDetection, 100);
@@ -75,9 +74,7 @@ const PoseDetector = ({
 
     const detect = async () => {
       try {
-        // Double-check video dimensions before processing
         if (videoRef.current.videoWidth === 0 || videoRef.current.videoHeight === 0) {
-          console.log('Video dimensions not ready yet');
           return;
         }
 
@@ -94,15 +91,22 @@ const PoseDetector = ({
             ? validKeypoints.reduce((sum, k) => sum + (k.score || 0), 0) / validKeypoints.length * 100
             : 0;
           
+          const positionStatus = calculatePersonPosition(pose.keypoints, videoRef.current.videoWidth, videoRef.current.videoHeight);
+          
+          if (onPositionStatus) {
+            onPositionStatus(positionStatus);
+          }
+          
           if (onStatusChange) {
             onStatusChange({
               isDetecting: validKeypoints.length >= 5,
               jointCount: validKeypoints.length,
-              confidence: Math.round(avgConfidence)
+              confidence: Math.round(avgConfidence),
+              positionStatus: positionStatus
             });
           }
           
-          drawPose(pose);
+          drawPose(pose, positionStatus);
           
           const angles = calculateJointAngles(pose.keypoints);
           
@@ -117,6 +121,13 @@ const PoseDetector = ({
             }
           }
         } else {
+          if (onPositionStatus) {
+            onPositionStatus({
+              personDetected: false,
+              message: "No person detected. Please stand in front of camera.",
+              instruction: "stand_in_front"
+            });
+          }
           if (onStatusChange) {
             onStatusChange({
               isDetecting: false,
@@ -128,7 +139,6 @@ const PoseDetector = ({
         }
       } catch (err) {
         console.error('Detection error:', err);
-        // Don't stop detection on error, just log it
       }
 
       if (isActive) {
@@ -137,6 +147,134 @@ const PoseDetector = ({
     };
 
     detect();
+  };
+
+  const calculatePersonPosition = (keypoints, videoWidth, videoHeight) => {
+    const head = keypoints.find(k => k.name?.toLowerCase().includes('nose') || k.name?.toLowerCase().includes('head'));
+    const leftAnkle = keypoints.find(k => k.name?.toLowerCase().includes('left_ankle'));
+    const rightAnkle = keypoints.find(k => k.name?.toLowerCase().includes('right_ankle'));
+    const leftWrist = keypoints.find(k => k.name?.toLowerCase().includes('left_wrist'));
+    const rightWrist = keypoints.find(k => k.name?.toLowerCase().includes('right_wrist'));
+    
+    if (!head) {
+      return {
+        personDetected: false,
+        message: "Cannot detect your position. Please stand clearly in frame.",
+        instruction: "stand_in_front"
+      };
+    }
+    
+    let feetY = 0;
+    if (leftAnkle && rightAnkle) {
+      feetY = Math.max(leftAnkle.y, rightAnkle.y);
+    } else if (leftAnkle) {
+      feetY = leftAnkle.y;
+    } else if (rightAnkle) {
+      feetY = rightAnkle.y;
+    } else {
+      feetY = head.y + 200;
+    }
+    
+    const personHeightPx = feetY - head.y;
+    const videoHeightPx = videoHeight;
+    const heightPercentage = (personHeightPx / videoHeightPx) * 100;
+    
+    const leftShoulder = keypoints.find(k => k.name?.toLowerCase().includes('left_shoulder'));
+    const rightShoulder = keypoints.find(k => k.name?.toLowerCase().includes('right_shoulder'));
+    
+    let centerX = videoWidth / 2;
+    if (leftShoulder && rightShoulder) {
+      centerX = (leftShoulder.x + rightShoulder.x) / 2;
+    } else if (leftShoulder) {
+      centerX = leftShoulder.x;
+    } else if (rightShoulder) {
+      centerX = rightShoulder.x;
+    }
+    
+    const horizontalOffset = Math.abs(centerX - videoWidth / 2);
+    
+    // UPDATED: More forgiving centering thresholds
+    const isCentered = horizontalOffset < videoWidth * 0.20;  
+    const isTooFarLeft = centerX < videoWidth * 0.20;        
+    const isTooFarRight = centerX > videoWidth * 0.80;       
+    
+    // UPDATED: More forgiving distance thresholds
+    let distanceStatus = "good";
+    let distanceMessage = "";
+    let instruction = "";
+    
+    if (heightPercentage < 25) {  
+      distanceStatus = "too_far";
+      distanceMessage = "You are too far away. Please step closer.";
+      instruction = "step_closer";
+    } else if (heightPercentage > 80) {  
+      distanceStatus = "too_close";
+      distanceMessage = "You are too close. Please step back.";
+      instruction = "step_back";
+    } else if (heightPercentage >= 25 && heightPercentage <= 80) {
+      distanceStatus = "good";
+      distanceMessage = "";
+      instruction = "good_position";
+    }
+    
+    let centeringStatus = "good";
+    let centeringMessage = "";
+    
+    if (isTooFarLeft) {
+      centeringStatus = "left";
+      centeringMessage = "Please move to your right to center yourself.";
+      if (!distanceMessage) instruction = "center_yourself";
+    } else if (isTooFarRight) {
+      centeringStatus = "right";
+      centeringMessage = "Please move to your left to center yourself.";
+      if (!distanceMessage) instruction = "center_yourself";
+    } else if (!isCentered) {
+      centeringStatus = "off_center";
+      centeringMessage = "Please center yourself in the frame.";
+      if (!distanceMessage) instruction = "center_yourself";
+    } else {
+      centeringStatus = "centered";
+      centeringMessage = "Good centering!";
+    }
+    
+    const hasAnkles = leftAnkle && rightAnkle;
+    const hasWrists = leftWrist && rightWrist;
+    let bodyVisibility = "full";
+    let visibilityMessage = "";
+    
+    if (!hasAnkles && !hasWrists) {
+      bodyVisibility = "partial";
+      visibilityMessage = "I can't see your full body. Please step back.";
+      if (instruction === "good_position") instruction = "step_back_full_body";
+    } else if (!hasAnkles) {
+      bodyVisibility = "feet_hidden";
+      visibilityMessage = "Your feet are not visible. Please step back.";
+      if (instruction === "good_position") instruction = "step_back_feet";
+    } else if (!hasWrists) {
+      bodyVisibility = "hands_hidden";
+      visibilityMessage = "Your hands are not visible. Please step back slightly.";
+    }
+    
+    let finalMessage = "";
+    if (distanceMessage) finalMessage = distanceMessage;
+    else if (centeringMessage) finalMessage = centeringMessage;
+    else if (visibilityMessage) finalMessage = visibilityMessage;
+    else finalMessage = "Perfect position! You're ready to begin.";
+    
+    return {
+      personDetected: true,
+      distance: distanceStatus,
+      centering: centeringStatus,
+      bodyVisibility: bodyVisibility,
+      heightPercentage: Math.round(heightPercentage),
+      horizontalOffset: Math.round(horizontalOffset),
+      isCentered: isCentered,
+      message: finalMessage,
+      instruction: instruction,
+      distanceMessage: distanceMessage,
+      centeringMessage: centeringMessage,
+      visibilityMessage: visibilityMessage
+    };
   };
 
   const stopDetection = () => {
@@ -155,181 +293,184 @@ const PoseDetector = ({
 
   const calculateJointAngles = (keypoints) => {
     const angles = {};
-    
-    const getPoint = (name) => {
-      const nameMap = {
-        'left_shoulder': ['left_shoulder', 'left_shoulder_1'],
-        'right_shoulder': ['right_shoulder', 'right_shoulder_1'],
-        'left_elbow': ['left_elbow', 'left_elbow_1'],
-        'right_elbow': ['right_elbow', 'right_elbow_1'],
-        'left_wrist': ['left_wrist', 'left_wrist_1'],
-        'right_wrist': ['right_wrist', 'right_wrist_1'],
-        'left_hip': ['left_hip', 'left_hip_1'],
-        'right_hip': ['right_hip', 'right_hip_1'],
-        'left_knee': ['left_knee', 'left_knee_1'],
-        'right_knee': ['right_knee', 'right_knee_1'],
-        'left_ankle': ['left_ankle', 'left_ankle_1'],
-        'right_ankle': ['right_ankle', 'right_ankle_1']
-      };
-      
-      const possibleNames = nameMap[name] || [name];
-      
-      for (const possibleName of possibleNames) {
-        const point = keypoints.find(k => 
-          k.name?.toLowerCase().includes(possibleName.toLowerCase()) ||
-          k.name?.toLowerCase().replace('_', '') === possibleName.toLowerCase().replace('_', '')
-        );
-        if (point && point.score > 0.3) return point;
-      }
-      return null;
+
+    const findPoint = (name) => {
+      const point = keypoints.find(k =>
+        k.name?.toLowerCase().includes(name.toLowerCase())
+      );
+      return point && point.score > 0.3 ? point : null;
     };
 
     const calculateAngle = (p1, p2, p3) => {
       if (!p1 || !p2 || !p3) return null;
-      
-      const a = { x: p1.x - p2.x, y: p1.y - p2.y };
-      const b = { x: p3.x - p2.x, y: p3.y - p2.y };
 
-      const dot = a.x * b.x + a.y * b.y;
-      const magA = Math.sqrt(a.x * a.x + a.y * a.y);
-      const magB = Math.sqrt(b.x * b.x + b.y * b.y);
+      // Calculate vectors
+      const v1 = { x: p1.x - p2.x, y: p1.y - p2.y };
+      const v2 = { x: p3.x - p2.x, y: p3.y - p2.y };
 
-      if (magA === 0 || magB === 0) return null;
+      // Calculate dot product
+      const dot = v1.x * v2.x + v1.y * v2.y;
 
-      const angle = Math.acos(dot / (magA * magB)) * (180 / Math.PI);
-      return Math.round(angle);
+      // Calculate magnitudes
+      const mag1 = Math.sqrt(v1.x * v1.x + v1.y * v1.y);
+      const mag2 = Math.sqrt(v2.x * v2.x + v2.y * v2.y);
+
+      if (mag1 === 0 || mag2 === 0) return null;
+
+      // Calculate angle in radians, convert to degrees
+      let angle = Math.acos(Math.min(1, Math.max(-1, dot / (mag1 * mag2)))) * (180 / Math.PI);
+      angle = Math.round(angle);
+
+      return angle;
     };
 
-    // Get all points
-    const leftShoulder = getPoint('left_shoulder');
-    const rightShoulder = getPoint('right_shoulder');
-    const leftElbow = getPoint('left_elbow');
-    const rightElbow = getPoint('right_elbow');
-    const leftWrist = getPoint('left_wrist');
-    const rightWrist = getPoint('right_wrist');
-    const leftHip = getPoint('left_hip');
-    const rightHip = getPoint('right_hip');
-    const leftKnee = getPoint('left_knee');
-    const rightKnee = getPoint('right_knee');
-    const leftAnkle = getPoint('left_ankle');
-    const rightAnkle = getPoint('right_ankle');
+    // Get all keypoints
+    const leftShoulder = findPoint('left_shoulder');
+    const rightShoulder = findPoint('right_shoulder');
+    const leftElbow = findPoint('left_elbow');
+    const rightElbow = findPoint('right_elbow');
+    const leftWrist = findPoint('left_wrist');
+    const rightWrist = findPoint('right_wrist');
+    const leftHip = findPoint('left_hip');
+    const rightHip = findPoint('right_hip');
+    const leftKnee = findPoint('left_knee');
+    const rightKnee = findPoint('right_knee');
+    const leftAnkle = findPoint('left_ankle');
+    const rightAnkle = findPoint('right_ankle');
 
-    // Calculate angles
-    if (leftElbow && leftShoulder && leftWrist) {
+    // Calculate ELBOW angles (arm straightness)
+    if (leftShoulder && leftElbow && leftWrist) {
       angles.left_elbow = calculateAngle(leftShoulder, leftElbow, leftWrist);
     }
-    
-    if (rightElbow && rightShoulder && rightWrist) {
+    if (rightShoulder && rightElbow && rightWrist) {
       angles.right_elbow = calculateAngle(rightShoulder, rightElbow, rightWrist);
     }
-    
-    if (leftShoulder && leftElbow && leftHip) {
+
+    // Calculate SHOULDER angles (arm position relative to body)
+    if (leftElbow && leftShoulder && leftHip) {
       angles.left_shoulder = calculateAngle(leftElbow, leftShoulder, leftHip);
     }
-    
-    if (rightShoulder && rightElbow && rightHip) {
+    if (rightElbow && rightShoulder && rightHip) {
       angles.right_shoulder = calculateAngle(rightElbow, rightShoulder, rightHip);
     }
-    
-    if (leftHip && leftShoulder && leftKnee) {
+
+    // Calculate HIP angles (torso vs leg)
+    if (leftShoulder && leftHip && leftKnee) {
       angles.left_hip = calculateAngle(leftShoulder, leftHip, leftKnee);
     }
-    
-    if (rightHip && rightShoulder && rightKnee) {
+    if (rightShoulder && rightHip && rightKnee) {
       angles.right_hip = calculateAngle(rightShoulder, rightHip, rightKnee);
     }
-    
-    if (leftKnee && leftHip && leftAnkle) {
+
+    // Calculate KNEE angles
+    if (leftHip && leftKnee && leftAnkle) {
       angles.left_knee = calculateAngle(leftHip, leftKnee, leftAnkle);
     }
-    
-    if (rightKnee && rightHip && rightAnkle) {
+    if (rightHip && rightKnee && rightAnkle) {
       angles.right_knee = calculateAngle(rightHip, rightKnee, rightAnkle);
     }
 
-    // Filter out null values
+    // Remove invalid angles
     Object.keys(angles).forEach(key => {
-      if (angles[key] === null || isNaN(angles[key])) {
+      if (angles[key] === null || isNaN(angles[key]) || angles[key] < 0 || angles[key] > 180) {
         delete angles[key];
       }
     });
 
-    console.log('Calculated angles:', angles);
+    console.log('📐 CALCULATED ANGLES:', angles);
+
     return angles;
   };
 
-  const drawPose = (pose) => {
-    if (!canvasRef.current || !videoRef.current) return;
+const drawPose = (pose, idealAngles, corrections) => {
+  if (!canvasRef.current || !videoRef.current) return;
 
-    const canvas = canvasRef.current;
-    const ctx = canvas.getContext('2d');
-    const video = videoRef.current;
+  const canvas = canvasRef.current;
+  const ctx = canvas.getContext('2d');
+  const video = videoRef.current;
 
-    canvas.width = video.videoWidth;
-    canvas.height = video.videoHeight;
+  canvas.width = video.videoWidth;
+  canvas.height = video.videoHeight;
 
-    ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  ctx.save();
 
-    const { keypoints } = pose;
+  const { keypoints } = pose;
 
-    const connections = [
-      ['left_shoulder', 'right_shoulder'],
-      ['left_shoulder', 'left_elbow'],
-      ['left_elbow', 'left_wrist'],
-      ['right_shoulder', 'right_elbow'],
-      ['right_elbow', 'right_wrist'],
-      ['left_shoulder', 'left_hip'],
-      ['right_shoulder', 'right_hip'],
-      ['left_hip', 'right_hip'],
-      ['left_hip', 'left_knee'],
-      ['left_knee', 'left_ankle'],
-      ['right_hip', 'right_knee'],
-      ['right_knee', 'right_ankle']
-    ];
+  // Define connections
+  const connections = [
+    ['left_shoulder', 'right_shoulder'],
+    ['left_shoulder', 'left_elbow'],
+    ['left_elbow', 'left_wrist'],
+    ['right_shoulder', 'right_elbow'],
+    ['right_elbow', 'right_wrist'],
+    ['left_shoulder', 'left_hip'],
+    ['right_shoulder', 'right_hip'],
+    ['left_hip', 'right_hip'],
+    ['left_hip', 'left_knee'],
+    ['left_knee', 'left_ankle'],
+    ['right_hip', 'right_knee'],
+    ['right_knee', 'right_ankle']
+  ];
 
-    connections.forEach(([start, end]) => {
-      const p1 = keypoints.find(k => k.name?.includes(start));
-      const p2 = keypoints.find(k => k.name?.includes(end));
+  // Draw connections first
+  connections.forEach(([start, end]) => {
+    const p1 = keypoints.find(k => k.name?.toLowerCase().includes(start));
+    const p2 = keypoints.find(k => k.name?.toLowerCase().includes(end));
 
-      if (p1?.score > 0.3 && p2?.score > 0.3) {
-        ctx.beginPath();
-        ctx.moveTo(p1.x, p1.y);
-        ctx.lineTo(p2.x, p2.y);
-        
-        const avgScore = (p1.score + p2.score) / 2;
-        if (avgScore > 0.7) {
-          ctx.strokeStyle = '#00ff00';
-        } else if (avgScore > 0.5) {
-          ctx.strokeStyle = '#ffff00';
+    if (p1?.score > 0.3 && p2?.score > 0.3) {
+      ctx.beginPath();
+      ctx.moveTo(p1.x, p1.y);
+      ctx.lineTo(p2.x, p2.y);
+      ctx.strokeStyle = '#00ff00';
+      ctx.lineWidth = 3;
+      ctx.stroke();
+    }
+  });
+
+  // Draw keypoints with color based on correctness
+  keypoints.forEach(point => {
+    if (point.score > 0.3) {
+      ctx.beginPath();
+      ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
+      
+      // 🔥 COLOR BASED ON CORRECTNESS
+      let color = '#ffff00'; // Default yellow for low confidence
+      
+      // Check if this joint is wrong
+      const jointName = point.name?.toLowerCase();
+      const isWrong = corrections?.some(c => c.joint.includes(jointName));
+      
+      if (point.score > 0.7) {
+        if (isWrong) {
+          color = '#ff0000'; 
         } else {
-          ctx.strokeStyle = '#ff0000';
+          color = '#00ff00'; 
         }
-        
-        ctx.lineWidth = 3;
-        ctx.stroke();
+      } else if (point.score > 0.5) {
+        color = '#ffff00'; 
+      } else {
+        color = '#ff6600'; 
       }
-    });
-
-    keypoints.forEach(point => {
-      if (point.score > 0.3) {
-        ctx.beginPath();
-        ctx.arc(point.x, point.y, 6, 0, 2 * Math.PI);
-        
-        if (point.score > 0.7) {
-          ctx.fillStyle = '#00ff00';
-        } else if (point.score > 0.5) {
-          ctx.fillStyle = '#ffff00';
-        } else {
-          ctx.fillStyle = '#ff0000';
-        }
-        
-        ctx.fill();
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-      }
-    });
-  };
+      
+      ctx.fillStyle = color;
+      ctx.fill();
+      ctx.strokeStyle = '#ffffff';
+      ctx.lineWidth = 2;
+      ctx.stroke();
+      
+      // Add text label
+      ctx.font = '12px Arial';
+      ctx.fillStyle = '#ffffff';
+      ctx.shadowBlur = 2;
+      ctx.shadowColor = 'black';
+      ctx.fillText(point.name?.replace('_', ' ') || '', point.x + 8, point.y - 8);
+      ctx.shadowBlur = 0;
+    }
+  });
+  
+  ctx.restore();
+};
 
   if (error) {
     return (
