@@ -602,7 +602,7 @@ const loadPoses = async () => {
       ) : (
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredPoses.filter(pose =>
-            !['Warrior II', 'Tree Pose', 'Eagle Arms Pose', 'Half Moon Pose', 'Warrior I', 'Downward Dog', 'Plank Pose'].includes(pose.name)
+            !['Chair Pose','Warrior II', 'Tree Pose', 'Half Moon Pose', 'Warrior I', 'Downward Dog', 'Plank Pose'].includes(pose.name)
           ).map((pose) => (
             <div
               key={pose._id}
